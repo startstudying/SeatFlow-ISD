@@ -1,0 +1,91 @@
+[protocol]
+name = "seatranklite-r3-stability"
+version = 3
+outer_r2_results_read_only = true
+future_blind_models = 1
+maximum_new_configurations = 5
+selection_mode = "cascading_gates"
+
+[inner_development]
+folds = [0, 1]
+seeds = [2026, 2027, 2028]
+expected_runs_per_configuration = 6
+minimum_positive_net_runs = 4
+require_each_fold_seed_mean_non_negative = true
+rank_ic_median_floor_source = "r2_frozen"
+minimum_seed_net_std_reduction = 0.10
+
+[final_development]
+folds = [0, 1, 2]
+seeds = [2026, 2027, 2028, 2029, 2030]
+expected_runs = 15
+minimum_positive_net_runs = 10
+minimum_positive_fold_means = 2
+require_positive_mean_rank_ic = true
+require_rank_ic_std_below_r2 = true
+require_top5_overlap_above_r2 = true
+require_positive_net_after_cost = true
+
+[resource_limits]
+device = "cuda"
+serial_seed_workers = 1
+graphs_per_step = 1
+maximum_peak_gpu_gib = 7.2
+maximum_parameters = 5000000
+
+[selection_priority]
+order = [
+  "worst_fold_net_spread",
+  "seed_net_spread_std",
+  "top5_overlap",
+  "mean_net_spread",
+  "parameter_count",
+]
+
+[task25.objectives.L0]
+smooth_l1_weight = 0.45
+pairwise_rank_weight = 0.30
+pearson_weight = 0.15
+direction_weight = 0.10
+target = "residual_return"
+
+[task25.objectives.L1]
+smooth_l1_weight = 0.35
+pairwise_rank_weight = 0.40
+pearson_weight = 0.15
+direction_weight = 0.10
+target = "residual_zscore"
+
+[task25.objectives.L2]
+smooth_l1_weight = 0.30
+lambda_rank_at5_weight = 0.45
+pearson_weight = 0.15
+direction_weight = 0.10
+regression_target = "residual_zscore"
+ranking_target = "residual_rank_percentile"
+
+[task25.lambda_rank]
+k = 5
+true_top_fraction = 0.20
+prediction_boundary_start = 1
+prediction_boundary_end = 10
+maximum_pairs_per_date = 1024
+allow_full_pair_matrix = false
+
+[stability_thresholds]
+rank_ic_seed_std_high = 0.03
+rank_ic_close_std = 0.01
+top5_jaccard_low = 0.40
+regime_rank_ic_gap_high = 0.04
+ablation_increment_min = 0.0
+
+[prohibited_first_round]
+gru = true
+seat_dynamic_profile = true
+market_film = true
+ema = true
+relation_dropout = true
+consistency_loss = true
+top5_margin = true
+hypergraph = true
+
