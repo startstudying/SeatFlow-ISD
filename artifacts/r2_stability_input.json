@@ -1,0 +1,6 @@
+{
+  "source_manifest": "artifacts/r2_frozen_manifest.json",
+  "predictions": [],
+  "run_metrics": [],
+  "ablations": {}
+}

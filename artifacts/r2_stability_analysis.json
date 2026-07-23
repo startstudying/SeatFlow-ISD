@@ -1,0 +1,19 @@
+{
+  "evidence_gaps": [
+    "missing_run_metrics:[(0, 2026), (0, 2027), (0, 2028), (0, 2029), (0, 2030), (1, 2026), (1, 2027), (1, 2028), (1, 2029), (1, 2030), (2, 2026), (2, 2027), (2, 2028), (2, 2029), (2, 2030)]",
+    "missing_prediction_runs:[(0, 2026), (0, 2027), (0, 2028), (0, 2029), (0, 2030), (1, 2026), (1, 2027), (1, 2028), (1, 2029), (1, 2030), (2, 2026), (2, 2027), (2, 2028), (2, 2029), (2, 2030)]",
+    "missing_stock_identity",
+    "missing_targets",
+    "missing_inference_ablations"
+  ],
+  "failure_classes": [],
+  "failure_classification": {},
+  "status": "insufficient_evidence",
+  "thresholds": {
+    "ablation_increment_min": 0.0,
+    "rank_ic_close_std": 0.01,
+    "rank_ic_seed_std_high": 0.03,
+    "regime_rank_ic_gap_high": 0.04,
+    "top5_jaccard_low": 0.4
+  }
+}
