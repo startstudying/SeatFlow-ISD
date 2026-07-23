@@ -26,6 +26,8 @@ class DynamicGraphBuilder:
         correlation_min_abs: float = 0.5,
         cooccurrence_max_records_per_stock: int | None = None,
         enable_seat_cooccurrence: bool = True,
+        enable_concept_graph: bool = True,
+        add_reverse_relations: bool = False,
     ) -> None:
         if decay_lambda < 0:
             raise ValueError("decay_lambda must be non-negative")
@@ -38,6 +40,8 @@ class DynamicGraphBuilder:
         self.correlation_min_abs = correlation_min_abs
         self.cooccurrence_max_records_per_stock = cooccurrence_max_records_per_stock
         self.enable_seat_cooccurrence = enable_seat_cooccurrence
+        self.enable_concept_graph = enable_concept_graph
+        self.add_reverse_relations = add_reverse_relations
 
     def build(
         self,
@@ -94,8 +98,7 @@ class DynamicGraphBuilder:
             relation = "buys" if record.side == TradeSide.BUY else "sells"
             decay_weight = time_decay(record.amount, delta_days, self.decay_lambda)
             profile_available = 1.0 if record.seat_id in seat_profiles else 0.0
-            edges.append(
-                GraphEdge(
+            trade_edge = GraphEdge(
                     source_type=NodeType.SEAT,
                     source_id=record.seat_id,
                     relation=relation,
@@ -112,7 +115,14 @@ class DynamicGraphBuilder:
                         "edge_gate_input": decay_weight * (1.0 + profile_available),
                     },
                 )
-            )
+            edges.append(trade_edge)
+            if self.add_reverse_relations:
+                edges.append(
+                    self._reverse_edge(
+                        trade_edge,
+                        relation="bought_by" if relation == "buys" else "sold_by",
+                    )
+                )
 
             if record.industry:
                 self._add_static_relation(
@@ -121,17 +131,19 @@ class DynamicGraphBuilder:
                     record,
                     NodeType.INDUSTRY,
                     record.industry,
-                    "belongs_to_industry",
+                    "belongs_to" if self.add_reverse_relations else "belongs_to_industry",
+                    reverse_relation="contains" if self.add_reverse_relations else None,
                 )
-            for concept in record.concepts:
-                self._add_static_relation(
-                    nodes,
-                    edges,
-                    record,
-                    NodeType.CONCEPT,
-                    concept,
-                    "belongs_to_concept",
-                )
+            if self.enable_concept_graph:
+                for concept in record.concepts:
+                    self._add_static_relation(
+                        nodes,
+                        edges,
+                        record,
+                        NodeType.CONCEPT,
+                        concept,
+                        "belongs_to_concept",
+                    )
             if record.event_reason:
                 self._add_static_relation(
                     nodes,
@@ -208,10 +220,10 @@ class DynamicGraphBuilder:
         target_type: NodeType,
         target_id: str,
         relation: str,
+        reverse_relation: str | None = None,
     ) -> None:
         self._add_node(nodes, target_type, target_id)
-        edges.append(
-            GraphEdge(
+        edge = GraphEdge(
                 source_type=NodeType.STOCK,
                 source_id=record.stock_id,
                 relation=relation,
@@ -228,6 +240,21 @@ class DynamicGraphBuilder:
                     "edge_gate_input": 1.0,
                 },
             )
+        edges.append(edge)
+        if reverse_relation is not None:
+            edges.append(self._reverse_edge(edge, relation=reverse_relation))
+
+    @staticmethod
+    def _reverse_edge(edge: GraphEdge, *, relation: str) -> GraphEdge:
+        return GraphEdge(
+            source_type=edge.target_type,
+            source_id=edge.target_id,
+            relation=relation,
+            target_type=edge.source_type,
+            target_id=edge.source_id,
+            weight=edge.weight,
+            event_date=edge.event_date,
+            attributes=dict(edge.attributes),
         )
 
     @staticmethod
