@@ -20,6 +20,8 @@ def main() -> int:
     parser.add_argument("--dataset", type=Path, default=DATASET_PATH)
     parser.add_argument("--config", type=Path, default=CONFIG)
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument("--shard-count", type=int, default=1)
+    parser.add_argument("--shard-index", type=int, default=0)
     args = parser.parse_args()
     samples = load_dataset(args.dataset)
     if args.command == "manifest":
@@ -34,6 +36,8 @@ def main() -> int:
             config_path=args.config,
             manifest_path=args.output / "run_manifest.json",
             output_root=args.output,
+            shard_count=args.shard_count,
+            shard_index=args.shard_index,
         )
     return 0
 

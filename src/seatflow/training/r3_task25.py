@@ -352,9 +352,15 @@ def execute_all_planned_runs(
     config_path: str | Path,
     manifest_path: str | Path,
     output_root: str | Path,
+    shard_count: int = 1,
+    shard_index: int = 0,
 ) -> None:
     """Execute the immutable 18-run order without computing outcome metrics."""
 
+    if shard_count < 1:
+        raise ValueError("Task25 shard_count must be at least 1")
+    if not 0 <= shard_index < shard_count:
+        raise ValueError("Task25 shard_index must be within shard_count")
     config = _load_toml(config_path)
     manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
     output_root = Path(output_root)
@@ -370,7 +376,12 @@ def execute_all_planned_runs(
         **{key: value for key, value in config["model"].items() if key != "maximum_parameters"}
     )
     training = config["training"]
-    for planned in manifest["run_order"]:
+    selected_runs = _select_manifest_runs(
+        manifest["run_order"],
+        shard_count=shard_count,
+        shard_index=shard_index,
+    )
+    for planned in selected_runs:
         run_directory = output_root / planned["output_directory"]
         complete_path = run_directory / "run_complete.json"
         if complete_path.exists():
@@ -416,6 +427,17 @@ def execute_all_planned_runs(
             objective=objective,
             manifest_path=Path(manifest_path),
         )
+
+
+def _select_manifest_runs(
+    run_order: Sequence[dict[str, Any]],
+    *,
+    shard_count: int,
+    shard_index: int,
+) -> Sequence[dict[str, Any]]:
+    """Select a deterministic execution shard without changing manifest order."""
+
+    return run_order[shard_index::shard_count]
 
 
 def _ranking_batch(day_samples: Sequence[Any]) -> R2GraphBatch:

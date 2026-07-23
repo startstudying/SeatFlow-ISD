@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 from seatflow.training.r3_task25 import (
+    _select_manifest_runs,
     build_inner_folds,
     create_immutable_run_manifest,
     legalize_r3_graph,
@@ -14,6 +15,27 @@ from seatflow.training.r3_task25 import (
 
 
 class R3Task25PreflightTest(unittest.TestCase):
+    def test_execution_shards_partition_manifest_without_reordering(self) -> None:
+        runs = [{"run_id": f"run-{index}"} for index in range(18)]
+
+        shards = [
+            _select_manifest_runs(runs, shard_count=3, shard_index=index)
+            for index in range(3)
+        ]
+
+        self.assertEqual(
+            [[run["run_id"] for run in shard] for shard in shards],
+            [
+                ["run-0", "run-3", "run-6", "run-9", "run-12", "run-15"],
+                ["run-1", "run-4", "run-7", "run-10", "run-13", "run-16"],
+                ["run-2", "run-5", "run-8", "run-11", "run-14", "run-17"],
+            ],
+        )
+        self.assertEqual(
+            {run["run_id"] for shard in shards for run in shard},
+            {run["run_id"] for run in runs},
+        )
+
     def test_legacy_cooccurrence_is_removed_and_reverse_edges_are_added(self) -> None:
         try:
             import torch
