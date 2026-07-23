@@ -128,6 +128,57 @@ class CandidateResidualLabel:
     direction_label: int
 
 
+@dataclass(frozen=True)
+class CrossSectionalRankingLabel:
+    as_of_date: date
+    target_stock_id: str
+    horizon: int
+    residual_return: Decimal
+    winsorized_residual: Decimal
+    residual_zscore: float
+    residual_rank_percentile: float
+    direction_target: int
+
+
+def build_cross_sectional_ranking_labels(
+    labels: Sequence[CandidateResidualLabel],
+) -> tuple[CrossSectionalRankingLabel, ...]:
+    """Create date-local R3 targets without fitting cross-date statistics."""
+
+    grouped: dict[tuple[date, int], list[CandidateResidualLabel]] = defaultdict(list)
+    for label in labels:
+        grouped[(label.as_of_date, label.horizon)].append(label)
+    result: list[CrossSectionalRankingLabel] = []
+    for _, day_labels in sorted(grouped.items()):
+        ordered = sorted(day_labels, key=lambda item: item.target_stock_id)
+        raw = [float(item.residual_return) for item in ordered]
+        lower, upper = _linear_quantile(raw, 0.01), _linear_quantile(raw, 0.99)
+        winsorized = [min(max(value, lower), upper) for value in raw]
+        mean = sum(winsorized) / len(winsorized)
+        variance = sum((value - mean) ** 2 for value in winsorized) / len(winsorized)
+        standard_deviation = variance**0.5
+        ranks = _average_numeric_ranks(winsorized)
+        denominator = max(len(winsorized) - 1, 1)
+        for item, value, rank in zip(ordered, winsorized, ranks, strict=True):
+            result.append(
+                CrossSectionalRankingLabel(
+                    as_of_date=item.as_of_date,
+                    target_stock_id=item.target_stock_id,
+                    horizon=item.horizon,
+                    residual_return=item.residual_return,
+                    winsorized_residual=Decimal(str(value)),
+                    residual_zscore=(
+                        0.0 if standard_deviation == 0 else (value - mean) / standard_deviation
+                    ),
+                    residual_rank_percentile=(
+                        0.5 if len(winsorized) == 1 else rank / denominator
+                    ),
+                    direction_target=int(item.residual_return > 0),
+                )
+            )
+    return tuple(result)
+
+
 def build_candidate_pool_residual_labels(
     labels: Sequence[StockLabel],
     *,
@@ -166,6 +217,32 @@ def build_candidate_pool_residual_labels(
                 )
             )
     return tuple(residuals)
+
+
+def _linear_quantile(values: Sequence[float], quantile: float) -> float:
+    if not values:
+        raise ValueError("quantile requires at least one value")
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * quantile
+    lower_index = int(position)
+    upper_index = min(lower_index + 1, len(ordered) - 1)
+    fraction = position - lower_index
+    return ordered[lower_index] * (1.0 - fraction) + ordered[upper_index] * fraction
+
+
+def _average_numeric_ranks(values: Sequence[float]) -> list[float]:
+    ordered = sorted(enumerate(values), key=lambda item: item[1])
+    ranks = [0.0] * len(values)
+    start = 0
+    while start < len(ordered):
+        end = start + 1
+        while end < len(ordered) and ordered[end][1] == ordered[start][1]:
+            end += 1
+        average = (start + end - 1) / 2.0
+        for index in range(start, end):
+            ranks[ordered[index][0]] = average
+        start = end
+    return ranks
 
 
 @dataclass(frozen=True)

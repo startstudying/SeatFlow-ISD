@@ -84,6 +84,70 @@ class SampledPairwiseRankLoss:
         return torch.stack(losses).mean() if losses else predictions.sum() * 0.0
 
 
+class LambdaRankAtKLoss:
+    """Sparse LambdaRank loss focused on true leaders and the predicted K boundary."""
+
+    def __init__(
+        self,
+        k: int = 5,
+        max_pairs_per_date: int = 1024,
+        true_top_fraction: float = 0.20,
+        seed: int = 0,
+    ) -> None:
+        if k <= 0 or max_pairs_per_date <= 0:
+            raise ValueError("LambdaRank k and pair limit must be positive")
+        if not 0 < true_top_fraction < 1:
+            raise ValueError("true_top_fraction must be between zero and one")
+        self.k = k
+        self.max_pairs_per_date = max_pairs_per_date
+        self.true_top_fraction = true_top_fraction
+        self.seed = seed
+        self.last_pair_count_by_date: dict[str, int] = {}
+
+    def __call__(
+        self,
+        predictions: Any,
+        ranking_targets: Any,
+        dates: Sequence[Hashable],
+    ) -> Any:
+        import torch
+        import torch.nn.functional as functional
+
+        if (
+            predictions.ndim != 1
+            or ranking_targets.ndim != 1
+            or predictions.shape != ranking_targets.shape
+        ):
+            raise ValueError("LambdaRank predictions and targets must be aligned 1D tensors")
+        if len(dates) != int(predictions.numel()):
+            raise ValueError("LambdaRank dates must align with predictions")
+        losses: list[Any] = []
+        self.last_pair_count_by_date = {}
+        for date_value, indices in _group_indices(dates).items():
+            index = torch.tensor(indices, dtype=torch.long, device=predictions.device)
+            scores = predictions.index_select(0, index)
+            targets = ranking_targets.index_select(0, index)
+            pairs = _sparse_lambda_pairs(
+                scores,
+                targets,
+                k=self.k,
+                maximum=self.max_pairs_per_date,
+                true_top_fraction=self.true_top_fraction,
+                seed=self.seed + _stable_date_seed(date_value),
+            )
+            self.last_pair_count_by_date[str(date_value)] = len(pairs)
+            if not pairs:
+                continue
+            left = torch.tensor([pair[0] for pair in pairs], device=scores.device)
+            right = torch.tensor([pair[1] for pair in pairs], device=scores.device)
+            target_delta = targets.index_select(0, left) - targets.index_select(0, right)
+            signs = torch.sign(target_delta)
+            prediction_delta = scores.index_select(0, left) - scores.index_select(0, right)
+            weights = _delta_ndcg_weights(scores, targets, left, right, self.k)
+            losses.append((functional.softplus(-signs * prediction_delta) * weights).mean())
+        return torch.stack(losses).mean() if losses else predictions.sum() * 0.0
+
+
 class PearsonCorrelationLoss:
     def __call__(
         self,
@@ -133,18 +197,35 @@ def compute_ranking_loss(
     *,
     weights: RankingLossWeights | None = None,
     max_pairs_per_date: int = 1024,
+    objective: str = "L0",
+    ranking_targets: Any | None = None,
 ) -> tuple[Any, dict[str, Any]]:
-    weights = RankingLossWeights() if weights is None else weights
+    objective = objective.upper()
+    if objective not in {"L0", "L1", "L2"}:
+        raise ValueError("ranking objective must be L0, L1, or L2")
+    if weights is None:
+        weights = {
+            "L0": RankingLossWeights(0.45, 0.30, 0.15, 0.10),
+            "L1": RankingLossWeights(0.35, 0.40, 0.15, 0.10),
+            "L2": RankingLossWeights(0.30, 0.45, 0.15, 0.10),
+        }[objective]
     residual_predictions = outputs["residual_return"].float()
     rank_predictions = outputs["rank_score"].float()
     direction_logits = outputs["direction_logit"].float()
     residual_targets = residual_targets.float()
     direction_targets = direction_targets.float()
     smooth = SmoothL1ResidualLoss()(residual_predictions, residual_targets)
-    pairwise = SampledPairwiseRankLoss(max_pairs_per_date)(
-        rank_predictions, residual_targets, dates
+    rank_targets = residual_targets if ranking_targets is None else ranking_targets.float()
+    pairwise = (
+        LambdaRankAtKLoss(k=5, max_pairs_per_date=max_pairs_per_date)(
+            rank_predictions, rank_targets, dates
+        )
+        if objective == "L2"
+        else SampledPairwiseRankLoss(max_pairs_per_date)(
+            rank_predictions, rank_targets, dates
+        )
     )
-    pearson = PearsonCorrelationLoss()(rank_predictions, residual_targets, dates)
+    pearson = PearsonCorrelationLoss()(rank_predictions, rank_targets, dates)
     direction = DirectionBCELoss()(direction_logits, direction_targets)
     total = (
         weights.smooth_l1 * smooth
@@ -196,3 +277,84 @@ def _sample_pairs(size: int, maximum: int, *, seed: int) -> tuple[tuple[int, int
 
 def _stable_date_seed(value: Hashable) -> int:
     return sum((index + 1) * ord(character) for index, character in enumerate(str(value)))
+
+
+def _sparse_lambda_pairs(
+    scores: Any,
+    targets: Any,
+    *,
+    k: int,
+    maximum: int,
+    true_top_fraction: float,
+    seed: int,
+) -> tuple[tuple[int, int], ...]:
+    import torch
+
+    size = int(scores.numel())
+    if size < 2:
+        return ()
+    true_top_count = max(1, int((size * true_top_fraction) + 0.999999))
+    true_order = targets.detach().argsort(descending=True).cpu().tolist()
+    predicted_order = scores.detach().argsort(descending=True).cpu().tolist()
+    pairs: set[tuple[int, int]] = set()
+    boundary_left = predicted_order[: min(k, size)]
+    boundary_right = predicted_order[min(k, size) : min(2 * k, size)]
+    for left in boundary_left:
+        for right in boundary_right:
+            if float(targets[left]) != float(targets[right]):
+                pairs.add((left, right))
+    leaders, rest = true_order[:true_top_count], true_order[true_top_count:]
+    generator = torch.Generator(device="cpu")
+    generator.manual_seed(seed)
+    attempts = 0
+    while rest and len(pairs) < maximum and attempts < maximum * 20:
+        left = leaders[int(torch.randint(len(leaders), (), generator=generator))]
+        right = rest[int(torch.randint(len(rest), (), generator=generator))]
+        if float(targets[left]) != float(targets[right]):
+            pairs.add((left, right))
+        attempts += 1
+    return tuple(sorted(pairs))[:maximum]
+
+
+def _delta_ndcg_weights(
+    scores: Any,
+    targets: Any,
+    left: Any,
+    right: Any,
+    k: int,
+) -> Any:
+    import torch
+
+    positions = torch.empty_like(scores.argsort())
+    order = scores.detach().argsort(descending=True)
+    positions[order] = torch.arange(scores.numel(), device=scores.device)
+    left_positions = positions.index_select(0, left)
+    right_positions = positions.index_select(0, right)
+    left_discount = torch.where(
+        left_positions < k,
+        1.0 / torch.log2(left_positions.float() + 2.0),
+        torch.zeros_like(left_positions, dtype=torch.float32),
+    )
+    right_discount = torch.where(
+        right_positions < k,
+        1.0 / torch.log2(right_positions.float() + 2.0),
+        torch.zeros_like(right_positions, dtype=torch.float32),
+    )
+    gains = torch.pow(2.0, targets.detach().float()) - 1.0
+    gain_delta = (
+        gains.index_select(0, left) - gains.index_select(0, right)
+    ).abs()
+    ideal = targets.detach().argsort(descending=True)[:k]
+    ideal_discounts = 1.0 / torch.log2(
+        torch.arange(ideal.numel(), device=scores.device, dtype=torch.float32) + 2.0
+    )
+    ideal_gains = (
+        torch.pow(2.0, targets.detach().float().index_select(0, ideal)) - 1.0
+    )
+    ideal_dcg = (ideal_gains * ideal_discounts).sum()
+    normalized = (
+        gain_delta
+        * (left_discount - right_discount).abs()
+        / ideal_dcg.clamp_min(1e-8)
+    )
+    return normalized.detach()

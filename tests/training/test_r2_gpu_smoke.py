@@ -60,6 +60,41 @@ class R2GpuSmokeTest(unittest.TestCase):
             second.peak_allocated_bytes,
         )
 
+    def test_l2_objective_uses_cuda_within_r3_memory_limit(self) -> None:
+        import torch
+
+        if not torch.cuda.is_available():
+            self.skipTest("CUDA is required for the R3 L2 GPU smoke test")
+        batch = _batch()
+        batch = R2GraphBatch(
+            graph=batch.graph,
+            residual_targets=batch.residual_targets,
+            direction_targets=batch.direction_targets,
+            prediction_date=batch.prediction_date,
+            standardized_residual_targets=torch.tensor(
+                [-1.5, -0.9, -0.3, 0.3, 0.9, 1.5]
+            ),
+            ranking_targets=torch.linspace(0.0, 1.0, 6),
+        )
+        with TemporaryDirectory() as temporary_directory:
+            result = train_seat_rank_lite_seed(
+                (batch,),
+                SeatRankLiteConfig(),
+                R2TrainingConfig(
+                    epochs=1,
+                    gradient_accumulation_steps=1,
+                    device="cuda",
+                    objective="L2",
+                    hard_memory_bytes=int(7.2 * 1024**3),
+                ),
+                temporary_directory,
+                fold_id=0,
+                seed=2026,
+            )
+
+        self.assertEqual(result.device, "cuda")
+        self.assertLess(result.peak_reserved_bytes, int(7.2 * 1024**3))
+
 
 def _batch() -> R2GraphBatch:
     import torch

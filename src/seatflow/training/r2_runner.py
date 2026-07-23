@@ -30,6 +30,8 @@ class R2GraphBatch:
     residual_targets: Any
     direction_targets: Any
     prediction_date: str
+    standardized_residual_targets: Any | None = None
+    ranking_targets: Any | None = None
 
 
 @dataclass(frozen=True)
@@ -45,6 +47,7 @@ class R2TrainingConfig:
     device: str = "auto"
     hard_memory_bytes: int = int(7.4 * 1024**3)
     max_pairs_per_date: int = 1024
+    objective: str = "L0"
 
     def __post_init__(self) -> None:
         if self.epochs <= 0 or self.gradient_accumulation_steps <= 0:
@@ -53,6 +56,8 @@ class R2TrainingConfig:
             raise ValueError("learning rate and gradient clip norm must be positive")
         if self.early_stopping_patience <= 0 or self.hard_memory_bytes <= 0:
             raise ValueError("patience and hard memory limit must be positive")
+        if self.objective.upper() not in {"L0", "L1", "L2"}:
+            raise ValueError("objective must be L0, L1, or L2")
 
 
 @dataclass(frozen=True)
@@ -110,8 +115,16 @@ def train_seat_rank_lite_seed(
         model.train()
         for batch_index, batch in enumerate(batches):
             data = move_graph_to_device(batch.graph.data.clone(), device)
-            residual_targets = batch.residual_targets.to(device)
+            residual_targets = (
+                batch.standardized_residual_targets
+                if training_config.objective.upper() in {"L1", "L2"}
+                and batch.standardized_residual_targets is not None
+                else batch.residual_targets
+            ).to(device)
             direction_targets = batch.direction_targets.to(device)
+            ranking_targets = (
+                None if batch.ranking_targets is None else batch.ranking_targets.to(device)
+            )
             with amp.autocast():
                 outputs = model(data)
                 _require_nonconstant_predictions(outputs["rank_score"])
@@ -121,6 +134,8 @@ def train_seat_rank_lite_seed(
                     direction_targets,
                     (batch.prediction_date,) * int(residual_targets.numel()),
                     max_pairs_per_date=training_config.max_pairs_per_date,
+                    objective=training_config.objective,
+                    ranking_targets=ranking_targets,
                 )
                 scaled_loss = loss / training_config.gradient_accumulation_steps
             if not bool(torch.isfinite(loss).detach().cpu()):
@@ -149,7 +164,8 @@ def train_seat_rank_lite_seed(
             step_metrics.append(
                 {
                     "epoch": epoch + 1,
-                    "prediction_date": batch.prediction_date,
+                        "prediction_date": batch.prediction_date,
+                        "objective": training_config.objective.upper(),
                     "parameter_count": parameter_report["parameter_count"],
                     "node_count": sum(
                         int(data[node_type].num_nodes) for node_type in data.node_types
@@ -167,7 +183,8 @@ def train_seat_rank_lite_seed(
                     "finite": True,
                 }
             )
-            del data, residual_targets, direction_targets, outputs, loss, scaled_loss, components
+            del data, residual_targets, direction_targets, ranking_targets
+            del outputs, loss, scaled_loss, components
             release_cuda_objects(device=device)
         epochs_completed = epoch + 1
         epoch_losses = [
