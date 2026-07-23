@@ -1,0 +1,363 @@
+{
+  "code_commit": "708da964cf35b5079d48584bf86cf45e637da410",
+  "config": {
+    "path": "configs/experiments/r3_task25_frozen.toml",
+    "sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0"
+  },
+  "dataset": {
+    "path": "artifacts/diagnostics/R0_V2_TENSOR_DATASET_856D/v2-tensor-dataset.pkl",
+    "sha256": "c6fe493b6169e63cb0a8b8ef29d073b4142c97a7d97f1d120cc5282a66544fc9"
+  },
+  "evaluation_locked_until_complete": true,
+  "expected_run_count": 18,
+  "fold_manifest": {
+    "path": "artifacts/r3_task25/folds.json",
+    "sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7"
+  },
+  "immutable": true,
+  "run_order": [
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L0",
+      "output_directory": "runs/L0/fold_0/seed_2026",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L0-f0-s2026",
+      "seed": 2026
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L0",
+      "output_directory": "runs/L0/fold_0/seed_2027",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L0-f0-s2027",
+      "seed": 2027
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L0",
+      "output_directory": "runs/L0/fold_0/seed_2028",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L0-f0-s2028",
+      "seed": 2028
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L0",
+      "output_directory": "runs/L0/fold_1/seed_2026",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L0-f1-s2026",
+      "seed": 2026
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L0",
+      "output_directory": "runs/L0/fold_1/seed_2027",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L0-f1-s2027",
+      "seed": 2027
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L0",
+      "output_directory": "runs/L0/fold_1/seed_2028",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L0-f1-s2028",
+      "seed": 2028
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L1",
+      "output_directory": "runs/L1/fold_0/seed_2026",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L1-f0-s2026",
+      "seed": 2026
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L1",
+      "output_directory": "runs/L1/fold_0/seed_2027",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L1-f0-s2027",
+      "seed": 2027
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L1",
+      "output_directory": "runs/L1/fold_0/seed_2028",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L1-f0-s2028",
+      "seed": 2028
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L1",
+      "output_directory": "runs/L1/fold_1/seed_2026",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L1-f1-s2026",
+      "seed": 2026
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L1",
+      "output_directory": "runs/L1/fold_1/seed_2027",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L1-f1-s2027",
+      "seed": 2027
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L1",
+      "output_directory": "runs/L1/fold_1/seed_2028",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L1-f1-s2028",
+      "seed": 2028
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L2",
+      "output_directory": "runs/L2/fold_0/seed_2026",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L2-f0-s2026",
+      "seed": 2026
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L2",
+      "output_directory": "runs/L2/fold_0/seed_2027",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L2-f0-s2027",
+      "seed": 2027
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 0,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L2",
+      "output_directory": "runs/L2/fold_0/seed_2028",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L2-f0-s2028",
+      "seed": 2028
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L2",
+      "output_directory": "runs/L2/fold_1/seed_2026",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L2-f1-s2026",
+      "seed": 2026
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L2",
+      "output_directory": "runs/L2/fold_1/seed_2027",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L2-f1-s2027",
+      "seed": 2027
+    },
+    {
+      "config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+      "fold": 1,
+      "fold_manifest_sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7",
+      "objective": "L2",
+      "output_directory": "runs/L2/fold_1/seed_2028",
+      "planned_outputs": [
+        "model_state.pt",
+        "predictions.json",
+        "metadata.json",
+        "daily_predictions.jsonl",
+        "top5_holdings.jsonl",
+        "training_history.json",
+        "resources.json",
+        "run_complete.json"
+      ],
+      "run_id": "L2-f1-s2028",
+      "seed": 2028
+    }
+  ],
+  "schema_version": "r3_task25_run_manifest.v1"
+}
