@@ -29,6 +29,10 @@ class DynamicGraphBuilder:
         enable_concept_graph: bool = True,
         add_reverse_relations: bool = False,
         aggregate_duplicate_edges: bool = False,
+        stock_positive_topk: int = 8,
+        stock_negative_topk: int = 4,
+        soft_max_edges: int = 60_000,
+        hard_max_edges: int = 100_000,
     ) -> None:
         if decay_lambda < 0:
             raise ValueError("decay_lambda must be non-negative")
@@ -44,6 +48,13 @@ class DynamicGraphBuilder:
         self.enable_concept_graph = enable_concept_graph
         self.add_reverse_relations = add_reverse_relations
         self.aggregate_duplicate_edges = aggregate_duplicate_edges
+        if soft_max_edges <= 0 or hard_max_edges < soft_max_edges:
+            raise ValueError("graph edge limits require 0 < soft_max_edges <= hard_max_edges")
+        self.stock_positive_topk = stock_positive_topk
+        self.stock_negative_topk = stock_negative_topk
+        self.soft_max_edges = soft_max_edges
+        self.hard_max_edges = hard_max_edges
+        self.last_build_stats: dict[str, object] | None = None
 
     def build(
         self,
@@ -179,6 +190,8 @@ class DynamicGraphBuilder:
             lookback_days=self.correlation_lookback_days,
             min_overlap=self.correlation_min_overlap,
             min_abs_correlation=self.correlation_min_abs,
+            positive_topk=self.stock_positive_topk,
+            negative_topk=self.stock_negative_topk,
         ):
             self._add_node(
                 nodes,
@@ -194,12 +207,24 @@ class DynamicGraphBuilder:
             )
             edges.append(edge)
 
+        original_edge_count = len(edges)
         if self.aggregate_duplicate_edges:
             edges = self._aggregate_r2_edges(edges)
         ordered_nodes = tuple(
             sorted(nodes.values(), key=lambda node: (node.node_type.value, node.node_id))
         )
-        return HeteroGraphSnapshot(as_of_date, ordered_nodes, tuple(edges))
+        snapshot = HeteroGraphSnapshot(as_of_date, ordered_nodes, tuple(edges))
+        self.last_build_stats = _graph_stats(
+            snapshot,
+            duplicate_edges_removed=max(0, original_edge_count - len(edges)),
+            soft_max_edges=self.soft_max_edges,
+        )
+        if len(edges) > self.hard_max_edges:
+            raise ValueError(
+                f"graph edge hard limit exceeded: {len(edges)} > {self.hard_max_edges}; "
+                f"relations={self.last_build_stats['edge_count_by_relation']}"
+            )
+        return snapshot
 
     def _aggregate_r2_edges(self, edges: Sequence[GraphEdge]) -> list[GraphEdge]:
         forward_trade_relations = {"buys", "sells"}
@@ -439,3 +464,37 @@ def _std(values: Sequence[float]) -> float:
         return 0.0
     mean = sum(values) / len(values)
     return sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+
+
+def _graph_stats(
+    snapshot: HeteroGraphSnapshot,
+    *,
+    duplicate_edges_removed: int,
+    soft_max_edges: int,
+) -> dict[str, object]:
+    node_count_by_type = {
+        node_type.value: len(snapshot.nodes_of_type(node_type)) for node_type in NodeType
+    }
+    edge_count_by_relation: dict[str, int] = defaultdict(int)
+    seat_degree: dict[str, int] = defaultdict(int)
+    stock_degree: dict[str, int] = defaultdict(int)
+    for edge in snapshot.edges:
+        edge_count_by_relation[edge.relation] += 1
+        for node_type, node_id in (
+            (edge.source_type, edge.source_id),
+            (edge.target_type, edge.target_id),
+        ):
+            if node_type == NodeType.SEAT:
+                seat_degree[node_id] += 1
+            elif node_type == NodeType.STOCK:
+                stock_degree[node_id] += 1
+    return {
+        "node_count_by_type": node_count_by_type,
+        "relation_type_count": len(edge_count_by_relation),
+        "edge_count_by_relation": dict(sorted(edge_count_by_relation.items())),
+        "total_edge_count": len(snapshot.edges),
+        "duplicate_edges_removed": duplicate_edges_removed,
+        "peak_seat_degree": max(seat_degree.values(), default=0),
+        "peak_stock_degree": max(stock_degree.values(), default=0),
+        "soft_limit_exceeded": len(snapshot.edges) > soft_max_edges,
+    }

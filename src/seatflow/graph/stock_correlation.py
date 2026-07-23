@@ -18,6 +18,8 @@ def build_stock_correlation_edges(
     lookback_days: int = 60,
     min_overlap: int = 3,
     min_abs_correlation: float = 0.5,
+    positive_topk: int = 8,
+    negative_topk: int = 4,
 ) -> tuple[GraphEdge, ...]:
     if lookback_days <= 1:
         raise ValueError("lookback_days must be greater than one")
@@ -25,6 +27,8 @@ def build_stock_correlation_edges(
         raise ValueError("min_overlap must be greater than one")
     if not 0 <= min_abs_correlation <= 1:
         raise ValueError("min_abs_correlation must be in [0, 1]")
+    if positive_topk < 0 or negative_topk < 0:
+        raise ValueError("stock correlation top-k values must be non-negative")
 
     returns = _daily_returns(
         bars,
@@ -71,7 +75,16 @@ def build_stock_correlation_edges(
                         },
                     )
                 )
-    return tuple(edges)
+    grouped: dict[tuple[str, str], list[GraphEdge]] = defaultdict(list)
+    for edge in edges:
+        grouped[(edge.source_id, edge.relation)].append(edge)
+    sparse: list[GraphEdge] = []
+    for (_source_id, relation), candidates in sorted(grouped.items()):
+        limit = positive_topk if relation == "positively_correlated_with" else negative_topk
+        sparse.extend(
+            sorted(candidates, key=lambda edge: (-edge.weight, edge.target_id))[:limit]
+        )
+    return tuple(sparse)
 
 
 def _daily_returns(
