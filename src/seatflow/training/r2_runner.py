@@ -192,7 +192,6 @@ def train_seat_rank_lite_seed(
             )
             del data, residual_targets, direction_targets, ranking_targets
             del outputs, loss, scaled_loss, components
-            release_cuda_objects(device=device)
         epochs_completed = epoch + 1
         epoch_losses = [
             float(str(row["loss"]))
@@ -286,7 +285,6 @@ def _prediction_snapshot(
                 snapshot["stock_ids"] = list(batch.target_stock_ids)
             result[batch.prediction_date] = snapshot
             del data, outputs
-            release_cuda_objects(device=device)
     return result
 
 
