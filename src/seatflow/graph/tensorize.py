@@ -27,10 +27,18 @@ _LOG1P_EDGE_ATTRIBUTES = frozenset(
         "target_amount",
     }
 )
+_PRETRANSFORMED_EDGE_ATTRIBUTES = frozenset({"signed_log_amount_sum"})
 
 
 def is_pretransformed_feature(name: str) -> bool:
-    return name in _LOG1P_NODE_FEATURES or name in _LOG1P_EDGE_ATTRIBUTES
+    from seatflow.graph.edge_schema import EdgeFeatureType, classify_edge_field
+
+    return (
+        name in _LOG1P_NODE_FEATURES
+        or name in _LOG1P_EDGE_ATTRIBUTES
+        or name in _PRETRANSFORMED_EDGE_ATTRIBUTES
+        or classify_edge_field(name).kind == EdgeFeatureType.COUNT
+    )
 
 
 @dataclass(frozen=True)

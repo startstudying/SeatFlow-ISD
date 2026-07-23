@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from datetime import date, datetime
-from math import sqrt
+from math import copysign, log1p, sqrt
 
 from seatflow.data.contracts import DailyBar
 from seatflow.data.records import DragonTigerRecord, TradeSide
@@ -28,6 +28,7 @@ class DynamicGraphBuilder:
         enable_seat_cooccurrence: bool = True,
         enable_concept_graph: bool = True,
         add_reverse_relations: bool = False,
+        aggregate_duplicate_edges: bool = False,
     ) -> None:
         if decay_lambda < 0:
             raise ValueError("decay_lambda must be non-negative")
@@ -42,6 +43,7 @@ class DynamicGraphBuilder:
         self.enable_seat_cooccurrence = enable_seat_cooccurrence
         self.enable_concept_graph = enable_concept_graph
         self.add_reverse_relations = add_reverse_relations
+        self.aggregate_duplicate_edges = aggregate_duplicate_edges
 
     def build(
         self,
@@ -192,10 +194,93 @@ class DynamicGraphBuilder:
             )
             edges.append(edge)
 
+        if self.aggregate_duplicate_edges:
+            edges = self._aggregate_r2_edges(edges)
         ordered_nodes = tuple(
             sorted(nodes.values(), key=lambda node: (node.node_type.value, node.node_id))
         )
         return HeteroGraphSnapshot(as_of_date, ordered_nodes, tuple(edges))
+
+    def _aggregate_r2_edges(self, edges: Sequence[GraphEdge]) -> list[GraphEdge]:
+        forward_trade_relations = {"buys", "sells"}
+        reverse_trade_relations = {"bought_by", "sold_by"}
+        trade_groups: dict[tuple[str, str, str], list[GraphEdge]] = defaultdict(list)
+        retained: dict[tuple[object, ...], GraphEdge] = {}
+        for edge in edges:
+            if edge.relation in reverse_trade_relations:
+                continue
+            if edge.relation in forward_trade_relations:
+                trade_groups[(edge.source_id, edge.target_id, edge.relation)].append(edge)
+                continue
+            key = (
+                edge.source_type,
+                edge.source_id,
+                edge.relation,
+                edge.target_type,
+                edge.target_id,
+            )
+            previous = retained.get(key)
+            if previous is None or edge.event_date > previous.event_date:
+                retained[key] = edge
+
+        stock_totals: dict[str, float] = defaultdict(float)
+        seat_totals: dict[str, float] = defaultdict(float)
+        pair_side_totals: dict[tuple[str, str, str], float] = {}
+        for key, group in trade_groups.items():
+            amount = sum(float(edge.attributes["amount"]) for edge in group)
+            pair_side_totals[key] = amount
+            stock_totals[key[1]] += amount
+            seat_totals[key[0]] += amount
+
+        aggregated = list(retained.values())
+        for (seat_id, stock_id, relation), group in sorted(trade_groups.items()):
+            amount = pair_side_totals[(seat_id, stock_id, relation)]
+            buy_amount = pair_side_totals.get((seat_id, stock_id, "buys"), 0.0)
+            sell_amount = pair_side_totals.get((seat_id, stock_id, "sells"), 0.0)
+            pair_total = buy_amount + sell_amount
+            latest = max(group, key=lambda edge: edge.event_date)
+            attributes = dict(latest.attributes)
+            attributes.update(
+                {
+                    "amount": amount,
+                    "signed_log_amount_sum": sum(
+                        copysign(
+                            log1p(abs(float(edge.attributes["amount"]))),
+                            float(edge.attributes["amount"]),
+                        )
+                        for edge in group
+                    ),
+                    "trade_count": float(len(group)),
+                    "last_trade_age": min(
+                        float(edge.attributes.get("delta_days", 0.0)) for edge in group
+                    ),
+                    "amount_share_of_stock": amount / stock_totals[stock_id],
+                    "amount_share_of_seat": amount / seat_totals[seat_id],
+                    "net_buy_ratio": (
+                        (buy_amount - sell_amount) / pair_total if pair_total else 0.0
+                    ),
+                    "edge_gate_input": sum(edge.weight for edge in group),
+                }
+            )
+            edge = GraphEdge(
+                source_type=NodeType.SEAT,
+                source_id=seat_id,
+                relation=relation,
+                target_type=NodeType.STOCK,
+                target_id=stock_id,
+                weight=sum(item.weight for item in group),
+                event_date=latest.event_date,
+                attributes=attributes,
+            )
+            aggregated.append(edge)
+            if self.add_reverse_relations:
+                aggregated.append(
+                    self._reverse_edge(
+                        edge,
+                        relation="bought_by" if relation == "buys" else "sold_by",
+                    )
+                )
+        return aggregated
 
     @staticmethod
     def _add_node(
