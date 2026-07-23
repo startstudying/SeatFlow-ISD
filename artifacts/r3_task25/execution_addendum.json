@@ -1,0 +1,29 @@
+{
+  "schema_version": "r3_task25_execution_addendum.v1",
+  "planned_manifest_sha256": "d6d82a58651f6da6c2ff04d1b011ff1c242b390ca3a3e6b36a364661ee23557d",
+  "frozen_config_sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0",
+  "research_parameters_changed": false,
+  "run_order_changed": false,
+  "completed_before_addendum": [
+    "L0-f0-s2026"
+  ],
+  "original_execution_commit": "708da964cf35b5079d48584bf86cf45e637da410",
+  "cache_reuse_execution_commit": "e907a01cab545b1df008c919750a56310c832b73",
+  "change": "Remove per-graph Python garbage collection and CUDA cache emptying; retain per-seed release.",
+  "unchanged": [
+    "dataset",
+    "fold membership",
+    "targets",
+    "loss definitions and weights",
+    "model",
+    "epochs",
+    "optimizer",
+    "learning rate",
+    "gradient accumulation",
+    "mixed precision",
+    "random seeds",
+    "prediction universe",
+    "cost model"
+  ],
+  "reason": "The first run showed allocator flushing dominated wall time while maximum production-graph memory remained far below 7.2 GiB."
+}
