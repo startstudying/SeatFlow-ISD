@@ -1,0 +1,41 @@
+{
+  "schema_version": "r3_task25_execution_addendum.v1",
+  "reason": "User authorized execution-configuration changes to increase GPU utilization without changing training parameters.",
+  "effective_after_completed_runs": 6,
+  "executor_commit": "a7c52e6",
+  "shard_count": 3,
+  "shard_indices": [
+    0,
+    1,
+    2
+  ],
+  "unchanged": [
+    "planned run manifest",
+    "run identities and order within each deterministic shard",
+    "dataset and folds",
+    "objectives and loss weights",
+    "model parameters",
+    "optimizer and learning rate",
+    "epochs and gradient accumulation",
+    "seeds",
+    "artifact and evaluation contracts"
+  ],
+  "observed_startup_resource_check": {
+    "sampling_seconds": 60,
+    "average_gpu_utilization_percent": 39.2,
+    "maximum_gpu_utilization_percent": 83,
+    "maximum_total_gpu_memory_mib": 2230,
+    "configured_gpu_memory_limit_gib": 7.2
+  },
+  "l2_execution_optimization": {
+    "effective_after_completed_runs": 12,
+    "completed_l2_runs_before_change": 0,
+    "change": "Copy ranking targets from CUDA to CPU once per date before deterministic sparse-pair comparisons, instead of synchronizing one CUDA scalar per comparison.",
+    "training_parameters_changed": false,
+    "fixed_input_pair_sets_identical": true,
+    "benchmark_pair_count": 1024,
+    "benchmark_speedup": 9.09,
+    "incomplete_l2_artifacts_before_restart": 0
+  },
+  "outcome_metrics_accessed": false
+}

@@ -1,0 +1,754 @@
+{
+  "completion_manifest_sha256": "04b6e3c90e5497c63c0bbe4f1fed97792ebd96734ce4d058d0cb0843915290d4",
+  "failure_evidence": {
+    "A": {
+      "classification": "optimization_randomness",
+      "evidence": {
+        "L0": 0.0015208614362593718,
+        "L1": 0.00017657722820710016,
+        "L2": 0.000542745878936422
+      }
+    },
+    "B": {
+      "classification": "top5_boundary_noise",
+      "evidence": {
+        "L0": {
+          "rank5_6_margin": 0.0030760471176051493,
+          "top5_jaccard": 0.41037985424777873
+        },
+        "L1": {
+          "rank5_6_margin": 0.006396949778562822,
+          "top5_jaccard": 0.5236722571628232
+        },
+        "L2": {
+          "rank5_6_margin": 0.016718922246177242,
+          "top5_jaccard": 0.5635020465209144
+        }
+      }
+    },
+    "C": {
+      "classification": "market_regime_drift",
+      "evidence": {
+        "L0": {
+          "high_activity": {
+            "rank_ic": 0.019737225520696622,
+            "sample_days": 726,
+            "top5_gross_spread": 0.005917092058744194,
+            "top5_net_spread": 0.0034823813149425418,
+            "turnover": 0.9380165289256198
+          },
+          "high_candidate_dispersion": {
+            "rank_ic": 0.02145280508316721,
+            "sample_days": 795,
+            "top5_gross_spread": 0.006745974430802414,
+            "top5_net_spread": 0.0043572448710539865,
+            "turnover": 0.9187421383647798
+          },
+          "high_market_amount": {
+            "rank_ic": 0.004944264776638393,
+            "sample_days": 795,
+            "top5_gross_spread": 0.0021046675327538846,
+            "top5_net_spread": -0.0003226532219630964,
+            "turnover": 0.9335849056603774
+          },
+          "low_activity": {
+            "rank_ic": -0.0030756435256372727,
+            "sample_days": 864,
+            "top5_gross_spread": -0.000685631395593026,
+            "top5_net_spread": -0.0030659554696671,
+            "turnover": 0.9155092592592593
+          },
+          "low_candidate_dispersion": {
+            "rank_ic": -0.00677120794873307,
+            "sample_days": 795,
+            "top5_gross_spread": -0.0020875803316125897,
+            "top5_net_spread": -0.004509165237272967,
+            "turnover": 0.9328301886792453
+          },
+          "low_market_amount": {
+            "rank_ic": 0.00973733235779575,
+            "sample_days": 795,
+            "top5_gross_spread": 0.0025537265664359403,
+            "top5_net_spread": 0.0001707328557441167,
+            "turnover": 0.9179874213836479
+          },
+          "low_market_volatility": {
+            "rank_ic": 0.007340798567217072,
+            "sample_days": 1590,
+            "top5_gross_spread": 0.0023291970495949122,
+            "top5_net_spread": -7.596018310948984e-05,
+            "turnover": 0.9257861635220126
+          },
+          "up_market": {
+            "rank_ic": 0.007340798567217072,
+            "sample_days": 1590,
+            "top5_gross_spread": 0.0023291970495949122,
+            "top5_net_spread": -7.596018310948984e-05,
+            "turnover": 0.9257861635220126
+          }
+        },
+        "L1": {
+          "high_activity": {
+            "rank_ic": 0.04161217058279334,
+            "sample_days": 726,
+            "top5_gross_spread": 0.0037086725589103435,
+            "top5_net_spread": 0.0012123640189654404,
+            "turnover": 0.9617079889807163
+          },
+          "high_candidate_dispersion": {
+            "rank_ic": 0.03492878766595797,
+            "sample_days": 795,
+            "top5_gross_spread": 0.002837113080790507,
+            "top5_net_spread": 0.00035223257764585363,
+            "turnover": 0.9557232704402515
+          },
+          "high_market_amount": {
+            "rank_ic": 0.018084014708161567,
+            "sample_days": 795,
+            "top5_gross_spread": 0.0014667734937973786,
+            "top5_net_spread": -0.0010056793363913002,
+            "turnover": 0.9509433962264151
+          },
+          "low_activity": {
+            "rank_ic": 0.00971851250508227,
+            "sample_days": 864,
+            "top5_gross_spread": -0.0016698423941917098,
+            "top5_net_spread": -0.00413021276456208,
+            "turnover": 0.9462962962962963
+          },
+          "low_candidate_dispersion": {
+            "rank_ic": 0.01363376660762573,
+            "sample_days": 795,
+            "top5_gross_spread": -0.0012650974214354481,
+            "top5_net_spread": -0.0037337766667184667,
+            "turnover": 0.9509433962264151
+          },
+          "low_market_amount": {
+            "rank_ic": 0.03047853956542214,
+            "sample_days": 795,
+            "top5_gross_spread": 0.00010524216555768062,
+            "top5_net_spread": -0.0023758647526813128,
+            "turnover": 0.9557232704402515
+          },
+          "low_market_volatility": {
+            "rank_ic": 0.024281277136791853,
+            "sample_days": 1590,
+            "top5_gross_spread": 0.0007860078296775297,
+            "top5_net_spread": -0.0016907720445363064,
+            "turnover": 0.9533333333333333
+          },
+          "up_market": {
+            "rank_ic": 0.024281277136791853,
+            "sample_days": 1590,
+            "top5_gross_spread": 0.0007860078296775297,
+            "top5_net_spread": -0.0016907720445363064,
+            "turnover": 0.9533333333333333
+          }
+        },
+        "L2": {
+          "high_activity": {
+            "rank_ic": 0.05007695027441046,
+            "sample_days": 726,
+            "top5_gross_spread": 0.0011476675416440493,
+            "top5_net_spread": -0.0013615335602843253,
+            "turnover": 0.9666666666666666
+          },
+          "high_candidate_dispersion": {
+            "rank_ic": 0.04112992038156294,
+            "sample_days": 795,
+            "top5_gross_spread": 0.00010707477683501279,
+            "top5_net_spread": -0.002405277424422849,
+            "turnover": 0.9662893081761007
+          },
+          "high_market_amount": {
+            "rank_ic": 0.025684698757076668,
+            "sample_days": 795,
+            "top5_gross_spread": 0.00024329509864567475,
+            "top5_net_spread": -0.002251396725253696,
+            "turnover": 0.9594968553459119
+          },
+          "low_activity": {
+            "rank_ic": 0.023251911413360478,
+            "sample_days": 864,
+            "top5_gross_spread": -0.00020497730232522552,
+            "top5_net_spread": -0.002691829154177077,
+            "turnover": 0.9564814814814815
+          },
+          "low_candidate_dispersion": {
+            "rank_ic": 0.02987073038619234,
+            "sample_days": 795,
+            "top5_gross_spread": 0.0007182160986676097,
+            "top5_net_spread": -0.001763544907621698,
+            "turnover": 0.9559748427672956
+          },
+          "low_market_amount": {
+            "rank_ic": 0.04531595201067862,
+            "sample_days": 795,
+            "top5_gross_spread": 0.0005819957768569477,
+            "top5_net_spread": -0.0019174256067908506,
+            "turnover": 0.9627672955974842
+          },
+          "low_market_volatility": {
+            "rank_ic": 0.035500325383877644,
+            "sample_days": 1590,
+            "top5_gross_spread": 0.0004126454377513113,
+            "top5_net_spread": -0.002084411166022273,
+            "turnover": 0.9611320754716981
+          },
+          "up_market": {
+            "rank_ic": 0.035500325383877644,
+            "sample_days": 1590,
+            "top5_gross_spread": 0.0004126454377513113,
+            "top5_net_spread": -0.002084411166022273,
+            "turnover": 0.9611320754716981
+          }
+        }
+      }
+    },
+    "D": {
+      "classification": "turnover_cost",
+      "evidence": {
+        "L0": -7.59601831094898e-05,
+        "L1": -0.0016907720445363064,
+        "L2": -0.002084411166022273
+      }
+    },
+    "E": {
+      "classification": "seat_graph_no_increment",
+      "reason": "No predeclared inference ablation exists in the 18-run manifest.",
+      "status": "insufficient_evidence"
+    },
+    "F": {
+      "classification": "label_objective_mismatch",
+      "evidence": {
+        "objective_mean_rank_ic": {
+          "L0": 0.007340798567217071,
+          "L1": 0.02428127713679185,
+          "L2": 0.035500325383877644
+        }
+      },
+      "status": "not_established"
+    }
+  },
+  "objectives": {
+    "L0": {
+      "cross_seed_prediction_std": 0.16629669583392553,
+      "fold_net_means": {
+        "0": 0.0031341022616027344,
+        "1": -0.0032860226278217143
+      },
+      "market_regimes": {
+        "high_activity": {
+          "rank_ic": 0.019737225520696622,
+          "sample_days": 726,
+          "top5_gross_spread": 0.005917092058744194,
+          "top5_net_spread": 0.0034823813149425418,
+          "turnover": 0.9380165289256198
+        },
+        "high_candidate_dispersion": {
+          "rank_ic": 0.02145280508316721,
+          "sample_days": 795,
+          "top5_gross_spread": 0.006745974430802414,
+          "top5_net_spread": 0.0043572448710539865,
+          "turnover": 0.9187421383647798
+        },
+        "high_market_amount": {
+          "rank_ic": 0.004944264776638393,
+          "sample_days": 795,
+          "top5_gross_spread": 0.0021046675327538846,
+          "top5_net_spread": -0.0003226532219630964,
+          "turnover": 0.9335849056603774
+        },
+        "low_activity": {
+          "rank_ic": -0.0030756435256372727,
+          "sample_days": 864,
+          "top5_gross_spread": -0.000685631395593026,
+          "top5_net_spread": -0.0030659554696671,
+          "turnover": 0.9155092592592593
+        },
+        "low_candidate_dispersion": {
+          "rank_ic": -0.00677120794873307,
+          "sample_days": 795,
+          "top5_gross_spread": -0.0020875803316125897,
+          "top5_net_spread": -0.004509165237272967,
+          "turnover": 0.9328301886792453
+        },
+        "low_market_amount": {
+          "rank_ic": 0.00973733235779575,
+          "sample_days": 795,
+          "top5_gross_spread": 0.0025537265664359403,
+          "top5_net_spread": 0.0001707328557441167,
+          "turnover": 0.9179874213836479
+        },
+        "low_market_volatility": {
+          "rank_ic": 0.007340798567217072,
+          "sample_days": 1590,
+          "top5_gross_spread": 0.0023291970495949122,
+          "top5_net_spread": -7.596018310948984e-05,
+          "turnover": 0.9257861635220126
+        },
+        "up_market": {
+          "rank_ic": 0.007340798567217072,
+          "sample_days": 1590,
+          "top5_gross_spread": 0.0023291970495949122,
+          "top5_net_spread": -7.596018310948984e-05,
+          "turnover": 0.9257861635220126
+        }
+      },
+      "maximum_peak_reserved_bytes": 83886080,
+      "mean_net_spread": -7.59601831094898e-05,
+      "mean_rank5_6_margin": 0.0030760471176051493,
+      "mean_rank_ic": 0.007340798567217071,
+      "median_rank_ic": 0.007593194499196571,
+      "positive_net_runs": 3,
+      "run_count": 6,
+      "seed_net_spread_std": 0.0015208614362593718,
+      "top10_jaccard": 0.4675062006725655,
+      "top5_jaccard": 0.41037985424777873,
+      "worst_fold_net_spread": -0.0032860226278217143
+    },
+    "L1": {
+      "cross_seed_prediction_std": 0.07150040191049918,
+      "fold_net_means": {
+        "0": -0.0004095986327683705,
+        "1": -0.0029719454563042424
+      },
+      "market_regimes": {
+        "high_activity": {
+          "rank_ic": 0.04161217058279334,
+          "sample_days": 726,
+          "top5_gross_spread": 0.0037086725589103435,
+          "top5_net_spread": 0.0012123640189654404,
+          "turnover": 0.9617079889807163
+        },
+        "high_candidate_dispersion": {
+          "rank_ic": 0.03492878766595797,
+          "sample_days": 795,
+          "top5_gross_spread": 0.002837113080790507,
+          "top5_net_spread": 0.00035223257764585363,
+          "turnover": 0.9557232704402515
+        },
+        "high_market_amount": {
+          "rank_ic": 0.018084014708161567,
+          "sample_days": 795,
+          "top5_gross_spread": 0.0014667734937973786,
+          "top5_net_spread": -0.0010056793363913002,
+          "turnover": 0.9509433962264151
+        },
+        "low_activity": {
+          "rank_ic": 0.00971851250508227,
+          "sample_days": 864,
+          "top5_gross_spread": -0.0016698423941917098,
+          "top5_net_spread": -0.00413021276456208,
+          "turnover": 0.9462962962962963
+        },
+        "low_candidate_dispersion": {
+          "rank_ic": 0.01363376660762573,
+          "sample_days": 795,
+          "top5_gross_spread": -0.0012650974214354481,
+          "top5_net_spread": -0.0037337766667184667,
+          "turnover": 0.9509433962264151
+        },
+        "low_market_amount": {
+          "rank_ic": 0.03047853956542214,
+          "sample_days": 795,
+          "top5_gross_spread": 0.00010524216555768062,
+          "top5_net_spread": -0.0023758647526813128,
+          "turnover": 0.9557232704402515
+        },
+        "low_market_volatility": {
+          "rank_ic": 0.024281277136791853,
+          "sample_days": 1590,
+          "top5_gross_spread": 0.0007860078296775297,
+          "top5_net_spread": -0.0016907720445363064,
+          "turnover": 0.9533333333333333
+        },
+        "up_market": {
+          "rank_ic": 0.024281277136791853,
+          "sample_days": 1590,
+          "top5_gross_spread": 0.0007860078296775297,
+          "top5_net_spread": -0.0016907720445363064,
+          "turnover": 0.9533333333333333
+        }
+      },
+      "maximum_peak_reserved_bytes": 83886080,
+      "mean_net_spread": -0.0016907720445363064,
+      "mean_rank5_6_margin": 0.006396949778562822,
+      "mean_rank_ic": 0.02428127713679185,
+      "median_rank_ic": 0.02294664934021294,
+      "positive_net_runs": 1,
+      "run_count": 6,
+      "seed_net_spread_std": 0.00017657722820710016,
+      "top10_jaccard": 0.6073502400916385,
+      "top5_jaccard": 0.5236722571628232,
+      "worst_fold_net_spread": -0.0029719454563042424
+    },
+    "L2": {
+      "cross_seed_prediction_std": 0.24264316105595174,
+      "fold_net_means": {
+        "0": -0.0021474025929164426,
+        "1": -0.0020214197391281046
+      },
+      "market_regimes": {
+        "high_activity": {
+          "rank_ic": 0.05007695027441046,
+          "sample_days": 726,
+          "top5_gross_spread": 0.0011476675416440493,
+          "top5_net_spread": -0.0013615335602843253,
+          "turnover": 0.9666666666666666
+        },
+        "high_candidate_dispersion": {
+          "rank_ic": 0.04112992038156294,
+          "sample_days": 795,
+          "top5_gross_spread": 0.00010707477683501279,
+          "top5_net_spread": -0.002405277424422849,
+          "turnover": 0.9662893081761007
+        },
+        "high_market_amount": {
+          "rank_ic": 0.025684698757076668,
+          "sample_days": 795,
+          "top5_gross_spread": 0.00024329509864567475,
+          "top5_net_spread": -0.002251396725253696,
+          "turnover": 0.9594968553459119
+        },
+        "low_activity": {
+          "rank_ic": 0.023251911413360478,
+          "sample_days": 864,
+          "top5_gross_spread": -0.00020497730232522552,
+          "top5_net_spread": -0.002691829154177077,
+          "turnover": 0.9564814814814815
+        },
+        "low_candidate_dispersion": {
+          "rank_ic": 0.02987073038619234,
+          "sample_days": 795,
+          "top5_gross_spread": 0.0007182160986676097,
+          "top5_net_spread": -0.001763544907621698,
+          "turnover": 0.9559748427672956
+        },
+        "low_market_amount": {
+          "rank_ic": 0.04531595201067862,
+          "sample_days": 795,
+          "top5_gross_spread": 0.0005819957768569477,
+          "top5_net_spread": -0.0019174256067908506,
+          "turnover": 0.9627672955974842
+        },
+        "low_market_volatility": {
+          "rank_ic": 0.035500325383877644,
+          "sample_days": 1590,
+          "top5_gross_spread": 0.0004126454377513113,
+          "top5_net_spread": -0.002084411166022273,
+          "turnover": 0.9611320754716981
+        },
+        "up_market": {
+          "rank_ic": 0.035500325383877644,
+          "sample_days": 1590,
+          "top5_gross_spread": 0.0004126454377513113,
+          "top5_net_spread": -0.002084411166022273,
+          "turnover": 0.9611320754716981
+        }
+      },
+      "maximum_peak_reserved_bytes": 83886080,
+      "mean_net_spread": -0.002084411166022273,
+      "mean_rank5_6_margin": 0.016718922246177242,
+      "mean_rank_ic": 0.035500325383877644,
+      "median_rank_ic": 0.03366159531745292,
+      "positive_net_runs": 0,
+      "run_count": 6,
+      "seed_net_spread_std": 0.000542745878936422,
+      "top10_jaccard": 0.7179493939628877,
+      "top5_jaccard": 0.5635020465209144,
+      "worst_fold_net_spread": -0.0021474025929164426
+    }
+  },
+  "planned_manifest_sha256": "d6d82a58651f6da6c2ff04d1b011ff1c242b390ca3a3e6b36a364661ee23557d",
+  "run_results": [
+    {
+      "fold": 0,
+      "objective": "L0",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.44528301886792454,
+      "rank5_6_margin": 0.001724818967423349,
+      "rank_ic": 0.016284105079459505,
+      "run_id": "L0-f0-s2026",
+      "seed": 2026,
+      "top5_gross_spread": 0.003670850067915929,
+      "top5_net_spread": 0.001360208558481967,
+      "turnover": 0.8894339622641511
+    },
+    {
+      "fold": 0,
+      "objective": "L0",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.5018867924528302,
+      "rank5_6_margin": 0.0015818469929245282,
+      "rank_ic": 0.035629801312033485,
+      "run_id": "L0-f0-s2027",
+      "seed": 2027,
+      "top5_gross_spread": 0.004120105925067256,
+      "top5_net_spread": 0.0016721059250672566,
+      "turnover": 0.9422641509433963
+    },
+    {
+      "fold": 0,
+      "objective": "L0",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4867924528301887,
+      "rank5_6_margin": 0.0027742205925707546,
+      "rank_ic": -0.021825211071943507,
+      "run_id": "L0-f0-s2028",
+      "seed": 2028,
+      "top5_gross_spread": 0.008594294188051433,
+      "top5_net_spread": 0.006369992301258981,
+      "turnover": 0.8562264150943396
+    },
+    {
+      "fold": 1,
+      "objective": "L0",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.42641509433962266,
+      "rank5_6_margin": 0.006116068138266509,
+      "rank_ic": -0.0012302929146402008,
+      "run_id": "L0-f1-s2026",
+      "seed": 2026,
+      "top5_gross_spread": -0.0013661226071978014,
+      "top5_net_spread": -0.003827858456254405,
+      "turnover": 0.9475471698113207
+    },
+    {
+      "fold": 1,
+      "objective": "L0",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.45660377358490567,
+      "rank5_6_margin": 0.0053421884212853776,
+      "rank_ic": 0.005382564963848396,
+      "run_id": "L0-f1-s2027",
+      "seed": 2027,
+      "top5_gross_spread": -0.0012928597230222234,
+      "top5_net_spread": -0.0038056144400033546,
+      "turnover": 0.9671698113207547
+    },
+    {
+      "fold": 1,
+      "objective": "L0",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4377358490566038,
+      "rank5_6_margin": 0.0009171395931603773,
+      "rank_ic": 0.009803824034544746,
+      "run_id": "L0-f1-s2028",
+      "seed": 2028,
+      "top5_gross_spread": 0.00024891444675488,
+      "top5_net_spread": -0.002224594987207384,
+      "turnover": 0.9520754716981132
+    },
+    {
+      "fold": 0,
+      "objective": "L1",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.45660377358490567,
+      "rank5_6_margin": 0.005418194464917453,
+      "rank_ic": 0.02953343556886965,
+      "run_id": "L1-f0-s2026",
+      "seed": 2026,
+      "top5_gross_spread": 0.0020339634019722664,
+      "top5_net_spread": -0.0003590932018013185,
+      "turnover": 0.9211320754716981
+    },
+    {
+      "fold": 0,
+      "objective": "L1",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4679245283018868,
+      "rank5_6_margin": 0.008979376082150442,
+      "rank_ic": 0.035618336758656936,
+      "run_id": "L1-f0-s2027",
+      "seed": 2027,
+      "top5_gross_spread": 0.002715537489679244,
+      "top5_net_spread": 0.00022829220666037623,
+      "turnover": 0.9573584905660377
+    },
+    {
+      "fold": 0,
+      "objective": "L1",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.44528301886792454,
+      "rank5_6_margin": 0.0064557273432893575,
+      "rank_ic": 0.04456277260781999,
+      "run_id": "L1-f0-s2028",
+      "seed": 2028,
+      "top5_gross_spread": 0.0013990617006094154,
+      "top5_net_spread": -0.0010979949031641692,
+      "turnover": 0.9611320754716981
+    },
+    {
+      "fold": 1,
+      "objective": "L1",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4528301886792453,
+      "rank5_6_margin": 0.0028859264445754715,
+      "rank_ic": 0.00791959848599023,
+      "run_id": "L1-f1-s2026",
+      "seed": 2026,
+      "top5_gross_spread": -0.00036502757012856336,
+      "top5_net_spread": -0.0028051785135247893,
+      "turnover": 0.9392452830188679
+    },
+    {
+      "fold": 1,
+      "objective": "L1",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.42641509433962266,
+      "rank5_6_margin": 0.009505077577986807,
+      "rank_ic": 0.011693656287858066,
+      "run_id": "L1-f1-s2027",
+      "seed": 2027,
+      "top5_gross_spread": -0.0008162673299690006,
+      "top5_net_spread": -0.003329022046950132,
+      "turnover": 0.9671698113207547
+    },
+    {
+      "fold": 1,
+      "objective": "L1",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4716981132075472,
+      "rank5_6_margin": 0.0051373967584574,
+      "rank_ic": 0.016359863111556232,
+      "run_id": "L1-f1-s2028",
+      "seed": 2028,
+      "top5_gross_spread": -0.00025122071409818333,
+      "top5_net_spread": -0.0027816358084378056,
+      "turnover": 0.9739622641509434
+    },
+    {
+      "fold": 0,
+      "objective": "L2",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.47924528301886793,
+      "rank5_6_margin": 0.020191466133549527,
+      "rank_ic": 0.05613307433909606,
+      "run_id": "L2-f0-s2026",
+      "seed": 2026,
+      "top5_gross_spread": 0.0009531465148762977,
+      "top5_net_spread": -0.001524287447387853,
+      "turnover": 0.9535849056603773
+    },
+    {
+      "fold": 0,
+      "objective": "L2",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4377358490566038,
+      "rank5_6_margin": 0.029722508844339624,
+      "rank_ic": 0.04698812229906757,
+      "run_id": "L2-f0-s2027",
+      "seed": 2027,
+      "top5_gross_spread": 0.0007059664461791228,
+      "top5_net_spread": -0.0018048260066510656,
+      "turnover": 0.9664150943396227
+    },
+    {
+      "fold": 0,
+      "objective": "L2",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4226415094339623,
+      "rank5_6_margin": 0.022537504502062527,
+      "rank_ic": 0.052318319475599326,
+      "run_id": "L2-f0-s2028",
+      "seed": 2028,
+      "top5_gross_spread": -0.0006081886643330501,
+      "top5_net_spread": -0.0031130943247104086,
+      "turnover": 0.9641509433962264
+    },
+    {
+      "fold": 1,
+      "objective": "L2",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.49433962264150944,
+      "rank5_6_margin": 0.0067732900943396224,
+      "rank_ic": 0.020335068335838268,
+      "run_id": "L2-f1-s2026",
+      "seed": 2026,
+      "top5_gross_spread": 0.0013288365377506792,
+      "top5_net_spread": -0.001130937047154981,
+      "turnover": 0.9467924528301886
+    },
+    {
+      "fold": 1,
+      "objective": "L2",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4339622641509434,
+      "rank5_6_margin": 0.00857486364976415,
+      "rank_ic": 0.017256628558620084,
+      "run_id": "L2-f1-s2027",
+      "seed": 2027,
+      "top5_gross_spread": -0.0003881814119400693,
+      "top5_net_spread": -0.0028989738647702576,
+      "turnover": 0.9664150943396227
+    },
+    {
+      "fold": 1,
+      "objective": "L2",
+      "peak_reserved_bytes": 83886080,
+      "positive_net_date_ratio": 0.4377358490566038,
+      "rank5_6_margin": 0.012513900253007996,
+      "rank_ic": 0.019970739295044542,
+      "run_id": "L2-f1-s2028",
+      "seed": 2028,
+      "top5_gross_spread": 0.0004842932039748873,
+      "top5_net_spread": -0.0020343483054590748,
+      "turnover": 0.9694339622641509
+    }
+  ],
+  "schema_version": "r3_task25_evaluation.v1",
+  "selection": {
+    "decisions": {
+      "L0": {
+        "blockers": [
+          "missing_r2_rank_ic_median_floor",
+          "missing_r2_seed_net_spread_std"
+        ],
+        "checks": {
+          "both_fold_means_non_negative": false,
+          "exact_six_runs": true,
+          "peak_gpu_at_most_7_2_gib": true,
+          "positive_net_runs_at_least_four": false,
+          "rank_ic_median_not_below_r2": null,
+          "seed_std_reduced_at_least_ten_percent": null
+        },
+        "passed": false
+      },
+      "L1": {
+        "blockers": [
+          "missing_r2_rank_ic_median_floor",
+          "missing_r2_seed_net_spread_std"
+        ],
+        "checks": {
+          "both_fold_means_non_negative": false,
+          "exact_six_runs": true,
+          "peak_gpu_at_most_7_2_gib": true,
+          "positive_net_runs_at_least_four": false,
+          "rank_ic_median_not_below_r2": null,
+          "seed_std_reduced_at_least_ten_percent": null
+        },
+        "passed": false
+      },
+      "L2": {
+        "blockers": [
+          "missing_r2_rank_ic_median_floor",
+          "missing_r2_seed_net_spread_std"
+        ],
+        "checks": {
+          "both_fold_means_non_negative": false,
+          "exact_six_runs": true,
+          "peak_gpu_at_most_7_2_gib": true,
+          "positive_net_runs_at_least_four": false,
+          "rank_ic_median_not_below_r2": null,
+          "seed_std_reduced_at_least_ten_percent": null
+        },
+        "passed": false
+      }
+    },
+    "reason": "The frozen R2 evidence contains no complete RankIC median or seed net spread standard deviation, so the relative gates cannot be evaluated.",
+    "selected_objective": null,
+    "status": "blocked_missing_r2_reference"
+  },
+  "task26_allowed": false
+}

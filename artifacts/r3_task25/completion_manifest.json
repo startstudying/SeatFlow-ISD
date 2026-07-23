@@ -1,0 +1,99 @@
+{
+  "all_runs_complete": true,
+  "completed_run_count": 18,
+  "planned_manifest_path": "artifacts/r3_task25/run_manifest.json",
+  "planned_manifest_sha256": "d6d82a58651f6da6c2ff04d1b011ff1c242b390ca3a3e6b36a364661ee23557d",
+  "runs": [
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/run_complete.json",
+      "run_complete_sha256": "160a2dd855f3e34530bc3b11ce05d7be438ddb59d6191b627b993c73a63d22f0",
+      "run_id": "L0-f0-s2026"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/run_complete.json",
+      "run_complete_sha256": "ed30202726cdb4f63df785dd480aac3f8d32bdbc91355e8934cf80ff03287715",
+      "run_id": "L0-f0-s2027"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/run_complete.json",
+      "run_complete_sha256": "7f56cb430116edf6cf66e123eca062df639dc11bf486143b473e087569e30fae",
+      "run_id": "L0-f0-s2028"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/run_complete.json",
+      "run_complete_sha256": "0ae63608eca97599205355c3e9501a2a3ecb35858df5013c8d7c118c0f04195d",
+      "run_id": "L0-f1-s2026"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/run_complete.json",
+      "run_complete_sha256": "2f23e245bebd291dc4f71f5543895c4ef891cc942cce71bcdf13ef31dc33e1aa",
+      "run_id": "L0-f1-s2027"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/run_complete.json",
+      "run_complete_sha256": "ec077300a96d88829b94bfdf597ef067b4ace3545b4bf52ed4f0c99e0cc8f5cb",
+      "run_id": "L0-f1-s2028"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/run_complete.json",
+      "run_complete_sha256": "164fb94f614a14c22e7f63bec04c38876ec6cd879a88b00704338aa3fa0a24c3",
+      "run_id": "L1-f0-s2026"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/run_complete.json",
+      "run_complete_sha256": "0b3ef958d197df1addd93d9d0078806632af8caa4e4751d0a516ff84bc5881db",
+      "run_id": "L1-f0-s2027"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/run_complete.json",
+      "run_complete_sha256": "a756a71aa17f5cc1ef993b558fc3d086e948d48f99b380a0d156793a1391f7a7",
+      "run_id": "L1-f0-s2028"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/run_complete.json",
+      "run_complete_sha256": "f544a57252c8a41f2e3b90fb69a2145d1dddb4772562f60feb09cca1488b443b",
+      "run_id": "L1-f1-s2026"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/run_complete.json",
+      "run_complete_sha256": "f2a667360b06bfa1f2fd44cc923f5b99f77df3ffa8e9247a4a77e510c967f9b4",
+      "run_id": "L1-f1-s2027"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/run_complete.json",
+      "run_complete_sha256": "d5c9adea461752746829768fba7924fcf0f4c781e0ed845e0fae2d1318d88079",
+      "run_id": "L1-f1-s2028"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/run_complete.json",
+      "run_complete_sha256": "b69c9efd3df8765d875cb582496f44724ae6896d18ab56f6214d0059904d6101",
+      "run_id": "L2-f0-s2026"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/run_complete.json",
+      "run_complete_sha256": "3f6f70dbf456dc47dc23ab0b9a5395d927aeeafe0e6625c0129f063c89073ec8",
+      "run_id": "L2-f0-s2027"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/run_complete.json",
+      "run_complete_sha256": "7b322b0f2387ec9e2392f3198c35c2393e4eedb60798c00dd2c31ffb4b76d2f8",
+      "run_id": "L2-f0-s2028"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/run_complete.json",
+      "run_complete_sha256": "48b5c2933f455f90dae5bc9bc2c638015e0938cdddc1a365af5796792aace248",
+      "run_id": "L2-f1-s2026"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/run_complete.json",
+      "run_complete_sha256": "0aa771f21a3fb5c4bce6f98c695f5a91a9be019297b110b77d713137e2a26185",
+      "run_id": "L2-f1-s2027"
+    },
+    {
+      "run_complete_path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/run_complete.json",
+      "run_complete_sha256": "c6717d1dfc4c722af00f248ed69dfcf750f8b9acf4a91c47af18ab3677bcb79f",
+      "run_id": "L2-f1-s2028"
+    }
+  ],
+  "schema_version": "r3_task25_completion_manifest.v1"
+}
