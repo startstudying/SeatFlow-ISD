@@ -38,11 +38,21 @@ def save_seed_artifacts(
     model: Any,
     predictions: Mapping[str, object],
     metadata: Mapping[str, object] | None = None,
+    allow_overwrite: bool = False,
 ) -> Path:
     import torch
 
     directory = seed_artifact_directory(output_root, fold_id=fold_id, seed=seed)
     checkpoint_path = directory / "model_state.pt"
+    targets = (
+        checkpoint_path,
+        directory / "predictions.json",
+        directory / "metadata.json",
+    )
+    if not allow_overwrite and any(path.exists() for path in targets):
+        raise FileExistsError(
+            f"seed artifacts already exist for fold={fold_id}, seed={seed}"
+        )
     torch.save(cpu_state_dict(model), checkpoint_path)
     _write_json(directory / "predictions.json", dict(predictions))
     _write_json(

@@ -1,0 +1,70 @@
+{
+  "schema_version": "r2_frozen_manifest.v1",
+  "frozen_at": "2026-07-23",
+  "freeze_scope": "engineering_smoke_only",
+  "immutable": true,
+  "model_valid": false,
+  "development_candidate": false,
+  "complete_15_run_evidence": false,
+  "future_blind_allowed": false,
+  "code_commit": "daff03311dec7b865f71683276324c3517ef9d4a",
+  "source_config": {
+    "path": "configs/experiments/r2_seatranklite_8gb.toml",
+    "sha256": "5d42ef7b497b59e8f13474d8a6cb6cb5b16ac6e226598ff14f764628ec19b0e8"
+  },
+  "protocol": {
+    "expected_folds": [0, 1, 2],
+    "expected_seeds": [2026, 2027, 2028, 2029, 2030],
+    "available_smoke_runs": [
+      {"fold": 0, "seed": 2026},
+      {"fold": 0, "seed": 2027}
+    ],
+    "missing_development_run_count": 15,
+    "data_cutoff": null,
+    "fold_definition_hash": null,
+    "graph_schema_hash": null,
+    "scaler_hash": null
+  },
+  "engineering_evidence": {
+    "parameter_count": 171316,
+    "gpu_name": "NVIDIA GeForce RTX 5060 Laptop GPU",
+    "gpu_total_memory_mib": 8151,
+    "torch_version": "2.11.0+cu128",
+    "peak_allocated_bytes": 19952128,
+    "peak_reserved_bytes": 25165824,
+    "production_snapshot_peak_bytes": null
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/r2_seatranklite/smoke/fold_0/seed_2026/metadata.json",
+      "bytes": 1396,
+      "sha256": "611cb12af320b71989f06afa0277b68c9b2eb097263988e8b11cebb57acb0f11"
+    },
+    {
+      "path": "artifacts/r2_seatranklite/smoke/fold_0/seed_2026/model_state.pt",
+      "bytes": 740987,
+      "sha256": "70350332a47349574787588b26f3794ff417c5f036f5843116862217641b0ae3"
+    },
+    {
+      "path": "artifacts/r2_seatranklite/smoke/fold_0/seed_2026/predictions.json",
+      "bytes": 751,
+      "sha256": "cbe2b9a3e35b0af75663a752e82f0986f5641d6f9db38c102b4ba87a6c8df9a2"
+    },
+    {
+      "path": "artifacts/r2_seatranklite/smoke/fold_0/seed_2027/metadata.json",
+      "bytes": 1394,
+      "sha256": "7bc7ce9be46cf2e48702dc185872fb4cd645698703bc0ce7ca6f08a7350ca176"
+    },
+    {
+      "path": "artifacts/r2_seatranklite/smoke/fold_0/seed_2027/model_state.pt",
+      "bytes": 740987,
+      "sha256": "dad3dcf0e5938d2d99122c476880162110561890ed11a9e1f729db80c9b980af"
+    },
+    {
+      "path": "artifacts/r2_seatranklite/smoke/fold_0/seed_2027/predictions.json",
+      "bytes": 734,
+      "sha256": "44be3ca97e146302f48ff26baaa965eafcfd99d080b59e891532925a38b2a857"
+    }
+  ]
+}
+

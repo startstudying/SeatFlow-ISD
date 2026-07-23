@@ -27,6 +27,29 @@ class SeedStateSavedOnCpuTest(unittest.TestCase):
         self.assertTrue(state)
         self.assertTrue(all(tensor.device.type == "cpu" for tensor in state.values()))
 
+    def test_existing_seed_artifacts_are_not_overwritten(self) -> None:
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is not installed")
+        model = torch.nn.Linear(2, 1)
+        with TemporaryDirectory() as temporary_directory:
+            save_seed_artifacts(
+                temporary_directory,
+                fold_id=0,
+                seed=2026,
+                model=model,
+                predictions={},
+            )
+            with self.assertRaises(FileExistsError):
+                save_seed_artifacts(
+                    temporary_directory,
+                    fold_id=0,
+                    seed=2026,
+                    model=model,
+                    predictions={},
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
