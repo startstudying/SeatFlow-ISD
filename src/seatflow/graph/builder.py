@@ -237,25 +237,25 @@ class DynamicGraphBuilder:
             if edge.relation in forward_trade_relations:
                 trade_groups[(edge.source_id, edge.target_id, edge.relation)].append(edge)
                 continue
-            key = (
+            retained_key = (
                 edge.source_type,
                 edge.source_id,
                 edge.relation,
                 edge.target_type,
                 edge.target_id,
             )
-            previous = retained.get(key)
+            previous = retained.get(retained_key)
             if previous is None or edge.event_date > previous.event_date:
-                retained[key] = edge
+                retained[retained_key] = edge
 
         stock_totals: dict[str, float] = defaultdict(float)
         seat_totals: dict[str, float] = defaultdict(float)
         pair_side_totals: dict[tuple[str, str, str], float] = {}
-        for key, group in trade_groups.items():
+        for trade_key, group in trade_groups.items():
             amount = sum(float(edge.attributes["amount"]) for edge in group)
-            pair_side_totals[key] = amount
-            stock_totals[key[1]] += amount
-            seat_totals[key[0]] += amount
+            pair_side_totals[trade_key] = amount
+            stock_totals[trade_key[1]] += amount
+            seat_totals[trade_key[0]] += amount
 
         aggregated = list(retained.values())
         for (seat_id, stock_id, relation), group in sorted(trade_groups.items()):

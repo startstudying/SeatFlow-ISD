@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from math import sqrt
-from typing import Any
+from typing import Any, cast
 
 from seatflow.graph.tensorize import TensorizedGraph
 
@@ -231,9 +231,10 @@ def _build_model(config: SeatRankLiteConfig, tensorized: TensorizedGraph) -> Any
                 for node_type in node_types
             }
             for layer, norms in zip(self.layers, self.norms, strict=True):
+                typed_norms = cast(Any, norms)
                 updated = layer(x_dict, graph)
                 x_dict = {
-                    node_type: norms[node_type](
+                    node_type: typed_norms[node_type](
                         self.dropout(
                             torch.relu(
                                 updated[node_type]

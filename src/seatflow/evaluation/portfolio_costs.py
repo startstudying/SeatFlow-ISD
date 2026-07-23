@@ -72,7 +72,7 @@ def ranked_portfolio_cost_summary(
     for day in sorted(by_date):
         selected = sorted(
             by_date[day],
-            key=lambda row: (-float(row[score_field]), str(row[stock_field])),
+            key=lambda row: (-float(str(row[score_field])), str(row[stock_field])),
         )[:top_k]
         weight = 1.0 / len(selected)
         current = {str(row[stock_field]): weight for row in selected}

@@ -170,14 +170,15 @@ def train_seat_rank_lite_seed(
             del data, residual_targets, direction_targets, outputs, loss, scaled_loss, components
             release_cuda_objects(device=device)
         epochs_completed = epoch + 1
+        epoch_losses = [
+            float(str(row["loss"]))
+            for row in step_metrics
+            if int(str(row["epoch"])) == epoch + 1
+        ]
         monitor = (
             _validation_monitor(model, validation_batches, device, amp)
             if validation_batches
-            else -sum(
-                float(row["loss"])
-                for row in step_metrics
-                if row["epoch"] == epoch + 1
-            )
+            else -sum(epoch_losses)
         )
         if monitor > best_monitor:
             best_monitor = monitor

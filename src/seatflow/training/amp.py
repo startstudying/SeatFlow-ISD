@@ -56,7 +56,8 @@ def build_amp_controller(
     )
     fp16_enabled = dtype == torch.float16
     try:
-        scaler = torch.amp.GradScaler("cuda", enabled=fp16_enabled, init_scale=1024.0)
+        scaler_type = torch.amp.GradScaler  # type: ignore[attr-defined]
+        scaler = scaler_type("cuda", enabled=fp16_enabled, init_scale=1024.0)
     except (AttributeError, TypeError):  # pragma: no cover - compatibility with older PyTorch
         scaler = torch.cuda.amp.GradScaler(enabled=fp16_enabled, init_scale=1024.0)
     return AmpController(device=torch.device(device), dtype=dtype, scaler=scaler)
