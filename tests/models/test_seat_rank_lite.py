@@ -10,6 +10,7 @@ from seatflow.models.seat_rank_lite import (
     SeatRankLiteConfig,
     build_seat_rank_lite,
     count_parameters,
+    validate_parameter_count,
 )
 
 
@@ -29,6 +30,8 @@ class SeatRankLiteTest(unittest.TestCase):
         self.assertTrue(bool((outputs["uncertainty"] > 0).all()))
         self.assertFalse(outputs["model_valid"])
         self.assertLess(count_parameters(model), 3_000_000)
+        report = validate_parameter_count(model)
+        self.assertFalse(report["recommended_limit_exceeded"])
         for layer in model.layers:
             self.assertTrue(layer.last_edge_gate_shapes)
             for rows, width in layer.last_edge_gate_shapes.values():
@@ -49,6 +52,13 @@ class SeatRankLiteTest(unittest.TestCase):
 
         self.assertEqual(outputs["rank_score"].device.type, "cuda")
         self.assertTrue(bool(torch.isfinite(outputs["rank_score"]).all()))
+
+    def test_parameter_hard_limit_fails_closed(self) -> None:
+        import torch
+
+        oversized = torch.nn.Linear(2_500_001, 2, bias=False)
+        with self.assertRaisesRegex(ValueError, "hard limit exceeded"):
+            validate_parameter_count(oversized)
 
 
 def _tensorized_graph():  # type: ignore[no-untyped-def]

@@ -48,11 +48,32 @@ def build_seat_rank_lite(config: SeatRankLiteConfig, tensorized: TensorizedGraph
         raise SeatRankLiteUnavailableError(
             "SeatRankLite requires PyTorch and torch-geometric"
         ) from error
-    return _build_model(config, tensorized)
+    model = _build_model(config, tensorized)
+    validate_parameter_count(model)
+    return model
 
 
 def count_parameters(model: Any) -> int:
     return sum(parameter.numel() for parameter in model.parameters())
+
+
+def validate_parameter_count(
+    model: Any,
+    *,
+    recommended_max: int = 3_000_000,
+    hard_max: int = 5_000_000,
+) -> dict[str, int | bool]:
+    if recommended_max <= 0 or hard_max < recommended_max:
+        raise ValueError("parameter limits require 0 < recommended_max <= hard_max")
+    count = count_parameters(model)
+    if count > hard_max:
+        raise ValueError(f"SeatRankLite parameter hard limit exceeded: {count} > {hard_max}")
+    return {
+        "parameter_count": count,
+        "recommended_max": recommended_max,
+        "hard_max": hard_max,
+        "recommended_limit_exceeded": count > recommended_max,
+    }
 
 
 def _build_model(config: SeatRankLiteConfig, tensorized: TensorizedGraph) -> Any:
