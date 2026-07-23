@@ -135,12 +135,17 @@ def compute_ranking_loss(
     max_pairs_per_date: int = 1024,
 ) -> tuple[Any, dict[str, Any]]:
     weights = RankingLossWeights() if weights is None else weights
-    smooth = SmoothL1ResidualLoss()(outputs["residual_return"], residual_targets)
+    residual_predictions = outputs["residual_return"].float()
+    rank_predictions = outputs["rank_score"].float()
+    direction_logits = outputs["direction_logit"].float()
+    residual_targets = residual_targets.float()
+    direction_targets = direction_targets.float()
+    smooth = SmoothL1ResidualLoss()(residual_predictions, residual_targets)
     pairwise = SampledPairwiseRankLoss(max_pairs_per_date)(
-        outputs["rank_score"], residual_targets, dates
+        rank_predictions, residual_targets, dates
     )
-    pearson = PearsonCorrelationLoss()(outputs["rank_score"], residual_targets, dates)
-    direction = DirectionBCELoss()(outputs["direction_logit"], direction_targets)
+    pearson = PearsonCorrelationLoss()(rank_predictions, residual_targets, dates)
+    direction = DirectionBCELoss()(direction_logits, direction_targets)
     total = (
         weights.smooth_l1 * smooth
         + weights.pairwise_rank * pairwise
