@@ -8,6 +8,7 @@ from math import copysign, log1p
 from typing import Any
 
 from seatflow.feature_registry import FeatureKind, infer_feature_kind
+from seatflow.graph.edge_schema import transform_edge_value, validate_edge_attributes
 from seatflow.graph.types import GraphEdge, GraphNode, HeteroGraphSnapshot, NodeType
 
 
@@ -235,6 +236,8 @@ def _node_features(features: dict[str, Any], schema: list[str]) -> list[float]:
 
 
 def _edge_attr_keys(edges: Sequence[GraphEdge]) -> set[str]:
+    for edge in edges:
+        validate_edge_attributes(edge.attributes)
     keys = sorted(
         {
             key
@@ -264,7 +267,7 @@ def _scaled_node_value(name: str, value: float) -> float:
 def _scaled_edge_value(name: str, value: float) -> float:
     if name in _LOG1P_EDGE_ATTRIBUTES:
         return _signed_log1p(value)
-    return value
+    return transform_edge_value(name, value)
 
 
 def _signed_log1p(value: float) -> float:
