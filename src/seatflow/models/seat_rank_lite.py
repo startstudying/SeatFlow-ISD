@@ -111,6 +111,7 @@ def _build_model(config: SeatRankLiteConfig, tensorized: TensorizedGraph) -> Any
                 }
             )
             self.gate_dropout = nn.Dropout(config.relation_dropout)
+            self.last_edge_gate_shapes: dict[str, tuple[int, int]] = {}
 
         def forward(self, x_dict: dict[str, Any], graph: Any) -> dict[str, Any]:
             aggregates = {
@@ -139,6 +140,13 @@ def _build_model(config: SeatRankLiteConfig, tensorized: TensorizedGraph) -> Any
                 ).view(-1, config.num_heads, head_dim)
                 relation = _relation_key(edge_type)
                 edge_gate = torch.sigmoid(self.edge_gates[relation](store.edge_attr))
+                expected_shape = (int(store.edge_index.size(1)), config.num_heads)
+                if tuple(edge_gate.shape) != expected_shape:
+                    raise ValueError(
+                        f"edge gate shape for {edge_type} must be {expected_shape}, "
+                        f"got {tuple(edge_gate.shape)}"
+                    )
+                self.last_edge_gate_shapes[relation] = expected_shape
                 edge_gate = self.gate_dropout(edge_gate)
                 attention = torch.sigmoid(
                     (query * key).sum(dim=-1) / sqrt(head_dim)

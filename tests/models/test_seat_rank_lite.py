@@ -29,6 +29,12 @@ class SeatRankLiteTest(unittest.TestCase):
         self.assertTrue(bool((outputs["uncertainty"] > 0).all()))
         self.assertFalse(outputs["model_valid"])
         self.assertLess(count_parameters(model), 3_000_000)
+        for layer in model.layers:
+            self.assertTrue(layer.last_edge_gate_shapes)
+            for rows, width in layer.last_edge_gate_shapes.values():
+                self.assertGreater(rows, 0)
+                self.assertEqual(width, 2)
+                self.assertNotEqual(width, model.config.hidden_dim)
 
     def test_cuda_forward_uses_the_gpu_when_available(self) -> None:
         import torch
