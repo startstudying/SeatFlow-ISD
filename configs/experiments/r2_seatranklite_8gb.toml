@@ -1,0 +1,44 @@
+[device]
+device = "auto"
+mixed_precision = true
+preferred_dtype = "fp16"
+
+[model]
+hidden_dim = 64
+num_heads = 2
+num_layers = 2
+edge_hidden_dim = 16
+dropout = 0.15
+relation_dropout = 0.10
+use_residual = true
+use_layer_norm = true
+
+[training]
+epochs = 20
+learning_rate = 0.0003
+weight_decay = 0.0001
+gradient_accumulation_steps = 4
+gradient_clip_norm = 1.0
+early_stopping_patience = 4
+optimizer = "adamw"
+optimizer_foreach = false
+seed_workers = 1
+seeds = [2026, 2027, 2028, 2029, 2030]
+
+[graph]
+enable_seat_cooccurrence = false
+enable_concept_graph = false
+add_reverse_relations = true
+aggregate_duplicate_edges = true
+stock_positive_topk = 8
+stock_negative_topk = 4
+soft_max_edges = 60000
+hard_max_edges = 100000
+
+[loss]
+smooth_l1_weight = 0.45
+pairwise_rank_weight = 0.30
+pearson_weight = 0.15
+direction_weight = 0.10
+max_pairs_per_date = 1024
+edge_consistency_weight = 0.0
