@@ -296,12 +296,13 @@ def _sparse_lambda_pairs(
     true_top_count = max(1, int((size * true_top_fraction) + 0.999999))
     true_order = targets.detach().argsort(descending=True).cpu().tolist()
     predicted_order = scores.detach().argsort(descending=True).cpu().tolist()
+    target_values = targets.detach().cpu().tolist()
     pairs: set[tuple[int, int]] = set()
     boundary_left = predicted_order[: min(k, size)]
     boundary_right = predicted_order[min(k, size) : min(2 * k, size)]
     for left in boundary_left:
         for right in boundary_right:
-            if float(targets[left]) != float(targets[right]):
+            if target_values[left] != target_values[right]:
                 pairs.add((left, right))
     leaders, rest = true_order[:true_top_count], true_order[true_top_count:]
     generator = torch.Generator(device="cpu")
@@ -310,7 +311,7 @@ def _sparse_lambda_pairs(
     while rest and len(pairs) < maximum and attempts < maximum * 20:
         left = leaders[int(torch.randint(len(leaders), (), generator=generator))]
         right = rest[int(torch.randint(len(rest), (), generator=generator))]
-        if float(targets[left]) != float(targets[right]):
+        if target_values[left] != target_values[right]:
             pairs.add((left, right))
         attempts += 1
     return tuple(sorted(pairs))[:maximum]
