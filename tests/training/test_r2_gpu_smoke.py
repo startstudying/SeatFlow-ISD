@@ -95,6 +95,43 @@ class R2GpuSmokeTest(unittest.TestCase):
         self.assertEqual(result.device, "cuda")
         self.assertLess(result.peak_reserved_bytes, int(7.2 * 1024**3))
 
+    def test_candidate_node_indices_align_real_graph_outputs(self) -> None:
+        import torch
+
+        batch = _batch()
+        selected = R2GraphBatch(
+            graph=batch.graph,
+            residual_targets=batch.residual_targets[:3],
+            direction_targets=batch.direction_targets[:3],
+            prediction_date=batch.prediction_date,
+            target_node_indices=torch.tensor([0, 2, 4]),
+            target_stock_ids=("000001.SZ", "000003.SZ", "000005.SZ"),
+        )
+        with TemporaryDirectory() as temporary_directory:
+            result = train_seat_rank_lite_seed(
+                (selected,),
+                SeatRankLiteConfig(),
+                R2TrainingConfig(
+                    epochs=1,
+                    gradient_accumulation_steps=1,
+                    device="cpu",
+                    mixed_precision=False,
+                ),
+                temporary_directory,
+                fold_id=0,
+                seed=2026,
+                prediction_batches=(selected,),
+            )
+            predictions = __import__("json").loads(
+                (
+                    result.checkpoint_path.parent / "predictions.json"
+                ).read_text(encoding="utf-8")
+            )
+
+        snapshot = predictions["2026-01-01"]
+        self.assertEqual(snapshot["stock_ids"], list(selected.target_stock_ids))
+        self.assertEqual(len(snapshot["rank_score"]), 3)
+
 
 def _batch() -> R2GraphBatch:
     import torch

@@ -1,0 +1,54 @@
+{
+  "memory_limit_bytes": 7730941132,
+  "outcome_metrics_accessed": false,
+  "passed": true,
+  "profiles": [
+    {
+      "candidate_count": 43,
+      "duration_seconds": 4.065286600030959,
+      "edge_count": 3608,
+      "label": "p50",
+      "node_count": 387,
+      "parameter_count": 170996,
+      "peak_allocated_bytes": 23899648,
+      "peak_reserved_bytes": 29360128,
+      "prediction_date": "2023-12-14",
+      "stock_node_count": 54
+    },
+    {
+      "candidate_count": 59,
+      "duration_seconds": 1.6929011000320315,
+      "edge_count": 4748,
+      "label": "p90",
+      "node_count": 479,
+      "parameter_count": 170996,
+      "peak_allocated_bytes": 27970560,
+      "peak_reserved_bytes": 33554432,
+      "prediction_date": "2025-12-30",
+      "stock_node_count": 77
+    },
+    {
+      "candidate_count": 560,
+      "duration_seconds": 0.28288419998716563,
+      "edge_count": 23212,
+      "label": "maximum_legal",
+      "node_count": 2721,
+      "parameter_count": 170996,
+      "peak_allocated_bytes": 61774848,
+      "peak_reserved_bytes": 83886080,
+      "prediction_date": "2024-02-07",
+      "stock_node_count": 592
+    }
+  ],
+  "quantile_rule": "nearest index round((N-1)*q)",
+  "quantile_scope": "legalized_graph_edge_count",
+  "relation_policy": {
+    "legacy_missing_optional_relations": [
+      "stock_correlation",
+      "industry_stock"
+    ],
+    "reverse_relations": true,
+    "seat_cooccurrence": false
+  },
+  "schema_version": "r3_task25_cuda_preflight.v1"
+}

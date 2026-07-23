@@ -32,6 +32,8 @@ class R2GraphBatch:
     prediction_date: str
     standardized_residual_targets: Any | None = None
     ranking_targets: Any | None = None
+    target_node_indices: Any | None = None
+    target_stock_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -83,6 +85,7 @@ def train_seat_rank_lite_seed(
     fold_id: int,
     seed: int,
     validation_batches: tuple[R2GraphBatch, ...] = (),
+    prediction_batches: tuple[R2GraphBatch, ...] | None = None,
 ) -> R2SeedResult:
     if not batches:
         raise ValueError("R2 training requires at least one graph batch")
@@ -126,7 +129,7 @@ def train_seat_rank_lite_seed(
                 None if batch.ranking_targets is None else batch.ranking_targets.to(device)
             )
             with amp.autocast():
-                outputs = model(data)
+                outputs = _select_target_outputs(model(data), batch, device)
                 _require_nonconstant_predictions(outputs["rank_score"])
                 loss, components = compute_ranking_loss(
                     outputs,
@@ -135,7 +138,11 @@ def train_seat_rank_lite_seed(
                     (batch.prediction_date,) * int(residual_targets.numel()),
                     max_pairs_per_date=training_config.max_pairs_per_date,
                     objective=training_config.objective,
-                    ranking_targets=ranking_targets,
+                    ranking_targets=(
+                        ranking_targets
+                        if training_config.objective.upper() == "L2"
+                        else residual_targets
+                    ),
                 )
                 scaled_loss = loss / training_config.gradient_accumulation_steps
             if not bool(torch.isfinite(loss).detach().cpu()):
@@ -164,8 +171,8 @@ def train_seat_rank_lite_seed(
             step_metrics.append(
                 {
                     "epoch": epoch + 1,
-                        "prediction_date": batch.prediction_date,
-                        "objective": training_config.objective.upper(),
+                    "prediction_date": batch.prediction_date,
+                    "objective": training_config.objective.upper(),
                     "parameter_count": parameter_report["parameter_count"],
                     "node_count": sum(
                         int(data[node_type].num_nodes) for node_type in data.node_types
@@ -211,7 +218,12 @@ def train_seat_rank_lite_seed(
     if best_state is None:
         raise ValueError("R2 training did not produce a checkpoint state")
     model.load_state_dict(best_state)
-    predictions = _prediction_snapshot(model, batches, device, amp)
+    predictions = _prediction_snapshot(
+        model,
+        batches if prediction_batches is None else prediction_batches,
+        device,
+        amp,
+    )
     checkpoint_path = save_seed_artifacts(
         output_root,
         fold_id=fold_id,
@@ -258,8 +270,8 @@ def _prediction_snapshot(
         for batch in batches:
             data = move_graph_to_device(batch.graph.data.clone(), device)
             with amp.autocast():
-                outputs = model(data)
-            result[batch.prediction_date] = {
+                outputs = _select_target_outputs(model(data), batch, device)
+            snapshot = {
                 name: outputs[name].detach().float().cpu().tolist()
                 for name in (
                     "rank_score",
@@ -268,6 +280,11 @@ def _prediction_snapshot(
                     "uncertainty",
                 )
             }
+            if batch.target_stock_ids:
+                if len(batch.target_stock_ids) != len(snapshot["rank_score"]):
+                    raise ValueError("target stock ids must align with selected predictions")
+                snapshot["stock_ids"] = list(batch.target_stock_ids)
+            result[batch.prediction_date] = snapshot
             del data, outputs
             release_cuda_objects(device=device)
     return result
@@ -288,7 +305,9 @@ def _validation_monitor(
             data = move_graph_to_device(batch.graph.data.clone(), device)
             targets = batch.residual_targets.to(device)
             with amp.autocast():
-                predictions = model(data)["rank_score"].float()
+                predictions = _select_target_outputs(model(data), batch, device)[
+                    "rank_score"
+                ].float()
             predicted_ranks = predictions.argsort().argsort().float()
             target_ranks = targets.argsort().argsort().float()
             rank_ic = _correlation(predicted_ranks, target_ranks)
@@ -307,6 +326,22 @@ def _correlation(left: Any, right: Any) -> Any:
     return (left * right).sum() / (
         left.square().sum().sqrt() * right.square().sum().sqrt()
     ).clamp_min(1e-8)
+
+
+def _select_target_outputs(
+    outputs: dict[str, Any],
+    batch: R2GraphBatch,
+    device: Any,
+) -> dict[str, Any]:
+    if batch.target_node_indices is None:
+        return outputs
+    import torch
+
+    indices = batch.target_node_indices.to(device=device, dtype=torch.long)
+    selected = dict(outputs)
+    for name in ("rank_score", "residual_return", "direction_logit", "uncertainty"):
+        selected[name] = outputs[name].index_select(0, indices)
+    return selected
 
 
 def _require_nonconstant_predictions(predictions: Any) -> None:
