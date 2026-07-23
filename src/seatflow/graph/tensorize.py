@@ -28,6 +28,10 @@ _LOG1P_EDGE_ATTRIBUTES = frozenset(
 )
 
 
+def is_pretransformed_feature(name: str) -> bool:
+    return name in _LOG1P_NODE_FEATURES or name in _LOG1P_EDGE_ATTRIBUTES
+
+
 @dataclass(frozen=True)
 class TensorizedGraph:
     data: Any
@@ -183,6 +187,10 @@ def tensorize_hetero_graph(
         },
         "edge_shapes": edge_shapes,
         "edge_attr_schema": edge_attr_schema,
+        "pretransformed_features": {
+            "node": sorted(_LOG1P_NODE_FEATURES),
+            "edge": sorted(_LOG1P_EDGE_ATTRIBUTES),
+        },
         "edge_attr_shapes": {
             "::".join(edge_type): list(data[edge_type].edge_attr.shape)
             for edge_type in data.edge_types
