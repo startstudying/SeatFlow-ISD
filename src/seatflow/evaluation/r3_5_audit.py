@@ -113,10 +113,11 @@ def run_r3_5_audit(
         attribution = attribute_ranked_portfolios(joined)
         cost_summary = summarize_cost_attribution(attribution)
         topk = topk_diagnostics(joined)
-        topk_payload[run_id] = topk
+        topk_payload[run_id] = {
+            key: value for key, value in topk.items() if key != "daily"
+        }
         cost_payload[run_id] = {
             "summary": cost_summary.to_dict(),
-            "daily": [row.to_dict() for row in attribution],
         }
         oracle_daily.extend(
             _oracle_daily_rows(
