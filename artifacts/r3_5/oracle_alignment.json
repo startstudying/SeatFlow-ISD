@@ -1,0 +1,2033 @@
+{
+  "frozen_manifest_sha256": "fdd3c6d26c5fcc7f235cbd5d654d996988d0c584332b1cc0110a9065fc53c12b",
+  "label_oracle_gross_spread": 0.15286261155672945,
+  "label_oracle_net_spread": 0.15247194104627745,
+  "objectives": {
+    "L0": {
+      "cost_attribution": {
+        "mean_candidate_turnover": 0.9257861635220127,
+        "mean_continuation_rate": 0.07232704402515723,
+        "mean_cost_difference": 0.0004830907060997716,
+        "mean_gross_spread": 0.0023291970495949122,
+        "mean_net_spread": 0.0018461063434951407
+      },
+      "label_oracle": {
+        "mean_candidate_turnover": 0.9067924528301887,
+        "mean_continuation_rate": 0.09132075471698113,
+        "mean_cost_difference": 0.0003906705104520135,
+        "mean_gross_spread": 0.15286261155672945,
+        "mean_net_spread": 0.15247194104627745
+      },
+      "original_score": {
+        "mean_candidate_turnover": 0.9257861635220127,
+        "mean_continuation_rate": 0.07232704402515723,
+        "mean_cost_difference": 0.0004830907060997716,
+        "mean_gross_spread": 0.0023291970495949122,
+        "mean_net_spread": 0.0018461063434951407
+      },
+      "reversed_score": {
+        "mean_candidate_turnover": 0.969811320754717,
+        "mean_continuation_rate": 0.028301886792452834,
+        "mean_cost_difference": 0.0006861562087042882,
+        "mean_gross_spread": -0.0017164695697570855,
+        "mean_net_spread": -0.0024026257784613737
+      },
+      "topk_curve": {
+        "top_1": {
+          "mean_gross_spread": 0.00306766128968579,
+          "mean_net_spread": 0.002364084335345485
+        },
+        "top_10": {
+          "mean_gross_spread": 0.0025482775594524902,
+          "mean_net_spread": 0.0022945037453301173
+        },
+        "top_10pct": {
+          "mean_gross_spread": 0.0014538902371199404,
+          "mean_net_spread": 0.0009992920137582163
+        },
+        "top_20": {
+          "mean_gross_spread": 0.002992581225972773,
+          "mean_net_spread": 0.0031570914108763116
+        },
+        "top_20pct": {
+          "mean_gross_spread": 0.0027931490123155743,
+          "mean_net_spread": 0.0025607626124014484
+        },
+        "top_3": {
+          "mean_gross_spread": 0.002162080325991545,
+          "mean_net_spread": 0.001576319879405221
+        },
+        "top_5": {
+          "mean_gross_spread": 0.0023291970495949122,
+          "mean_net_spread": 0.0018461063434951407
+        }
+      },
+      "trade_return_oracle": {
+        "mean_candidate_turnover": 0.9067924528301887,
+        "mean_continuation_rate": 0.09132075471698113,
+        "mean_cost_difference": 0.0003906705104520135,
+        "mean_gross_spread": 0.15286261155672945,
+        "mean_net_spread": 0.15247194104627745
+      }
+    },
+    "L1": {
+      "cost_attribution": {
+        "mean_candidate_turnover": 0.9533333333333333,
+        "mean_continuation_rate": 0.04477987421383648,
+        "mean_cost_difference": 0.0005666718909666854,
+        "mean_gross_spread": 0.0007860078296775297,
+        "mean_net_spread": 0.00021933593871084462
+      },
+      "label_oracle": {
+        "mean_candidate_turnover": 0.9067924528301887,
+        "mean_continuation_rate": 0.09132075471698113,
+        "mean_cost_difference": 0.0003906705104520135,
+        "mean_gross_spread": 0.15286261155672945,
+        "mean_net_spread": 0.15247194104627745
+      },
+      "original_score": {
+        "mean_candidate_turnover": 0.9533333333333333,
+        "mean_continuation_rate": 0.04477987421383648,
+        "mean_cost_difference": 0.0005666718909666854,
+        "mean_gross_spread": 0.0007860078296775297,
+        "mean_net_spread": 0.00021933593871084462
+      },
+      "reversed_score": {
+        "mean_candidate_turnover": 0.9767295597484277,
+        "mean_continuation_rate": 0.021383647798742137,
+        "mean_cost_difference": 0.0006977422591694706,
+        "mean_gross_spread": -0.0009515912989788861,
+        "mean_net_spread": -0.0016493335581483565
+      },
+      "topk_curve": {
+        "top_1": {
+          "mean_gross_spread": -0.001377099760102928,
+          "mean_net_spread": -0.002108755798304423
+        },
+        "top_10": {
+          "mean_gross_spread": 0.0019403529525372821,
+          "mean_net_spread": 0.0016064604769087368
+        },
+        "top_10pct": {
+          "mean_gross_spread": 0.0008698987731363637,
+          "mean_net_spread": 0.0003291304261091571
+        },
+        "top_20": {
+          "mean_gross_spread": 0.0036871008434365576,
+          "mean_net_spread": 0.0038162533430422738
+        },
+        "top_20pct": {
+          "mean_gross_spread": 0.0024856534608727106,
+          "mean_net_spread": 0.002183829335349794
+        },
+        "top_3": {
+          "mean_gross_spread": -0.0004982970695641364,
+          "mean_net_spread": -0.0011476058672013024
+        },
+        "top_5": {
+          "mean_gross_spread": 0.0007860078296775297,
+          "mean_net_spread": 0.00021933593871084462
+        }
+      },
+      "trade_return_oracle": {
+        "mean_candidate_turnover": 0.9067924528301887,
+        "mean_continuation_rate": 0.09132075471698113,
+        "mean_cost_difference": 0.0003906705104520135,
+        "mean_gross_spread": 0.15286261155672945,
+        "mean_net_spread": 0.15247194104627745
+      }
+    },
+    "L2": {
+      "cost_attribution": {
+        "mean_candidate_turnover": 0.9611320754716982,
+        "mean_continuation_rate": 0.036981132075471705,
+        "mean_cost_difference": 0.0006206283400849693,
+        "mean_gross_spread": 0.0004126454377513112,
+        "mean_net_spread": -0.0002079829023336578
+      },
+      "label_oracle": {
+        "mean_candidate_turnover": 0.9067924528301887,
+        "mean_continuation_rate": 0.09132075471698113,
+        "mean_cost_difference": 0.0003906705104520135,
+        "mean_gross_spread": 0.15286261155672945,
+        "mean_net_spread": 0.15247194104627745
+      },
+      "original_score": {
+        "mean_candidate_turnover": 0.9611320754716982,
+        "mean_continuation_rate": 0.036981132075471705,
+        "mean_cost_difference": 0.0006206283400849693,
+        "mean_gross_spread": 0.0004126454377513112,
+        "mean_net_spread": -0.0002079829023336578
+      },
+      "reversed_score": {
+        "mean_candidate_turnover": 0.9690566037735849,
+        "mean_continuation_rate": 0.029056603773584908,
+        "mean_cost_difference": 0.0006700834322854519,
+        "mean_gross_spread": 0.0005979423701960878,
+        "mean_net_spread": -7.214106208936387e-05
+      },
+      "topk_curve": {
+        "top_1": {
+          "mean_gross_spread": -0.0011413883748114609,
+          "mean_net_spread": -0.0018733910725309336
+        },
+        "top_10": {
+          "mean_gross_spread": 0.0018005301560170483,
+          "mean_net_spread": 0.0013693044506688503
+        },
+        "top_10pct": {
+          "mean_gross_spread": 0.0011136175661954346,
+          "mean_net_spread": 0.0005054164279797287
+        },
+        "top_20": {
+          "mean_gross_spread": 0.0026826882010337286,
+          "mean_net_spread": 0.002669136330865234
+        },
+        "top_20pct": {
+          "mean_gross_spread": 0.0021156072188098104,
+          "mean_net_spread": 0.0017080277887998785
+        },
+        "top_3": {
+          "mean_gross_spread": -0.00015807144003151708,
+          "mean_net_spread": -0.0008483785899134717
+        },
+        "top_5": {
+          "mean_gross_spread": 0.0004126454377513112,
+          "mean_net_spread": -0.0002079829023336578
+        }
+      },
+      "trade_return_oracle": {
+        "mean_candidate_turnover": 0.9067924528301887,
+        "mean_continuation_rate": 0.09132075471698113,
+        "mean_cost_difference": 0.0003906705104520135,
+        "mean_gross_spread": 0.15286261155672945,
+        "mean_net_spread": 0.15247194104627745
+      }
+    }
+  },
+  "original_score_spread": 0.0011759501056745844,
+  "reversed_score_spread": -0.0006900394995132947,
+  "run_count": 18,
+  "runs": [
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.10242862658545411,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7448185273188627,
+        "mean_candidate_turnover": 0.8894339622641511,
+        "mean_continuation_rate": 0.10867924528301887,
+        "mean_cost_difference": 0.0003760001308577496,
+        "mean_gross_spread": 0.003670850067915929,
+        "mean_net_spread": 0.0032948499370581796
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L0",
+      "original_score": {
+        "cost_to_gross_ratio": 0.10242862658545411,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7448185273188627,
+        "mean_candidate_turnover": 0.8894339622641511,
+        "mean_continuation_rate": 0.10867924528301887,
+        "mean_cost_difference": 0.0003760001308577496,
+        "mean_gross_spread": 0.003670850067915929,
+        "mean_net_spread": 0.0032948499370581796
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5331920543338821,
+        "ndcg_at_5": 0.5069441774200946,
+        "precision_at_5": 0.11169811320754718,
+        "rank_1_5_mean_return": 0.0033096561890448087,
+        "rank_6_10_mean_return": 0.0026361068191028104,
+        "top5_realized_return_percentile": 0.49133662657040794
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.12728158045855237,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.6903448679203984,
+        "mean_candidate_turnover": 0.938490566037736,
+        "mean_continuation_rate": 0.059622641509433964,
+        "mean_cost_difference": 0.0006451788151050773,
+        "mean_gross_spread": -0.0050689095215561975,
+        "mean_net_spread": -0.005714088336661274
+      },
+      "run_id": "L0-f0-s2026",
+      "seed": 2026,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0038508295207380855,
+          "mean_net_spread": 0.0031163740803640994
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.003697523188576887,
+          "mean_net_spread": 0.003628846764716685
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0031255499061372473,
+          "mean_net_spread": 0.0027981931155794623
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004338055381204574,
+          "mean_net_spread": 0.004679707282826539
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004935378542963073,
+          "mean_net_spread": 0.0048548906509547395
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0010884407296779686,
+          "mean_net_spread": 0.0005473520265498635
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.003670850067915929,
+          "mean_net_spread": 0.0032948499370581796
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.12974385442261296,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7366647573481381,
+        "mean_candidate_turnover": 0.9422641509433963,
+        "mean_continuation_rate": 0.05584905660377359,
+        "mean_cost_difference": 0.0005345584233476712,
+        "mean_gross_spread": 0.004120105925067256,
+        "mean_net_spread": 0.0035855475017195853
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L0",
+      "original_score": {
+        "cost_to_gross_ratio": 0.12974385442261296,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7366647573481381,
+        "mean_candidate_turnover": 0.9422641509433963,
+        "mean_continuation_rate": 0.05584905660377359,
+        "mean_cost_difference": 0.0005345584233476712,
+        "mean_gross_spread": 0.004120105925067256,
+        "mean_net_spread": 0.0035855475017195853
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5301112887844698,
+        "ndcg_at_5": 0.502661359323786,
+        "precision_at_5": 0.10716981132075472,
+        "rank_1_5_mean_return": 0.0037762856533724654,
+        "rank_6_10_mean_return": 0.0023621693500197544,
+        "top5_realized_return_percentile": 0.49237664881589704
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.23104716832805824,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.69765143910623,
+        "mean_candidate_turnover": 0.9769811320754717,
+        "mean_continuation_rate": 0.021132075471698115,
+        "mean_cost_difference": 0.0007262572017200285,
+        "mean_gross_spread": -0.0031433287279627404,
+        "mean_net_spread": -0.003869585929682769
+      },
+      "run_id": "L0-f0-s2027",
+      "seed": 2027,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0019056405559187168,
+          "mean_net_spread": -0.0026594277218695925
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.003861885417100254,
+          "mean_net_spread": 0.0036017005285627853
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0021382511486996852,
+          "mean_net_spread": 0.0016130718272506697
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.006060788901025903,
+          "mean_net_spread": 0.006244599412319867
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004294512007599047,
+          "mean_net_spread": 0.004015810037917254
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004339725057647542,
+          "mean_net_spread": 0.0036919035672429348
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004120105925067256,
+          "mean_net_spread": 0.0035855475017195853
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.036607112841597476,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7352216854266919,
+        "mean_candidate_turnover": 0.8562264150943396,
+        "mean_continuation_rate": 0.1418867924528302,
+        "mean_cost_difference": 0.0003146122971358842,
+        "mean_gross_spread": 0.008594294188051433,
+        "mean_net_spread": 0.008279681890915548
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L0",
+      "original_score": {
+        "cost_to_gross_ratio": 0.036607112841597476,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7352216854266919,
+        "mean_candidate_turnover": 0.8562264150943396,
+        "mean_continuation_rate": 0.1418867924528302,
+        "mean_cost_difference": 0.0003146122971358842,
+        "mean_gross_spread": 0.008594294188051433,
+        "mean_net_spread": 0.008279681890915548
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5285142631170721,
+        "ndcg_at_5": 0.5043170070854102,
+        "precision_at_5": 0.13660377358490566,
+        "rank_1_5_mean_return": 0.0076942960865051604,
+        "rank_6_10_mean_return": 0.002813602200719657,
+        "top5_realized_return_percentile": 0.4902013765862883
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.18976889930504784,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.6928200271585612,
+        "mean_candidate_turnover": 0.9626415094339622,
+        "mean_continuation_rate": 0.03547169811320755,
+        "mean_cost_difference": 0.0007015358539160428,
+        "mean_gross_spread": -0.0036967904460906676,
+        "mean_net_spread": -0.00439832630000671
+      },
+      "run_id": "L0-f0-s2028",
+      "seed": 2028,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": 0.007136250300440297,
+          "mean_net_spread": 0.006505243376736895
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.006823190370091888,
+          "mean_net_spread": 0.00672442297956092
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.008156715857530224,
+          "mean_net_spread": 0.007852993688903144
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.002875971824307624,
+          "mean_net_spread": 0.003099903042580772
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004779036157488396,
+          "mean_net_spread": 0.004662022075918002
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": 0.011723243531902568,
+          "mean_net_spread": 0.011282940103260123
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.008594294188051433,
+          "mean_net_spread": 0.008279681890915548
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.3943433984956693,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7403466191635726,
+        "mean_candidate_turnover": 0.9475471698113207,
+        "mean_continuation_rate": 0.050566037735849056,
+        "mean_cost_difference": 0.0005387214316841453,
+        "mean_gross_spread": -0.0013661226071978014,
+        "mean_net_spread": -0.0019048440388819462
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L0",
+      "original_score": {
+        "cost_to_gross_ratio": 0.3943433984956693,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7403466191635726,
+        "mean_candidate_turnover": 0.9475471698113207,
+        "mean_continuation_rate": 0.050566037735849056,
+        "mean_cost_difference": 0.0005387214316841453,
+        "mean_gross_spread": -0.0013661226071978014,
+        "mean_net_spread": -0.0019048440388819462
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5251985102944866,
+        "ndcg_at_5": 0.49431630234398866,
+        "precision_at_5": 0.08000000000000002,
+        "rank_1_5_mean_return": -0.0011973676943124113,
+        "rank_6_10_mean_return": 0.0027514879874181077,
+        "top5_realized_return_percentile": 0.4841426184858157
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 1.2105266576490945,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7122001901987827,
+        "mean_candidate_turnover": 0.9815094339622642,
+        "mean_continuation_rate": 0.01660377358490566,
+        "mean_cost_difference": 0.0007002040337850516,
+        "mean_gross_spread": -0.0005784292558619768,
+        "mean_net_spread": -0.0012786332896470285
+      },
+      "run_id": "L0-f1-s2026",
+      "seed": 2026,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0010503955396979148,
+          "mean_net_spread": -0.001743427360668693
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0008846574230733296,
+          "mean_net_spread": 0.0005544667364579477
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0003384601393388432,
+          "mean_net_spread": -0.000847557140430223
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0007309051371200866,
+          "mean_net_spread": 0.0008562637142731976
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0007413111689839372,
+          "mean_net_spread": 0.00046946230512041887
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.001970979719358004,
+          "mean_net_spread": -0.0025857629297545734
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0013661226071978014,
+          "mean_net_spread": -0.0019048440388819462
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.459147933584463,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7388567843052797,
+        "mean_candidate_turnover": 0.9671698113207547,
+        "mean_continuation_rate": 0.0309433962264151,
+        "mean_cost_difference": 0.000593613870240235,
+        "mean_gross_spread": -0.0012928597230222234,
+        "mean_net_spread": -0.001886473593262458
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L0",
+      "original_score": {
+        "cost_to_gross_ratio": 0.459147933584463,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7388567843052797,
+        "mean_candidate_turnover": 0.9671698113207547,
+        "mean_continuation_rate": 0.0309433962264151,
+        "mean_cost_difference": 0.000593613870240235,
+        "mean_gross_spread": -0.0012928597230222234,
+        "mean_net_spread": -0.001886473593262458
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5246590500912588,
+        "ndcg_at_5": 0.5005389553556636,
+        "precision_at_5": 0.08452830188679246,
+        "rank_1_5_mean_return": -0.001143151871602499,
+        "rank_6_10_mean_return": 0.0011398820875051386,
+        "top5_realized_return_percentile": 0.48578757495813746
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.44669379910241674,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7233851879316379,
+        "mean_candidate_turnover": 0.9845283018867924,
+        "mean_continuation_rate": 0.013584905660377358,
+        "mean_cost_difference": 0.0006789720962834017,
+        "mean_gross_spread": 0.00151999445178716,
+        "mean_net_spread": 0.0008410223555037586
+      },
+      "run_id": "L0-f1-s2027",
+      "seed": 2027,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": 0.003866385715485366,
+          "mean_net_spread": 0.0031539731476995098
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": -5.95306385859078e-05,
+          "mean_net_spread": -0.00046287680167283963
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0025945608534231825,
+          "mean_net_spread": -0.0031476303250127327
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.002206313251933228,
+          "mean_net_spread": 0.0022670941088147292
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0012623083159998005,
+          "mean_net_spread": 0.0009257178844388189
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.00011824333371132855,
+          "mean_net_spread": -0.0007811812643475962
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0012928597230222234,
+          "mean_net_spread": -0.001886473593262458
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 2.1735905263294555,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7439839011854421,
+        "mean_candidate_turnover": 0.9520754716981132,
+        "mean_continuation_rate": 0.046037735849056606,
+        "mean_cost_difference": 0.0005410380833329448,
+        "mean_gross_spread": 0.00024891444675488,
+        "mean_net_spread": -0.00029212363657806444
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L0",
+      "original_score": {
+        "cost_to_gross_ratio": 2.1735905263294555,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7439839011854421,
+        "mean_candidate_turnover": 0.9520754716981132,
+        "mean_continuation_rate": 0.046037735849056606,
+        "mean_cost_difference": 0.0005410380833329448,
+        "mean_gross_spread": 0.00024891444675488,
+        "mean_net_spread": -0.00029212363657806444
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5305653467525903,
+        "ndcg_at_5": 0.5084542676216673,
+        "precision_at_5": 0.0860377358490566,
+        "rank_1_5_mean_return": 0.0002925722527410839,
+        "rank_6_10_mean_return": -7.080027956745649e-05,
+        "top5_realized_return_percentile": 0.4959449544605658
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.9942318816567435,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7190288075104879,
+        "mean_candidate_turnover": 0.9747169811320755,
+        "mean_continuation_rate": 0.02339622641509434,
+        "mean_cost_difference": 0.0006647892514161274,
+        "mean_gross_spread": 0.0006686460811419087,
+        "mean_net_spread": 3.856829725781312e-06
+      },
+      "run_id": "L0-f1-s2028",
+      "seed": 2028,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": 0.00650853829706762,
+          "mean_net_spread": 0.005811770489810692
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 8.193959645849008e-05,
+          "mean_net_spread": -0.0002795377356447954
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0017641544968854876,
+          "mean_net_spread": -0.002273319083741022
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0017434528602452213,
+          "mean_net_spread": 0.0017949809044427655
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0007463478808591946,
+          "mean_net_spread": 0.00043667272005945654
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.002089704310209477,
+          "mean_net_spread": -0.002697332226519426
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.00024891444675488,
+          "mean_net_spread": -0.00029212363657806444
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.22948654162259133,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7416062189695689,
+        "mean_candidate_turnover": 0.9211320754716981,
+        "mean_continuation_rate": 0.0769811320754717,
+        "mean_cost_difference": 0.00046676722690553596,
+        "mean_gross_spread": 0.0020339634019722664,
+        "mean_net_spread": 0.0015671961750667305
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L1",
+      "original_score": {
+        "cost_to_gross_ratio": 0.22948654162259133,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7416062189695689,
+        "mean_candidate_turnover": 0.9211320754716981,
+        "mean_continuation_rate": 0.0769811320754717,
+        "mean_cost_difference": 0.00046676722690553596,
+        "mean_gross_spread": 0.0020339634019722664,
+        "mean_net_spread": 0.0015671961750667305
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5331514010894557,
+        "ndcg_at_5": 0.5020583663758047,
+        "precision_at_5": 0.10037735849056605,
+        "rank_1_5_mean_return": 0.001904623883093529,
+        "rank_6_10_mean_return": 0.005037314676549175,
+        "top5_realized_return_percentile": 0.488445020684176
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.1232651998473571,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.6881777995980564,
+        "mean_candidate_turnover": 0.9716981132075472,
+        "mean_continuation_rate": 0.026415094339622643,
+        "mean_cost_difference": 0.0007371528153846762,
+        "mean_gross_spread": -0.005980218393330105,
+        "mean_net_spread": -0.006717371208714781
+      },
+      "run_id": "L1-f0-s2026",
+      "seed": 2026,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0019936113600481473,
+          "mean_net_spread": -0.0027568370236150243
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004152885960376229,
+          "mean_net_spread": 0.0040105254910172685
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0014579695787801147,
+          "mean_net_spread": 0.001013330044209996
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004806677820781566,
+          "mean_net_spread": 0.005119412663951749
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004185731686972107,
+          "mean_net_spread": 0.004045579839799859
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0001596621242209782,
+          "mean_net_spread": -0.0004380570869951294
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0020339634019722664,
+          "mean_net_spread": 0.0015671961750667305
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.21547551609533722,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7323077820795487,
+        "mean_candidate_turnover": 0.9573584905660377,
+        "mean_continuation_rate": 0.040754716981132075,
+        "mean_cost_difference": 0.0005851318420648715,
+        "mean_gross_spread": 0.002715537489679244,
+        "mean_net_spread": 0.0021304056476143724
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L1",
+      "original_score": {
+        "cost_to_gross_ratio": 0.21547551609533722,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7323077820795487,
+        "mean_candidate_turnover": 0.9573584905660377,
+        "mean_continuation_rate": 0.040754716981132075,
+        "mean_cost_difference": 0.0005851318420648715,
+        "mean_gross_spread": 0.002715537489679244,
+        "mean_net_spread": 0.0021304056476143724
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5363448550673378,
+        "ndcg_at_5": 0.5086091083709432,
+        "precision_at_5": 0.09433962264150944,
+        "rank_1_5_mean_return": 0.002532320088034415,
+        "rank_6_10_mean_return": 0.0036459744476882595,
+        "top5_realized_return_percentile": 0.497763990591581
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.7177373170142046,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.6971148132341474,
+        "mean_candidate_turnover": 0.980754716981132,
+        "mean_continuation_rate": 0.017358490566037738,
+        "mean_cost_difference": 0.0007374637497421601,
+        "mean_gross_spread": -0.001027484195485359,
+        "mean_net_spread": -0.0017649479452275189
+      },
+      "run_id": "L1-f0-s2027",
+      "seed": 2027,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0025972879298676835,
+          "mean_net_spread": -0.003375824912062808
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0035558163377798243,
+          "mean_net_spread": 0.0032394433197415083
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.002734178840892517,
+          "mean_net_spread": 0.0021700040462578492
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.005857698500377011,
+          "mean_net_spread": 0.006046354033174775
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004848781349446078,
+          "mean_net_spread": 0.004532892563827773
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.00040705288545812477,
+          "mean_net_spread": -0.0010832170689628721
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.002715537489679244,
+          "mean_net_spread": 0.0021304056476143724
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.4226269310421116,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7337162474458847,
+        "mean_candidate_turnover": 0.9611320754716981,
+        "mean_continuation_rate": 0.0369811320754717,
+        "mean_cost_difference": 0.0005912811528671147,
+        "mean_gross_spread": 0.0013990617006094154,
+        "mean_net_spread": 0.0008077805477423009
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L1",
+      "original_score": {
+        "cost_to_gross_ratio": 0.4226269310421116,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7337162474458847,
+        "mean_candidate_turnover": 0.9611320754716981,
+        "mean_continuation_rate": 0.0369811320754717,
+        "mean_cost_difference": 0.0005912811528671147,
+        "mean_gross_spread": 0.0013990617006094154,
+        "mean_net_spread": 0.0008077805477423009
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5372541449153323,
+        "ndcg_at_5": 0.505625689546503,
+        "precision_at_5": 0.09358490566037736,
+        "rank_1_5_mean_return": 0.00132473051903376,
+        "rank_6_10_mean_return": 0.003357760143508501,
+        "top5_realized_return_percentile": 0.49580810108224543
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.9323888467701323,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7021079821477783,
+        "mean_candidate_turnover": 0.9792452830188679,
+        "mean_continuation_rate": 0.018867924528301886,
+        "mean_cost_difference": 0.0007205569822648331,
+        "mean_gross_spread": 0.0007728073804839029,
+        "mean_net_spread": 5.225039821907017e-05
+      },
+      "run_id": "L1-f0-s2028",
+      "seed": 2028,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.004872418980866877,
+          "mean_net_spread": -0.005620028906437343
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0026311899901514234,
+          "mean_net_spread": 0.0022798558185358163
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0018358597736011818,
+          "mean_net_spread": 0.0012436009980640965
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.00697623375525637,
+          "mean_net_spread": 0.0071005780260538914
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004019715031509814,
+          "mean_net_spread": 0.003673236966319707
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": 0.00038238767115312834,
+          "mean_net_spread": -0.00030357829387141883
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0013990617006094154,
+          "mean_net_spread": 0.0008077805477423009
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 1.4306570651361301,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7383878706442897,
+        "mean_candidate_turnover": 0.9392452830188679,
+        "mean_continuation_rate": 0.05886792452830189,
+        "mean_cost_difference": 0.0005222292721739033,
+        "mean_gross_spread": -0.00036502757012856336,
+        "mean_net_spread": -0.0008872568423024663
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L1",
+      "original_score": {
+        "cost_to_gross_ratio": 1.4306570651361301,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7383878706442897,
+        "mean_candidate_turnover": 0.9392452830188679,
+        "mean_continuation_rate": 0.05886792452830189,
+        "mean_cost_difference": 0.0005222292721739033,
+        "mean_gross_spread": -0.00036502757012856336,
+        "mean_net_spread": -0.0008872568423024663
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5253275510642523,
+        "ndcg_at_5": 0.5017076265346226,
+        "precision_at_5": 0.07924528301886792,
+        "rank_1_5_mean_return": -0.0002934799562946577,
+        "rank_6_10_mean_return": 0.000331925121783485,
+        "top5_realized_return_percentile": 0.4943839858269025
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 1.2630323068144773,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7176729055086208,
+        "mean_candidate_turnover": 0.9724528301886792,
+        "mean_continuation_rate": 0.02566037735849057,
+        "mean_cost_difference": 0.0006624278041681518,
+        "mean_gross_spread": -0.0005244741568320419,
+        "mean_net_spread": -0.0011869019610001935
+      },
+      "run_id": "L1-f1-s2026",
+      "seed": 2026,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.003439493516281146,
+          "mean_net_spread": -0.004100860443568809
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": -2.8452077891445323e-05,
+          "mean_net_spread": -0.0003591309782072173
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0008118042809412221,
+          "mean_net_spread": -0.001300183273718487
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0014195304143900097,
+          "mean_net_spread": 0.001518510124645499
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.00020059482215026655,
+          "mean_net_spread": -7.520403691736895e-05
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0030680646810321063,
+          "mean_net_spread": -0.003645154231499867
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": -0.00036502757012856336,
+          "mean_net_spread": -0.0008872568423024663
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.751518092378116,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7312314779788772,
+        "mean_candidate_turnover": 0.9671698113207547,
+        "mean_continuation_rate": 0.0309433962264151,
+        "mean_cost_difference": 0.0006134396666888814,
+        "mean_gross_spread": -0.0008162673299690006,
+        "mean_net_spread": -0.0014297069966578816
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L1",
+      "original_score": {
+        "cost_to_gross_ratio": 0.751518092378116,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7312314779788772,
+        "mean_candidate_turnover": 0.9671698113207547,
+        "mean_continuation_rate": 0.0309433962264151,
+        "mean_cost_difference": 0.0006134396666888814,
+        "mean_gross_spread": -0.0008162673299690006,
+        "mean_net_spread": -0.0014297069966578816
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5320083986959906,
+        "ndcg_at_5": 0.5065977643343617,
+        "precision_at_5": 0.07773584905660377,
+        "rank_1_5_mean_return": -0.0007432967449642005,
+        "rank_6_10_mean_return": 0.0018877407125635997,
+        "top5_realized_return_percentile": 0.4891993768162658
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.8580022952322367,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7221524469222531,
+        "mean_candidate_turnover": 0.9792452830188679,
+        "mean_continuation_rate": 0.018867924528301886,
+        "mean_cost_difference": 0.0006684413738511982,
+        "mean_gross_spread": 0.0007790671162135647,
+        "mean_net_spread": 0.00011062574236236664
+      },
+      "run_id": "L1-f1-s2027",
+      "seed": 2027,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": 0.006322075648455511,
+          "mean_net_spread": 0.005604547227761282
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0006322477614964794,
+          "mean_net_spread": 0.00020927408683736715
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0003261524688321786,
+          "mean_net_spread": -0.00025157989384870126
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0018175160471599443,
+          "mean_net_spread": 0.001866111326175673
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0007202402881678289,
+          "mean_net_spread": 0.0003646827280362948
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": 0.00016367594978149817,
+          "mean_net_spread": -0.0005198669901206039
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0008162673299690006,
+          "mean_net_spread": -0.0014297069966578816
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 2.472655120536883,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7350460391125567,
+        "mean_candidate_turnover": 0.9739622641509434,
+        "mean_continuation_rate": 0.024150943396226417,
+        "mean_cost_difference": 0.0006211821850998053,
+        "mean_gross_spread": -0.00025122071409818333,
+        "mean_net_spread": -0.0008724028991979882
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L1",
+      "original_score": {
+        "cost_to_gross_ratio": 2.472655120536883,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7350460391125567,
+        "mean_candidate_turnover": 0.9739622641509434,
+        "mean_continuation_rate": 0.024150943396226417,
+        "mean_cost_difference": 0.0006211821850998053,
+        "mean_gross_spread": -0.00025122071409818333,
+        "mean_net_spread": -0.0008724028991979882
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5260461664830292,
+        "ndcg_at_5": 0.5023732537906702,
+        "precision_at_5": 0.07773584905660377,
+        "rank_1_5_mean_return": -0.00020820653015516963,
+        "rank_6_10_mean_return": 0.0014510612649504865,
+        "top5_realized_return_percentile": 0.49467832731097094
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 2.4391503712050397,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7229769668424699,
+        "mean_candidate_turnover": 0.9769811320754717,
+        "mean_continuation_rate": 0.021132075471698115,
+        "mean_cost_difference": 0.0006604108296058045,
+        "mean_gross_spread": 0.0002707544550767219,
+        "mean_net_spread": -0.00038965637452908233
+      },
+      "run_id": "L1-f1-s2028",
+      "seed": 2028,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0016818624220092243,
+          "mean_net_spread": -0.002403530731903836
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0006984297433111812,
+          "mean_net_spread": 0.0002587951235276764
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": -0.000322963742346588,
+          "mean_net_spread": -0.0009003893643098108
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0012449485226544456,
+          "mean_net_spread": 0.0012465538842520547
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0009388575869901706,
+          "mean_net_spread": 0.0005617879510324991
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.00022039059605019243,
+          "mean_net_spread": -0.0008957615317579236
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": -0.00025122071409818333,
+          "mean_net_spread": -0.0008724028991979882
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.6430499369797048,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7178461339974433,
+        "mean_candidate_turnover": 0.9535849056603773,
+        "mean_continuation_rate": 0.04452830188679246,
+        "mean_cost_difference": 0.0006129208063236285,
+        "mean_gross_spread": 0.0009531465148762977,
+        "mean_net_spread": 0.0003402257085526696
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L2",
+      "original_score": {
+        "cost_to_gross_ratio": 0.6430499369797048,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7178461339974433,
+        "mean_candidate_turnover": 0.9535849056603773,
+        "mean_continuation_rate": 0.04452830188679246,
+        "mean_cost_difference": 0.0006129208063236285,
+        "mean_gross_spread": 0.0009531465148762977,
+        "mean_net_spread": 0.0003402257085526696
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.553155330491239,
+        "ndcg_at_5": 0.528024157720836,
+        "precision_at_5": 0.07622641509433963,
+        "rank_1_5_mean_return": 0.0009633342324279623,
+        "rank_6_10_mean_return": 0.003663337530986325,
+        "top5_realized_return_percentile": 0.5160236165353442
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 2.003221369277107,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.697662751415364,
+        "mean_candidate_turnover": 0.9679245283018868,
+        "mean_continuation_rate": 0.03018867924528302,
+        "mean_cost_difference": 0.0007026806199049592,
+        "mean_gross_spread": 0.00035077532153050676,
+        "mean_net_spread": -0.00035190529837445206
+      },
+      "run_id": "L2-f0-s2026",
+      "seed": 2026,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0009718432911168961,
+          "mean_net_spread": -0.0017519430164575002
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0025964308775426326,
+          "mean_net_spread": 0.0022009886300357506
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0012375682545097354,
+          "mean_net_spread": 0.0006330141559703561
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004162522637854106,
+          "mean_net_spread": 0.004229549639165894
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.003904067638540302,
+          "mean_net_spread": 0.0035281188139955092
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0003571309914313439,
+          "mean_net_spread": -0.0010606733013574917
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0009531465148762977,
+          "mean_net_spread": 0.0003402257085526696
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.8761237141208148,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7285251155430359,
+        "mean_candidate_turnover": 0.9664150943396227,
+        "mean_continuation_rate": 0.031698113207547174,
+        "mean_cost_difference": 0.0006185139448711254,
+        "mean_gross_spread": 0.0007059664461791228,
+        "mean_net_spread": 8.745250130799776e-05
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L2",
+      "original_score": {
+        "cost_to_gross_ratio": 0.8761237141208148,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7285251155430359,
+        "mean_candidate_turnover": 0.9664150943396227,
+        "mean_continuation_rate": 0.031698113207547174,
+        "mean_cost_difference": 0.0006185139448711254,
+        "mean_gross_spread": 0.0007059664461791228,
+        "mean_net_spread": 8.745250130799776e-05
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5376431011737656,
+        "ndcg_at_5": 0.5055493051473207,
+        "precision_at_5": 0.08754716981132077,
+        "rank_1_5_mean_return": 0.0006903239114310575,
+        "rank_6_10_mean_return": 0.001859185065070409,
+        "top5_realized_return_percentile": 0.49430910378031273
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.4879171457702515,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7083160599154728,
+        "mean_candidate_turnover": 0.9686792452830189,
+        "mean_continuation_rate": 0.029433962264150945,
+        "mean_cost_difference": 0.0006769442819556198,
+        "mean_gross_spread": 0.001387416465734075,
+        "mean_net_spread": 0.0007104721837784553
+      },
+      "run_id": "L2-f0-s2027",
+      "seed": 2027,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.006500245656915562,
+          "mean_net_spread": -0.007250564167979743
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.001322945828784604,
+          "mean_net_spread": 0.0009439035160500855
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0011533171106383388,
+          "mean_net_spread": 0.0005390365389612448
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.004234957006130878,
+          "mean_net_spread": 0.004319635663402213
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0023369579211374066,
+          "mean_net_spread": 0.001963053372342484
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.00045108048701627336,
+          "mean_net_spread": -0.0011525689066242855
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0007059664461791228,
+          "mean_net_spread": 8.745250130799776e-05
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 1.0605394609518317,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7160709133082312,
+        "mean_candidate_turnover": 0.9641509433962264,
+        "mean_continuation_rate": 0.033962264150943396,
+        "mean_cost_difference": 0.0006450080782287875,
+        "mean_gross_spread": -0.0006081886643330501,
+        "mean_net_spread": -0.0012531967425618376
+      },
+      "fold": 0,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      },
+      "objective": "L2",
+      "original_score": {
+        "cost_to_gross_ratio": 1.0605394609518317,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7160709133082312,
+        "mean_candidate_turnover": 0.9641509433962264,
+        "mean_continuation_rate": 0.033962264150943396,
+        "mean_cost_difference": 0.0006450080782287875,
+        "mean_gross_spread": -0.0006081886643330501,
+        "mean_net_spread": -0.0012531967425618376
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5494799672176813,
+        "ndcg_at_5": 0.5191748072454583,
+        "precision_at_5": 0.07245283018867925,
+        "rank_1_5_mean_return": -0.00045672685256121804,
+        "rank_6_10_mean_return": 0.004203101992358301,
+        "top5_realized_return_percentile": 0.5072256249805819
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.20570639251110326,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.704650221309273,
+        "mean_candidate_turnover": 0.9581132075471699,
+        "mean_continuation_rate": 0.04000000000000001,
+        "mean_cost_difference": 0.0006590037642185316,
+        "mean_gross_spread": 0.0032036134423142006,
+        "mean_net_spread": 0.0025446096780956697
+      },
+      "run_id": "L2-f0-s2028",
+      "seed": 2028,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.004593933385311801,
+          "mean_net_spread": -0.005364440154411488
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0020128549089077543,
+          "mean_net_spread": 0.0015933824377022995
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0003687420058347894,
+          "mean_net_spread": -0.0010041709866105213
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.003852373118712077,
+          "mean_net_spread": 0.0038789087284429214
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0020217267925415052,
+          "mean_net_spread": 0.0016074052609551374
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0006060352016449479,
+          "mean_net_spread": -0.0013244166849776054
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0006081886643330501,
+          "mean_net_spread": -0.0012531967425618376
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.0023320131784002286,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7455782945910795,
+        "mean_candidate_turnover": 0.890943396226415,
+        "mean_continuation_rate": 0.10716981132075472,
+        "mean_cost_difference": 0.0003779492642518727,
+        "mean_gross_spread": 0.1620699521565944,
+        "mean_net_spread": 0.16169200289234253
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 0.42793493423909484,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7280787696006336,
+        "mean_candidate_turnover": 0.9467924528301886,
+        "mean_continuation_rate": 0.05132075471698114,
+        "mean_cost_difference": 0.0005686555763968434,
+        "mean_gross_spread": 0.0013288365377506792,
+        "mean_net_spread": 0.000760180961353836
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L2",
+      "original_score": {
+        "cost_to_gross_ratio": 0.42793493423909484,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7280787696006336,
+        "mean_candidate_turnover": 0.9467924528301886,
+        "mean_continuation_rate": 0.05132075471698114,
+        "mean_cost_difference": 0.0005686555763968434,
+        "mean_gross_spread": 0.0013288365377506792,
+        "mean_net_spread": 0.000760180961353836
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5433054221655517,
+        "ndcg_at_5": 0.5230041652310995,
+        "precision_at_5": 0.06867924528301887,
+        "rank_1_5_mean_return": 0.0012022183915152075,
+        "rank_6_10_mean_return": 0.0019558756465872023,
+        "top5_realized_return_percentile": 0.5093836066501247
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 57.25883023963991,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7199459405179559,
+        "mean_candidate_turnover": 0.9716981132075472,
+        "mean_continuation_rate": 0.026415094339622643,
+        "mean_cost_difference": 0.0006545556489929371,
+        "mean_gross_spread": 1.1431523247217728e-05,
+        "mean_net_spread": -0.0006431241257457191
+      },
+      "run_id": "L2-f1-s2026",
+      "seed": 2026,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0003779996367596796,
+          "mean_net_spread": -0.001053671601409534
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.001920879518324942,
+          "mean_net_spread": 0.00148930487145003
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0021383065071219286,
+          "mean_net_spread": 0.001580412666767473
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.00171854527424476,
+          "mean_net_spread": 0.001635880538478022
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0015670948761922503,
+          "mean_net_spread": 0.001158719927956954
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.00047439795900402993,
+          "mean_net_spread": -0.001090029467361694
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0013288365377506792,
+          "mean_net_spread": 0.000760180961353836
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 1.6198720640504292,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7245673154990956,
+        "mean_candidate_turnover": 0.9664150943396227,
+        "mean_continuation_rate": 0.031698113207547174,
+        "mean_cost_difference": 0.00062880422498537,
+        "mean_gross_spread": -0.0003881814119400693,
+        "mean_net_spread": -0.001016985636925439
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L2",
+      "original_score": {
+        "cost_to_gross_ratio": 1.6198720640504292,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7245673154990956,
+        "mean_candidate_turnover": 0.9664150943396227,
+        "mean_continuation_rate": 0.031698113207547174,
+        "mean_cost_difference": 0.00062880422498537,
+        "mean_gross_spread": -0.0003881814119400693,
+        "mean_net_spread": -0.001016985636925439
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5361624552791268,
+        "ndcg_at_5": 0.5093896689019678,
+        "precision_at_5": 0.0709433962264151,
+        "rank_1_5_mean_return": -0.000366774917838297,
+        "rank_6_10_mean_return": 0.002568015206897528,
+        "top5_realized_return_percentile": 0.4954796292672299
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 0.9091411640621356,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.720878051494621,
+        "mean_candidate_turnover": 0.9716981132075472,
+        "mean_continuation_rate": 0.026415094339622643,
+        "mean_cost_difference": 0.0006521321604536081,
+        "mean_gross_spread": -0.0007173057235026241,
+        "mean_net_spread": -0.001369437883956232
+      },
+      "run_id": "L2-f1-s2027",
+      "seed": 2027,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0029697696085521875,
+          "mean_net_spread": 0.0022791638248726032
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0013136655512274182,
+          "mean_net_spread": 0.0008477923351660103
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0011229791564813323,
+          "mean_net_spread": 0.0005182691493453253
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0014905164764636985,
+          "mean_net_spread": 0.0014438095233553494
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0013119107100368706,
+          "mean_net_spread": 0.0008941035124638267
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0001525362911869304,
+          "mean_net_spread": -0.0008468417784546186
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": -0.0003881814119400693,
+          "mean_net_spread": -0.001016985636925439
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    },
+    {
+      "cost_attribution": {
+        "cost_to_gross_ratio": 1.341888352696685,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7194849585318197,
+        "mean_candidate_turnover": 0.9694339622641509,
+        "mean_continuation_rate": 0.02867924528301887,
+        "mean_cost_difference": 0.0006498674097040611,
+        "mean_gross_spread": 0.0004842932039748873,
+        "mean_net_spread": -0.0001655742057291736
+      },
+      "fold": 1,
+      "label_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      },
+      "objective": "L2",
+      "original_score": {
+        "cost_to_gross_ratio": 1.341888352696685,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7194849585318197,
+        "mean_candidate_turnover": 0.9694339622641509,
+        "mean_continuation_rate": 0.02867924528301887,
+        "mean_cost_difference": 0.0006498674097040611,
+        "mean_gross_spread": 0.0004842932039748873,
+        "mean_net_spread": -0.0001655742057291736
+      },
+      "ranking_metrics": {
+        "ndcg_at_10": 0.5408205984292105,
+        "ndcg_at_5": 0.5176479410469836,
+        "precision_at_5": 0.059622641509433964,
+        "rank_1_5_mean_return": 0.00039926691024090637,
+        "rank_6_10_mean_return": 0.002246143844032436,
+        "top5_realized_return_percentile": 0.5046252166840824
+      },
+      "reversed_score": {
+        "cost_to_gross_ratio": 1.0415058964042285,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7165402157916256,
+        "mean_candidate_turnover": 0.9762264150943396,
+        "mean_continuation_rate": 0.021886792452830192,
+        "mean_cost_difference": 0.0006751841181870561,
+        "mean_gross_spread": -0.0006482768081468491,
+        "mean_net_spread": -0.001323460926333905
+      },
+      "run_id": "L2-f1-s2028",
+      "seed": 2028,
+      "topk_curve": {
+        "top_1": {
+          "day_count": 265,
+          "mean_gross_spread": 0.002625922112682987,
+          "mean_net_spread": 0.0019011086802000609
+        },
+        "top_10": {
+          "day_count": 265,
+          "mean_gross_spread": 0.001636404251314939,
+          "mean_net_spread": 0.0011404549136089267
+        },
+        "top_10pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0013982763742560619,
+          "mean_net_spread": 0.0007659370434444938
+        },
+        "top_20": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0006372146927968517,
+          "mean_net_spread": 0.0005070338923470064
+        },
+        "top_20pct": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0015518853744105271,
+          "mean_net_spread": 0.0010967658450853593
+        },
+        "top_3": {
+          "day_count": 265,
+          "mean_gross_spread": 0.001092752290094423,
+          "mean_net_spread": 0.00038425859929486537
+        },
+        "top_5": {
+          "day_count": 265,
+          "mean_gross_spread": 0.0004842932039748873,
+          "mean_net_spread": -0.0001655742057291736
+        }
+      },
+      "trade_return_oracle": {
+        "cost_to_gross_ratio": 0.002808053989005952,
+        "day_count": 265,
+        "mean_baseline_turnover": 0.7674908337985183,
+        "mean_candidate_turnover": 0.9226415094339623,
+        "mean_continuation_rate": 0.07547169811320754,
+        "mean_cost_difference": 0.0004033917566521543,
+        "mean_gross_spread": 0.14365527095686453,
+        "mean_net_spread": 0.14325187920021237
+      }
+    }
+  ],
+  "schema_version": "r3_5_oracle_alignment.v1",
+  "trade_return_oracle_gross_spread": 0.15286261155672945
+}

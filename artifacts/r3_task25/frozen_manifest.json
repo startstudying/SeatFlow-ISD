@@ -1,0 +1,905 @@
+{
+  "checkpoint_count": 18,
+  "inputs": [
+    {
+      "bytes": 2521,
+      "path": "configs/experiments/r3_task25_frozen.toml",
+      "sha256": "505c42abce499db6f8e668f9053096ea3d6d80eaf00a098059b576706d41a7a0"
+    },
+    {
+      "bytes": 2475813,
+      "path": "artifacts/r3_task25/folds.json",
+      "sha256": "109275d0c3848d09eeb9694f27141ab721cfcb68dd644c4cd2c4efc7d70c3fa7"
+    },
+    {
+      "bytes": 12174,
+      "path": "artifacts/r3_task25/run_manifest.json",
+      "sha256": "d6d82a58651f6da6c2ff04d1b011ff1c242b390ca3a3e6b36a364661ee23557d"
+    },
+    {
+      "bytes": 4591,
+      "path": "artifacts/r3_task25/completion_manifest.json",
+      "sha256": "04b6e3c90e5497c63c0bbe4f1fed97792ebd96734ce4d058d0cb0843915290d4"
+    },
+    {
+      "bytes": 26926,
+      "path": "artifacts/r3_task25/evaluation.json",
+      "sha256": "b0b643707ad746ad2cdde8f805cefd1ef5a3d0a50add078b5bc94b4c4a76f5c8"
+    }
+  ],
+  "planned_manifest_sha256": "d6d82a58651f6da6c2ff04d1b011ff1c242b390ca3a3e6b36a364661ee23557d",
+  "run_count": 18,
+  "run_file_count": 144,
+  "runs": [
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/model_state.pt",
+          "sha256": "d0e042b53359bfa4c1e408c12c7c5ec1eb1ef4dfa92e14f3d9cf6d339e126eab"
+        },
+        {
+          "bytes": 1871807,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/predictions.json",
+          "sha256": "daf41c43c38923ca9a50bc31d54240e7de5c37e60721c27c27a6fff64a7fd7ac"
+        },
+        {
+          "bytes": 3611102,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/metadata.json",
+          "sha256": "b2c5290c3f8efd141b8cceed566613aee55943da7e3612b7dde4f0e424c3c801"
+        },
+        {
+          "bytes": 2935416,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/daily_predictions.jsonl",
+          "sha256": "4565599bab5f66a64c2991e287c044b9bdf3c76d6405b0d0e9f376b5866565e2"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/top5_holdings.jsonl",
+          "sha256": "63e9ed540266230ec4272b181316059fae1891806d08c7d563fb46695793ef0f"
+        },
+        {
+          "bytes": 3610875,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/training_history.json",
+          "sha256": "a0a2fb7a0ef04bc33dfb55cb81796424c50b444582a79e63eeff2d74d0fcad44"
+        },
+        {
+          "bytes": 273,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/resources.json",
+          "sha256": "13f599b2fbf75f248c3d6cb06835163a1e28d93297af71849dac38359eacedfe"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2026/run_complete.json",
+          "sha256": "160a2dd855f3e34530bc3b11ce05d7be438ddb59d6191b627b993c73a63d22f0"
+        }
+      ],
+      "fold": 0,
+      "objective": "L0",
+      "run_id": "L0-f0-s2026",
+      "seed": 2026
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/model_state.pt",
+          "sha256": "bb967a8e1e961236dabe524eb9ea6c9124180b8aa6d2ee320d196baa81d950dd"
+        },
+        {
+          "bytes": 1808089,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/predictions.json",
+          "sha256": "be152867bd4447b5a8ad3f304f0bd4fde542fb27f816a84b94c0d4a6b098a916"
+        },
+        {
+          "bytes": 3610858,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/metadata.json",
+          "sha256": "d79a14c3fdfbfe1b74db6542dd360ce8e7d2595ba3c6267ad0366f0f60472a04"
+        },
+        {
+          "bytes": 2871698,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/daily_predictions.jsonl",
+          "sha256": "958e2da25bfae3275389c651c2630408e9dad243fcb4fbb79b2012aa5b29a9bb"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/top5_holdings.jsonl",
+          "sha256": "a558f308c06609cc8b632f82f23ba96d07a82d0ce755b5c7d998cbdeb098b820"
+        },
+        {
+          "bytes": 3610631,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/training_history.json",
+          "sha256": "0684290057f9c323de54e89c6244f0ac7d700268ad794179e82e7b4835ed8154"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/resources.json",
+          "sha256": "277d89fc858ff88246fbf88a340c98e693162cc20d76444e5a4f4bd2e52e4ee6"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2027/run_complete.json",
+          "sha256": "ed30202726cdb4f63df785dd480aac3f8d32bdbc91355e8934cf80ff03287715"
+        }
+      ],
+      "fold": 0,
+      "objective": "L0",
+      "run_id": "L0-f0-s2027",
+      "seed": 2027
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/model_state.pt",
+          "sha256": "be9b707e2d5cc3c33b56c8733ae0d5e73b2a24ed9ddeca8833a6610ed4a7c47d"
+        },
+        {
+          "bytes": 1820309,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/predictions.json",
+          "sha256": "f33d1d17042961fa762dc17d8663d1896c1830523738d9f58677f12a58ff111a"
+        },
+        {
+          "bytes": 3610868,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/metadata.json",
+          "sha256": "2263da41bcc4ba15d9c2136e63f58786f45b32100a1ce336242a9d770332a23b"
+        },
+        {
+          "bytes": 2883918,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/daily_predictions.jsonl",
+          "sha256": "c5f1b04c279d25c1919943f8c36bfb0154306e1a2ae9a1afb20907a7af9a2625"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/top5_holdings.jsonl",
+          "sha256": "ac4021da0279d7861852d4c24195ca0ac1200ad59beeba21c82cbc06a608135b"
+        },
+        {
+          "bytes": 3610641,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/training_history.json",
+          "sha256": "c040f83373b3b14184bcac8a9b75233ed997844a607460f015c2928e532a8cd6"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/resources.json",
+          "sha256": "78a198d698f1bf5af81e18f4779e6dc31c7a161dcbccd325bd5dc08e84c4e622"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L0/fold_0/seed_2028/run_complete.json",
+          "sha256": "7f56cb430116edf6cf66e123eca062df639dc11bf486143b473e087569e30fae"
+        }
+      ],
+      "fold": 0,
+      "objective": "L0",
+      "run_id": "L0-f0-s2028",
+      "seed": 2028
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/model_state.pt",
+          "sha256": "921d7effa97d38b263f41d9ed6e60fa7e855593d2ee222ef09824dcd697447df"
+        },
+        {
+          "bytes": 1977942,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/predictions.json",
+          "sha256": "7585dc9e9be781c6ab8a1c78c78f44b1a5ca08fbf134aa8e020eb72db760b423"
+        },
+        {
+          "bytes": 6595792,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/metadata.json",
+          "sha256": "ec31d064cdcd548c307fc6f6d497089a2174360233c1fef781f69b07f7e2c8d8"
+        },
+        {
+          "bytes": 3140881,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/daily_predictions.jsonl",
+          "sha256": "ceebcac7191ceca989b79e6953554fa62ff007ed53059df3247e1f3ee923f76c"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/top5_holdings.jsonl",
+          "sha256": "3ab1fa692e220830b477ded4fb5fda3a57c8b45fb6d878cd9c46b8e5dea7e7ba"
+        },
+        {
+          "bytes": 6595565,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/training_history.json",
+          "sha256": "bf89affd48a64f682f17cdb41549de541cfb51ec8f5a1cbb0e3d3129d7966e78"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/resources.json",
+          "sha256": "1c67f507c32a99f4b8a3b6c9da923c5c79bd088355f18e10ae089ede704f9eda"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2026/run_complete.json",
+          "sha256": "0ae63608eca97599205355c3e9501a2a3ecb35858df5013c8d7c118c0f04195d"
+        }
+      ],
+      "fold": 1,
+      "objective": "L0",
+      "run_id": "L0-f1-s2026",
+      "seed": 2026
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/model_state.pt",
+          "sha256": "bbc5441e461f349d8fa08f40fe777a79b8f3c0d8e42b4e0ff4786b130b41c93f"
+        },
+        {
+          "bytes": 2024944,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/predictions.json",
+          "sha256": "ffbca1551f60e51ca5643b694c8bc6a6fc88920143d7b0529f76874d740f9a6e"
+        },
+        {
+          "bytes": 6595849,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/metadata.json",
+          "sha256": "41824f8dae7a7a1b0d75b00256e7f6b96f2adc4e3b5eea60c578ad2a778b92d8"
+        },
+        {
+          "bytes": 3187883,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/daily_predictions.jsonl",
+          "sha256": "cbcd97d05f4c3489bcb11ef6403b30484328e9ab205ab16feefe195d5ee28aa7"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/top5_holdings.jsonl",
+          "sha256": "9398c7bee7855e3878bdd747cc27410d8a3918934d4ae3e8cffadabaddbf5538"
+        },
+        {
+          "bytes": 6595622,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/training_history.json",
+          "sha256": "5e9e33c8ad028b92f37bb79d8dc4ce54e2a856ee8224fee170b6d3aab49f5ded"
+        },
+        {
+          "bytes": 273,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/resources.json",
+          "sha256": "58bd8cf2368603af8a8c4460826604494c94dd5582b7b3805b5306f786d21e89"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2027/run_complete.json",
+          "sha256": "2f23e245bebd291dc4f71f5543895c4ef891cc942cce71bcdf13ef31dc33e1aa"
+        }
+      ],
+      "fold": 1,
+      "objective": "L0",
+      "run_id": "L0-f1-s2027",
+      "seed": 2027
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/model_state.pt",
+          "sha256": "aab1cf6f9739866e885d759963c356fc718d511d3a595ab5ee9530ea3b9cd312"
+        },
+        {
+          "bytes": 2014077,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/predictions.json",
+          "sha256": "2424185803824e45ffb5389a1836692a090a71b4683ce28f2d88e1472c2e671e"
+        },
+        {
+          "bytes": 6595071,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/metadata.json",
+          "sha256": "eb4af44e5641296b046a30519b2ae6a396a2c0d2f9861f2b8b364613b4be9756"
+        },
+        {
+          "bytes": 3177016,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/daily_predictions.jsonl",
+          "sha256": "0ddb7b1b3023cf5d6e6fed8533582691ed078bb9eea1e6690fe29eff99ca0824"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/top5_holdings.jsonl",
+          "sha256": "65c261ed0ccb94ff0985e4ca9c6daa09e02c457ad38b1d12c1afbc43f1f896c7"
+        },
+        {
+          "bytes": 6594844,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/training_history.json",
+          "sha256": "d1db02bec2d4d32446ca887b5731fcc07d659b2d3fc0d3e4956848c25ad17a45"
+        },
+        {
+          "bytes": 273,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/resources.json",
+          "sha256": "acfd5dff803c81f8f5c259deb3b8155d880a8b7af9ac74336c1eb84d060f4ca7"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L0/fold_1/seed_2028/run_complete.json",
+          "sha256": "ec077300a96d88829b94bfdf597ef067b4ace3545b4bf52ed4f0c99e0cc8f5cb"
+        }
+      ],
+      "fold": 1,
+      "objective": "L0",
+      "run_id": "L0-f1-s2028",
+      "seed": 2028
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/model_state.pt",
+          "sha256": "7ed644d6dacb1b1dff53371cde44cd94405ed37c0af77e82b57f02f56596d1f5"
+        },
+        {
+          "bytes": 1795335,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/predictions.json",
+          "sha256": "3d4990e49ad747507631f7327a05c51b3ff14502227cf3209be6df660ea01234"
+        },
+        {
+          "bytes": 3594488,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/metadata.json",
+          "sha256": "ceea3ddad9759588ca1f98ce3a2e93257cc21de5f415ebec5581d4031bc2b6fa"
+        },
+        {
+          "bytes": 2858944,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/daily_predictions.jsonl",
+          "sha256": "e086d9ebe4271b895eec48dc292bdd80b66fe42b6f825801632057fa2b0d1886"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/top5_holdings.jsonl",
+          "sha256": "f2aa061e2e732dbeae39c5499964a196fa926f694d559dc621e5efabe37124cf"
+        },
+        {
+          "bytes": 3594261,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/training_history.json",
+          "sha256": "3877b05b927e1ce08ccc11a43441a07f43a715822df54e6a5609f02b00e58531"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/resources.json",
+          "sha256": "d01a26b65ea05e550e0aedf877a9a2439350c373533f3d19ac892369252476d3"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2026/run_complete.json",
+          "sha256": "164fb94f614a14c22e7f63bec04c38876ec6cd879a88b00704338aa3fa0a24c3"
+        }
+      ],
+      "fold": 0,
+      "objective": "L1",
+      "run_id": "L1-f0-s2026",
+      "seed": 2026
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/model_state.pt",
+          "sha256": "53680bd394968eaee1c12b953a861c536be6c52965f9e0b9922e618812a598d2"
+        },
+        {
+          "bytes": 1775860,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/predictions.json",
+          "sha256": "30c699f6283cd0a3949347965218945d871e975cb3057a7f2e39dc68f7fd4df8"
+        },
+        {
+          "bytes": 3594644,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/metadata.json",
+          "sha256": "da0671455511f164f5a3ae024c60b991d5569eb9291e37b53deb22f8868b5882"
+        },
+        {
+          "bytes": 2839469,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/daily_predictions.jsonl",
+          "sha256": "5c7c999347a8f8192db6d37cb21997553ec0bbbaec1d0ae38aa98d7b58450fe9"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/top5_holdings.jsonl",
+          "sha256": "2d847eae1f685c79ed69b2758e8a60a2e50ccae2527fde4c922e7afe61a868f8"
+        },
+        {
+          "bytes": 3594417,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/training_history.json",
+          "sha256": "19116a35a4f049bcad428fa9640b500284cdaa7e31d8daaabd88549e39a09972"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/resources.json",
+          "sha256": "4824e3b6aa56355c55dc696366154289f5cde24b34182bba48015bf6954d27b7"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2027/run_complete.json",
+          "sha256": "0b3ef958d197df1addd93d9d0078806632af8caa4e4751d0a516ff84bc5881db"
+        }
+      ],
+      "fold": 0,
+      "objective": "L1",
+      "run_id": "L1-f0-s2027",
+      "seed": 2027
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/model_state.pt",
+          "sha256": "5ef66047abe1e7322271a54cdd98806bccbbcd8829aa49b967d644dc86888e38"
+        },
+        {
+          "bytes": 1795940,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/predictions.json",
+          "sha256": "c6525b49cb3665af161039d3e40a8ab2d269fcb1890f5786fb5d6034b69a989e"
+        },
+        {
+          "bytes": 3594681,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/metadata.json",
+          "sha256": "2fa0ba145c3a9855c83d396f80192ec8cee3616a95d487235861dc11cb507387"
+        },
+        {
+          "bytes": 2859549,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/daily_predictions.jsonl",
+          "sha256": "7dced8db9c5c6aeac07b27905a5fad23a0f7e0c36ede9aeef69fd68c22faa289"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/top5_holdings.jsonl",
+          "sha256": "2e6808122c15e9c83dbdc1172b6761dba61b60a2710e33030dc63b0e348b06b7"
+        },
+        {
+          "bytes": 3594454,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/training_history.json",
+          "sha256": "7229d7fc6804a4c479e7f287d084da5481a657d33b17eb5ae0de3cc80b06dc52"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/resources.json",
+          "sha256": "6d4d3eb75b6347e21cf8ac6ea06f6b98d7ba22598f9d8044923b7551536a2b5b"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L1/fold_0/seed_2028/run_complete.json",
+          "sha256": "a756a71aa17f5cc1ef993b558fc3d086e948d48f99b380a0d156793a1391f7a7"
+        }
+      ],
+      "fold": 0,
+      "objective": "L1",
+      "run_id": "L1-f0-s2028",
+      "seed": 2028
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/model_state.pt",
+          "sha256": "3707000b48fd13db34614653ca01c6766d74869ba9a0fda4b556e50fb5a0f70e"
+        },
+        {
+          "bytes": 1951855,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/predictions.json",
+          "sha256": "5efd7bac0bfd2617b93f411c20008dd04e918de2e77e368cc5ba25026c34a895"
+        },
+        {
+          "bytes": 6565060,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/metadata.json",
+          "sha256": "f4264408e0bd520723276455c97b6c02348dd22fb5701304a7f104f781d492cb"
+        },
+        {
+          "bytes": 3114794,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/daily_predictions.jsonl",
+          "sha256": "e6447483323be6a6701e368028444bf22ec37504b5752ef439ef649d071fb32d"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/top5_holdings.jsonl",
+          "sha256": "3e2390ebf7f01cd1839e1a43afac05765a77a3c3d59cf1ba9c6344a2bfe2631b"
+        },
+        {
+          "bytes": 6564833,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/training_history.json",
+          "sha256": "02fdcadb2a027e8b5d4f69bbe80c201cef2a5acd41b905bf7d1ce43239561ed7"
+        },
+        {
+          "bytes": 273,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/resources.json",
+          "sha256": "cbc948bb75777cb41d45705f1906dcb0764badc5708d816ca04ec8ea939d7e69"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2026/run_complete.json",
+          "sha256": "f544a57252c8a41f2e3b90fb69a2145d1dddb4772562f60feb09cca1488b443b"
+        }
+      ],
+      "fold": 1,
+      "objective": "L1",
+      "run_id": "L1-f1-s2026",
+      "seed": 2026
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/model_state.pt",
+          "sha256": "1ececf24e57b76e794d2f4fb33cae9ba9b58fb5d0909790a2524b3b43dd00f1d"
+        },
+        {
+          "bytes": 1951906,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/predictions.json",
+          "sha256": "a28f2f0a1c37a219dc935b63a5f738eaa3b4846450e0e8ddcdad79f5a8d5ccfa"
+        },
+        {
+          "bytes": 6564846,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/metadata.json",
+          "sha256": "27067e647baabfe7b92d8b8f9a05bf4922fb6af8dcb9876ae3fec8a4f505f167"
+        },
+        {
+          "bytes": 3114845,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/daily_predictions.jsonl",
+          "sha256": "7355cbf93b13e05ab5fc39406609e9a4a8c0a78be844f17d1791db5e554e17ce"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/top5_holdings.jsonl",
+          "sha256": "54aa9fb1573483f89564ccb5f0319cbd983d145cf650cd546e6b133c50b4a248"
+        },
+        {
+          "bytes": 6564619,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/training_history.json",
+          "sha256": "06a0225effa61b08ef9519be62d1e3fe9ff3ea9f5a4a9376e62cbcaf4c7fcd03"
+        },
+        {
+          "bytes": 273,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/resources.json",
+          "sha256": "69f6d38f66b393405c4d0850244a684cc79f2d8362fe6f356c6476f08798be52"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2027/run_complete.json",
+          "sha256": "f2a667360b06bfa1f2fd44cc923f5b99f77df3ffa8e9247a4a77e510c967f9b4"
+        }
+      ],
+      "fold": 1,
+      "objective": "L1",
+      "run_id": "L1-f1-s2027",
+      "seed": 2027
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/model_state.pt",
+          "sha256": "048c8b54206ec5207b50659f2c106f014ebaf2f54af522a6a208dcce072067ec"
+        },
+        {
+          "bytes": 1960020,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/predictions.json",
+          "sha256": "b9e5176ee6b85bca23f04159ebe022623dee57770dabdec9d649b526d75c8008"
+        },
+        {
+          "bytes": 6564852,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/metadata.json",
+          "sha256": "4a78ff304ae5ae6161684c25675a65dd02531b853ba220fc7453218f84c8f75a"
+        },
+        {
+          "bytes": 3122959,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/daily_predictions.jsonl",
+          "sha256": "e68c262f89a3b012b7754f250fda20e71f5fd29eef57c3245451c0ccd5c8b8e5"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/top5_holdings.jsonl",
+          "sha256": "f3eb74a13af74116de07bd77fe32812c41fb0f7ed2bf0faf087baede57f06d1b"
+        },
+        {
+          "bytes": 6564625,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/training_history.json",
+          "sha256": "5b703ed0c1850fd03b0e9c63ce434f9f6da19b66e87cf233dd47ae013f27b04a"
+        },
+        {
+          "bytes": 273,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/resources.json",
+          "sha256": "3632b6db39af756e935579f9b8054867ff3acb101cf3158cb57aae48c3327615"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L1/fold_1/seed_2028/run_complete.json",
+          "sha256": "d5c9adea461752746829768fba7924fcf0f4c781e0ed845e0fae2d1318d88079"
+        }
+      ],
+      "fold": 1,
+      "objective": "L1",
+      "run_id": "L1-f1-s2028",
+      "seed": 2028
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/model_state.pt",
+          "sha256": "bc08f1c28641f04edd9a1d1a93302d9c21ce593eb7833320b3c29405748fe2c9"
+        },
+        {
+          "bytes": 1790495,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/predictions.json",
+          "sha256": "cd0a19f583abf7e7d889c1290f0054e2baa569825c73444cc6527d1dfbc5ac90"
+        },
+        {
+          "bytes": 3609756,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/metadata.json",
+          "sha256": "9af32c34edd6898c52ef5cb64aa4e3f5ec7725efa1a038fd36158f254db66f1c"
+        },
+        {
+          "bytes": 2854104,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/daily_predictions.jsonl",
+          "sha256": "6f20f1e34873a5bc3e2113ee16c7c07dab4cda49f54e2989a22171faea76053b"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/top5_holdings.jsonl",
+          "sha256": "2c38f2067519e037cf50a57df679850fdcf0759c939dceb9b1122ec75d8f03d2"
+        },
+        {
+          "bytes": 3609529,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/training_history.json",
+          "sha256": "1fda4bbb834baeed217fee6e304cbc5b77ab0b4f0093a5a49523d454b83c8009"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/resources.json",
+          "sha256": "78ad56293f49df0e31d469f91065e41d5a40d54d647c2aabd9370c9996c324fd"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2026/run_complete.json",
+          "sha256": "b69c9efd3df8765d875cb582496f44724ae6896d18ab56f6214d0059904d6101"
+        }
+      ],
+      "fold": 0,
+      "objective": "L2",
+      "run_id": "L2-f0-s2026",
+      "seed": 2026
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/model_state.pt",
+          "sha256": "bc6e1b3577840ba421112dfc240b0c8d6feaf416d3daee9b3681085aa44f6d39"
+        },
+        {
+          "bytes": 1770589,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/predictions.json",
+          "sha256": "24c2778b252dbd7d0723a431f2278050b4cafc58a223a326d6ab2d9df6392b0c"
+        },
+        {
+          "bytes": 3609606,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/metadata.json",
+          "sha256": "7a9706a77f19bdea0cec89443b8ac9e145452b79b13cd1794024559e9b634b3c"
+        },
+        {
+          "bytes": 2834198,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/daily_predictions.jsonl",
+          "sha256": "5e0fb894a74bfdac8ecef7239f1e31691b35f8a165a9d0bf22ea93fe4fb474af"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/top5_holdings.jsonl",
+          "sha256": "878752f91ce3f0f43f8564c0fa605f17abb67972df74bc48980ecb12b968ab0f"
+        },
+        {
+          "bytes": 3609379,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/training_history.json",
+          "sha256": "1cc30a1d7578198db8c437f1966a9f47ab074feff14c6f6bbdd60ff5a222afaf"
+        },
+        {
+          "bytes": 273,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/resources.json",
+          "sha256": "4d780d249f4f845844fb9d549d08fcebeea75d1e0062719352cc9ba386b8f24b"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2027/run_complete.json",
+          "sha256": "3f6f70dbf456dc47dc23ab0b9a5395d927aeeafe0e6625c0129f063c89073ec8"
+        }
+      ],
+      "fold": 0,
+      "objective": "L2",
+      "run_id": "L2-f0-s2027",
+      "seed": 2027
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/model_state.pt",
+          "sha256": "0beb7e89984a33c20b21da66da24313b0d52565716094e3f56859d8e434e83ca"
+        },
+        {
+          "bytes": 1785709,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/predictions.json",
+          "sha256": "00b89d1a02b6215daee63d711f37efb39b6ef62281170fafa7d61a5d6b6f0a8e"
+        },
+        {
+          "bytes": 3609373,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/metadata.json",
+          "sha256": "5cedea5436d2c5c830cb1352fec6af9ae4679d427214eb9ef1ff7f7de5201317"
+        },
+        {
+          "bytes": 2849318,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/daily_predictions.jsonl",
+          "sha256": "55a2840b3cfd57d4a1d4240020b957466c5c50a864c05b654c27b2b350df3f02"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/top5_holdings.jsonl",
+          "sha256": "27fe34ed11993d80124396e2024e1c0ba4e5a242a0c54dada1a75d45bf982e05"
+        },
+        {
+          "bytes": 3609146,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/training_history.json",
+          "sha256": "c011e9b78f6d518cdea646ef2219254ddae9ad01461a7f840496b9b550a2f6ee"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/resources.json",
+          "sha256": "ea222032c4ca8625aed93caa3c411f47c6cf32afa3db3ce3f41bfae17076e354"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L2/fold_0/seed_2028/run_complete.json",
+          "sha256": "7b322b0f2387ec9e2392f3198c35c2393e4eedb60798c00dd2c31ffb4b76d2f8"
+        }
+      ],
+      "fold": 0,
+      "objective": "L2",
+      "run_id": "L2-f0-s2028",
+      "seed": 2028
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/model_state.pt",
+          "sha256": "433d205e2059d4270bc58c23a894ea859e4eb8b0ee60dc227a57839294aea1b3"
+        },
+        {
+          "bytes": 1928814,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/predictions.json",
+          "sha256": "167c66c1f3c13df82da3bfe066895c7727f57a6df00d65ce9b59691da0c4882f"
+        },
+        {
+          "bytes": 6593250,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/metadata.json",
+          "sha256": "ce4799e9ba1994a3508e5a9e14411eb189a66affa14874d9caca926dd67b56f6"
+        },
+        {
+          "bytes": 3091753,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/daily_predictions.jsonl",
+          "sha256": "132198692631a484cc033b15452f75add1aec40aea8258ac64779dfdc19e9e3d"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/top5_holdings.jsonl",
+          "sha256": "fa191b3097b82a645dff536194307b6dddeb29001d03dda31d79112edebc3e95"
+        },
+        {
+          "bytes": 6593023,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/training_history.json",
+          "sha256": "8c92173995c07acf44f33b8249db962edfaacd320b15f93af1176b68e67ff6c5"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/resources.json",
+          "sha256": "9ab1f55970a117da1b81b8ccfd38ba29bd50c6145cd68265613e5aa169f3d5ec"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2026/run_complete.json",
+          "sha256": "48b5c2933f455f90dae5bc9bc2c638015e0938cdddc1a365af5796792aace248"
+        }
+      ],
+      "fold": 1,
+      "objective": "L2",
+      "run_id": "L2-f1-s2026",
+      "seed": 2026
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/model_state.pt",
+          "sha256": "6a4c2508ae5ed9f038150e6ed5380d25c08de7b36636e17e67e98f36d5d99d1a"
+        },
+        {
+          "bytes": 1930199,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/predictions.json",
+          "sha256": "91a062132f95a40909bf12523007885e07350399aba8b0b26b11a13c709f1a8f"
+        },
+        {
+          "bytes": 6593519,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/metadata.json",
+          "sha256": "87463991b7e9f95eeee49492997c503c701b2d35477d5f355f1c3a715f3829c1"
+        },
+        {
+          "bytes": 3093138,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/daily_predictions.jsonl",
+          "sha256": "de83cc9e1c61b17c28ce66ee656dfc1c2648fbd6c10783a1e583e374c18de930"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/top5_holdings.jsonl",
+          "sha256": "ff551fb065d6769cd2e25282db7e01a8719d03244d92b47dfed277fc39315caf"
+        },
+        {
+          "bytes": 6593292,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/training_history.json",
+          "sha256": "32ffc2e9db698d31d11bc9d1aa1b955d93ed1afda0b139c483c914ce6e71a2fb"
+        },
+        {
+          "bytes": 273,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/resources.json",
+          "sha256": "65e1305e2b23fa9f1f8c9f62d44e0b5eaed91fc6195e05b2bef32eb34e3c8d84"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2027/run_complete.json",
+          "sha256": "0aa771f21a3fb5c4bce6f98c695f5a91a9be019297b110b77d713137e2a26185"
+        }
+      ],
+      "fold": 1,
+      "objective": "L2",
+      "run_id": "L2-f1-s2027",
+      "seed": 2027
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 739899,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/model_state.pt",
+          "sha256": "08c880540fd658634dee333be2520fe743e041e9fd812736ef79eb5e3e78fda7"
+        },
+        {
+          "bytes": 1926574,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/predictions.json",
+          "sha256": "2fe1545f36d1e86bcff4796469be34c927e7cf772b1dedf5b7b3ac9550be3033"
+        },
+        {
+          "bytes": 6592967,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/metadata.json",
+          "sha256": "025abc749a83c82dcc5b7056bd4c4838999dc94fc16db1dec080b0609bd9c02e"
+        },
+        {
+          "bytes": 3089513,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/daily_predictions.jsonl",
+          "sha256": "c8b76bfc770697e63c304eb5749f91991cc5e1f224625d16455d89d72dfacacd"
+        },
+        {
+          "bytes": 113950,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/top5_holdings.jsonl",
+          "sha256": "ac78a393778e24e15049bfef26eaf429360c26f23018c2f7a320f8d863ef7b3a"
+        },
+        {
+          "bytes": 6592740,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/training_history.json",
+          "sha256": "998d994ce0dadcc800224e01de0fb5f96f3fdff53f1489b8941899c2e5a970e1"
+        },
+        {
+          "bytes": 272,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/resources.json",
+          "sha256": "9b5514ed7674766896719fec2ad4c55277b6704cc18a9042a59e60612b57810b"
+        },
+        {
+          "bytes": 1360,
+          "path": "artifacts/r3_task25/runs/L2/fold_1/seed_2028/run_complete.json",
+          "sha256": "c6717d1dfc4c722af00f248ed69dfcf750f8b9acf4a91c47af18ab3677bcb79f"
+        }
+      ],
+      "fold": 1,
+      "objective": "L2",
+      "run_id": "L2-f1-s2028",
+      "seed": 2028
+    }
+  ],
+  "schema_version": "r3_5_task25_frozen_manifest.v1",
+  "source_commit": "1ac4097",
+  "task25_complete": true,
+  "task25_research_only": true,
+  "task25_selection": "none",
+  "task26_allowed": false
+}

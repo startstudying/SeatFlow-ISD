@@ -1,0 +1,368 @@
+{
+  "A_optimization_randomness": {
+    "evidence": [
+      "L2 Top-5 Jaccard 0.563502 exceeds L0 0.410380",
+      "L2 failed the frozen net-spread gate in all six runs"
+    ],
+    "status": "unsupported"
+  },
+  "B_top5_boundary_noise": {
+    "evidence": [
+      "L2 Top-5 gross spread=0.00041265",
+      "L2 Top-20 gross spread=0.00268269"
+    ],
+    "status": "unsupported"
+  },
+  "C_regime_drift": {
+    "evidence": [
+      "Task 25 contains descriptive market-regime slices but no frozen causal or predeclared regime gate"
+    ],
+    "status": "insufficient_evidence"
+  },
+  "D_turnover_cost": {
+    "evidence": [
+      "L2 original gross spread=0.00041265",
+      "L2 original cost difference=0.00062063",
+      "L2 original net spread=-0.00020798"
+    ],
+    "status": "confirmed"
+  },
+  "E_graph_no_increment": {
+    "evidence": [
+      "L2 without Seat-Stock mean absolute score change=0.17090353",
+      "L2 without Seat-Stock Top-5 Jaccard=0.725482",
+      "L2 without Seat-Stock gross-spread delta=0.00039214",
+      "Removing Seat-Stock improved gross spread, consistent with harmful relation propagation; this is diagnostic, not a trained ablation"
+    ],
+    "status": "supported"
+  },
+  "F_target_misalignment": {
+    "evidence": [
+      "label and trade-return Oracle gross spreads are positive",
+      "T+1 open to T+2 open for horizon=1",
+      "Task 25 evaluation consumes the same frozen horizon=1 excess return"
+    ],
+    "status": "unsupported"
+  },
+  "exposure_evidence": {
+    "L0": {
+      "available_fields": [
+        "stock_volatility_20d",
+        "stock_volume_ratio_20d",
+        "stock_amplitude_20d",
+        "stock_return_5d",
+        "stock_return_20d",
+        "seat_edge_count",
+        "seat_edge_weight_sum",
+        "stock_historical_appearance_frequency"
+      ],
+      "exposures": {
+        "seat_edge_count": {
+          "candidate_mean": 14.240187288304442,
+          "difference": 2.949498246286753,
+          "fold_differences": {
+            "0": 4.067541775983326,
+            "1": 1.7342992480227242
+          },
+          "return_correlation": -0.01625577852054184,
+          "top5_mean": 17.189685534591195
+        },
+        "seat_edge_weight_sum": {
+          "candidate_mean": 228.5918402177464,
+          "difference": 39.61243761231751,
+          "fold_differences": {
+            "0": 56.52900721490985,
+            "1": 21.60805979444305
+          },
+          "return_correlation": -0.01786243204920223,
+          "top5_mean": 268.2042778300639
+        },
+        "stock_amplitude_20d": {
+          "candidate_mean": 0.11144591913132576,
+          "difference": 0.05734008381621897,
+          "fold_differences": {
+            "0": 0.07802715662248395,
+            "1": 0.03625150812731255
+          },
+          "return_correlation": 0.016344695065138526,
+          "top5_mean": 0.16878600294754473
+        },
+        "stock_historical_appearance_frequency": {
+          "candidate_mean": 0.20729597096251634,
+          "difference": -0.005308002682505392,
+          "fold_differences": {
+            "0": -0.004124811563237907,
+            "1": -0.006986170543685416
+          },
+          "return_correlation": 0.05363950206101635,
+          "top5_mean": 0.20198796828001095
+        },
+        "stock_return_20d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_return_5d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_volatility_20d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_volume_ratio_20d": {
+          "candidate_mean": 1.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 1.0
+        }
+      },
+      "missing_fields": [
+        "market_cap",
+        "trading_amount",
+        "turnover_rate",
+        "beta",
+        "limit_up_status",
+        "industry",
+        "dragon_tiger_net_buy",
+        "institutional_seat_ratio"
+      ],
+      "status": "supported"
+    },
+    "L1": {
+      "available_fields": [
+        "stock_volatility_20d",
+        "stock_volume_ratio_20d",
+        "stock_amplitude_20d",
+        "stock_return_5d",
+        "stock_return_20d",
+        "seat_edge_count",
+        "seat_edge_weight_sum",
+        "stock_historical_appearance_frequency"
+      ],
+      "exposures": {
+        "seat_edge_count": {
+          "candidate_mean": 14.240187288304442,
+          "difference": 1.5105045355949294,
+          "fold_differences": {
+            "0": 1.6428876879330119,
+            "1": 1.280965914689391
+          },
+          "return_correlation": -0.01625577852054184,
+          "top5_mean": 15.750691823899372
+        },
+        "seat_edge_weight_sum": {
+          "candidate_mean": 228.5918402177464,
+          "difference": 19.419573487947446,
+          "fold_differences": {
+            "0": 22.614533370105704,
+            "1": 15.136805390507021
+          },
+          "return_correlation": -0.01786243204920223,
+          "top5_mean": 248.01141370569385
+        },
+        "stock_amplitude_20d": {
+          "candidate_mean": 0.11144591913132576,
+          "difference": 0.043014017267944765,
+          "fold_differences": {
+            "0": 0.05249721396236588,
+            "1": 0.033129317690882246
+          },
+          "return_correlation": 0.016344695065138526,
+          "top5_mean": 0.15445993639927053
+        },
+        "stock_historical_appearance_frequency": {
+          "candidate_mean": 0.20729597096251634,
+          "difference": -0.015292963032519064,
+          "fold_differences": {
+            "0": -0.015699873089078775,
+            "1": -0.015381029717871891
+          },
+          "return_correlation": 0.05363950206101635,
+          "top5_mean": 0.19200300792999728
+        },
+        "stock_return_20d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_return_5d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_volatility_20d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_volume_ratio_20d": {
+          "candidate_mean": 1.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 1.0
+        }
+      },
+      "missing_fields": [
+        "market_cap",
+        "trading_amount",
+        "turnover_rate",
+        "beta",
+        "limit_up_status",
+        "industry",
+        "dragon_tiger_net_buy",
+        "institutional_seat_ratio"
+      ],
+      "status": "supported"
+    },
+    "L2": {
+      "available_fields": [
+        "stock_volatility_20d",
+        "stock_volume_ratio_20d",
+        "stock_amplitude_20d",
+        "stock_return_5d",
+        "stock_return_20d",
+        "seat_edge_count",
+        "seat_edge_weight_sum",
+        "stock_historical_appearance_frequency"
+      ],
+      "exposures": {
+        "seat_edge_count": {
+          "candidate_mean": 14.240187288304442,
+          "difference": -0.2648413763547559,
+          "fold_differences": {
+            "0": -0.07509973345063514,
+            "1": -0.5517384878263307
+          },
+          "return_correlation": -0.01625577852054184,
+          "top5_mean": 13.975345911949686
+        },
+        "seat_edge_weight_sum": {
+          "candidate_mean": 228.5918402177464,
+          "difference": -8.05315826450817,
+          "fold_differences": {
+            "0": -2.346338915365294,
+            "1": -14.847785828933183
+          },
+          "return_correlation": -0.01786243204920223,
+          "top5_mean": 220.53868195323824
+        },
+        "stock_amplitude_20d": {
+          "candidate_mean": 0.11144591913132576,
+          "difference": 0.01673392071703339,
+          "fold_differences": {
+            "0": 0.02657094266678091,
+            "1": 0.006495395884644442
+          },
+          "return_correlation": 0.016344695065138526,
+          "top5_mean": 0.12817983984835915
+        },
+        "stock_historical_appearance_frequency": {
+          "candidate_mean": 0.20729597096251634,
+          "difference": -0.02780595182114365,
+          "fold_differences": {
+            "0": -0.025215869807700575,
+            "1": -0.030891010576499178
+          },
+          "return_correlation": 0.05363950206101635,
+          "top5_mean": 0.1794900191413727
+        },
+        "stock_return_20d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_return_5d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_volatility_20d": {
+          "candidate_mean": 0.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 0.0
+        },
+        "stock_volume_ratio_20d": {
+          "candidate_mean": 1.0,
+          "difference": 0.0,
+          "fold_differences": {
+            "0": 0.0,
+            "1": 0.0
+          },
+          "return_correlation": null,
+          "top5_mean": 1.0
+        }
+      },
+      "missing_fields": [
+        "market_cap",
+        "trading_amount",
+        "turnover_rate",
+        "beta",
+        "limit_up_status",
+        "industry",
+        "dragon_tiger_net_buy",
+        "institutional_seat_ratio"
+      ],
+      "status": "supported"
+    }
+  },
+  "next_route": "D_cost_aware_seatrank",
+  "schema_version": "r3_5_diagnostic_decision.v1",
+  "task25_selection": "none",
+  "task26_allowed": false
+}

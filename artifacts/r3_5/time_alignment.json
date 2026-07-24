@@ -1,0 +1,42 @@
+{
+  "alignment_matrix": [
+    {
+      "aligned": false,
+      "backtest_execution": "T+1 open-to-close",
+      "training_label": "T+1 close-to-close"
+    },
+    {
+      "aligned": true,
+      "backtest_execution": "T+1 open-to-close",
+      "training_label": "T+1 open-to-close"
+    },
+    {
+      "aligned": true,
+      "backtest_execution": "T+1 close-to-T+2 close",
+      "training_label": "T+1 close-to-T+2 close"
+    },
+    {
+      "active_task25_path": true,
+      "aligned": true,
+      "backtest_execution": "T+1 open-to-T+2 open",
+      "training_label": "T+1 open-to-T+2 open"
+    }
+  ],
+  "evidence_limit": "tensorized samples retain dates and label schema but not exact seat_data_available_time or prediction_generated_time",
+  "frozen_label_price_policy": "T+1 open to T+2 open for horizon=1",
+  "frozen_label_schema_versions": [
+    "executable_excess_return_v2"
+  ],
+  "interval_alignment_status": "confirmed",
+  "sample_count": 44033,
+  "schema_version": "r3_5_time_alignment.v1",
+  "task25_evaluation_return": "same frozen horizon=1 excess return",
+  "timestamp_audit": {
+    "checked_records": 0,
+    "evidence_gaps": [
+      "frozen tensor schema: missing trade_time or data_available_time"
+    ],
+    "message": "trade-time evidence is incomplete",
+    "status": "insufficient_evidence"
+  }
+}
