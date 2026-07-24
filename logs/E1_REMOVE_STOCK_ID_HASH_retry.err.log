@@ -1,0 +1,4 @@
+usage: seatflow [-h]
+                {validate-config,smoke,preflight,provider-status,ingest,backfill-history,audit-data,train-smoke,research-run,dt-rolling-run,repair-research-cache,export-run-package,phase-status,evaluate-promotion,freeze-protocol,freeze-blind-manifest,build-artifacts,promote-graph,paper-init,paper-status,paper-run,serve-api}
+                ...
+seatflow: error: DT-SeatHGT rolling evaluation must use exactly 5 unique seeds

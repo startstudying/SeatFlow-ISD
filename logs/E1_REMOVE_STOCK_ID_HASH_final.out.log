@@ -1,0 +1,10 @@
+{
+  "result_path": "artifacts\\diagnostics\\E1_REMOVE_STOCK_ID_HASH\\result.json",
+  "checkpoint_root": "artifacts\\diagnostics\\E1_REMOVE_STOCK_ID_HASH",
+  "sample_count": 672,
+  "seed_count": 1,
+  "fold_count": 1,
+  "ablation_count": 3,
+  "model_valid": false,
+  "negative_result": true
+}

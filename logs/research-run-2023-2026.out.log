@@ -1,0 +1,100 @@
+{
+  "effective_end_date": "2026-07-17",
+  "calendar_days": 856,
+  "event_count": 64006,
+  "stock_count": 5280,
+  "bar_count": 3990537,
+  "sample_count": 49447,
+  "development_metrics": {
+    "seeds": [
+      {
+        "seed": 2026,
+        "validation": {
+          "sample_count": 7721,
+          "accuracy": 0.585416,
+          "positive_rate": 0.414195,
+          "mean_probability": 0.415667,
+          "rank_ic": 0.075385,
+          "auc": 0.533839
+        },
+        "test_2025": {
+          "sample_count": 14545,
+          "accuracy": 0.569955,
+          "positive_rate": 0.429838,
+          "mean_probability": 0.41508,
+          "rank_ic": 0.057281,
+          "auc": 0.526907
+        }
+      },
+      {
+        "seed": 2027,
+        "validation": {
+          "sample_count": 7721,
+          "accuracy": 0.585416,
+          "positive_rate": 0.414195,
+          "mean_probability": 0.415631,
+          "rank_ic": 0.075148,
+          "auc": 0.533703
+        },
+        "test_2025": {
+          "sample_count": 14545,
+          "accuracy": 0.57023,
+          "positive_rate": 0.429838,
+          "mean_probability": 0.415071,
+          "rank_ic": 0.057221,
+          "auc": 0.526837
+        }
+      },
+      {
+        "seed": 2028,
+        "validation": {
+          "sample_count": 7721,
+          "accuracy": 0.585416,
+          "positive_rate": 0.414195,
+          "mean_probability": 0.415719,
+          "rank_ic": 0.075537,
+          "auc": 0.533957
+        },
+        "test_2025": {
+          "sample_count": 14545,
+          "accuracy": 0.569818,
+          "positive_rate": 0.429838,
+          "mean_probability": 0.4151,
+          "rank_ic": 0.057392,
+          "auc": 0.527069
+        }
+      }
+    ],
+    "seed_count": 3
+  },
+  "blind_metrics": {
+    "sample_count": 9200,
+    "accuracy": 0.565978,
+    "positive_rate": 0.435,
+    "mean_probability": 0.425603,
+    "rank_ic": 0.039579,
+    "auc": 0.5225
+  },
+  "backtest_metrics": {
+    "total_return": "-0.5351382330235",
+    "benchmark_total_return": "-0.0399874033057780117313232867",
+    "excess_return": "-0.4951508297177219882686767133",
+    "max_drawdown": "-0.5899407536015715195488524520",
+    "daily_return_count": 128,
+    "worst_oos_fold": "blind-2026",
+    "oos_fold_returns": {
+      "blind-2026": "-0.5351382330235"
+    }
+  },
+  "akshare_confirmation": {
+    "attempted": true,
+    "confirmed": false,
+    "checked": [],
+    "failures": [
+      "AkShare daily request failed; check network, proxy, or source availability",
+      "AkShare daily request failed; check network, proxy, or source availability",
+      "AkShare daily request failed; check network, proxy, or source availability"
+    ]
+  },
+  "report_path": "artifacts\\research\\tushare_2023_2026_run1\\research_report.json"
+}

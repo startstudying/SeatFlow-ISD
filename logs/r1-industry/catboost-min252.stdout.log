@@ -1,0 +1,14 @@
+{
+  "summary": {
+    "seed_count": 5,
+    "fold_count": 3,
+    "run_count": 15,
+    "daily_top_k_mean_excess_return": 3.378818569962826e-05,
+    "daily_top_k_min_excess_return": -0.002429654173971425,
+    "daily_top_k_max_excess_return": 0.0027964729910015117,
+    "positive_run_fraction": 0.4,
+    "daily_rank_ic_mean": 0.06449416325961886,
+    "performance_gate_passed": false
+  },
+  "sha256": "a2a688a0167037e9ca2aa970632473eb11fb86ecd1f273af1f6d78aa567e65bf"
+}

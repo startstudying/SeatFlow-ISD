@@ -54,9 +54,7 @@ data/graphs/*
 !data/graphs/.gitkeep
 artifacts/*
 checkpoints/*
-logs/*
 mlruns/*
 reports/*
 !artifacts/.gitkeep
 !checkpoints/.gitkeep
-!logs/.gitkeep
