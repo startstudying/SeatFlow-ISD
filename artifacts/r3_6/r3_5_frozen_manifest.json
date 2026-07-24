@@ -1,0 +1,54 @@
+{
+  "r3_5_files": [
+    {
+      "bytes": 7937,
+      "path": "artifacts/r3_5/cost_attribution.json",
+      "sha256": "f1194a417c8e858596e8c3e0c4550a9ab7dfd9eecaa5b1651a5f33ac3f1b00da"
+    },
+    {
+      "bytes": 11233,
+      "path": "artifacts/r3_5/diagnostic_decision.json",
+      "sha256": "44dd2a10fe82c584ffe9e3b93b19ee87d00d85ac65f6101e6197c82f2c7999c1"
+    },
+    {
+      "bytes": 8904,
+      "path": "artifacts/r3_5/exposure_audit.json",
+      "sha256": "2ce5d1517cc01bdfaf93aef26e6ae1b462b156010aae386b9f3fa454d5165cd9"
+    },
+    {
+      "bytes": 78202,
+      "path": "artifacts/r3_5/oracle_alignment.json",
+      "sha256": "0e9ee095ac5bbf5bdfc9648f512efae608024af6e73ddef0b174a2396c19ad92"
+    },
+    {
+      "bytes": 208644,
+      "path": "artifacts/r3_5/oracle_daily_results.parquet",
+      "sha256": "2c5c576489ed8fe4db687cd46a8290e211c29183bc847822e7a601f183aacfbc"
+    },
+    {
+      "bytes": 28825,
+      "path": "artifacts/r3_5/relation_mask_audit.json",
+      "sha256": "fe7389fd34361ccfe270a71d51190fc1b0c0596f73e5dded4d3fe2752b8fbe0a"
+    },
+    {
+      "bytes": 1355,
+      "path": "artifacts/r3_5/time_alignment.json",
+      "sha256": "c39e563b0c6ed3d6e4698b571a9138f00269e85a5e94637a327001d7b66e8449"
+    },
+    {
+      "bytes": 46798,
+      "path": "artifacts/r3_5/topk_diagnostics.json",
+      "sha256": "970ae387d81f26461443f10f7f72cc828b0a283c84c248c81e85a9e73d595fb5"
+    },
+    {
+      "bytes": 36124,
+      "path": "artifacts/r3_task25/frozen_manifest.json",
+      "sha256": "fdd3c6d26c5fcc7f235cbd5d654d996988d0c584332b1cc0110a9065fc53c12b"
+    }
+  ],
+  "schema_version": "r3_6_r3_5_frozen_manifest.v1",
+  "source_commit": "0e2ccfb",
+  "task25_checkpoint_count": 18,
+  "task25_manifest_schema_version": "r3_5_task25_frozen_manifest.v1",
+  "task25_run_file_count": 144
+}

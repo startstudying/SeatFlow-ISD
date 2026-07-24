@@ -1,0 +1,10 @@
+{
+  "checkpoint_count_after": 18,
+  "checkpoint_count_before": 18,
+  "gate_cost_multiplier": 1.0,
+  "independent_validation": false,
+  "model_valid_eligible": false,
+  "selected_strategy": null,
+  "status": "negative_result_under_current_data",
+  "task48_allowed": false
+}
