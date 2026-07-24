@@ -1,0 +1,111 @@
+CREATE TABLE IF NOT EXISTS sf_setting (
+    setting_key VARCHAR(128) NOT NULL PRIMARY KEY,
+    category VARCHAR(64) NOT NULL,
+    value_json TEXT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_data_source_config (
+    source_id VARCHAR(128) NOT NULL PRIMARY KEY,
+    display_name VARCHAR(128) NOT NULL,
+    provider VARCHAR(64) NOT NULL,
+    endpoint VARCHAR(512) NOT NULL,
+    metadata_json TEXT NULL,
+    api_key_key_id VARCHAR(64) NULL,
+    encrypted_api_key TEXT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_model_config (
+    model_id VARCHAR(128) NOT NULL PRIMARY KEY,
+    display_name VARCHAR(128) NOT NULL,
+    provider VARCHAR(64) NOT NULL,
+    status VARCHAR(64) NOT NULL,
+    parameters_json TEXT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_experiment_config (
+    experiment_id VARCHAR(128) NOT NULL PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    status VARCHAR(64) NOT NULL,
+    config_json TEXT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_permission (
+    permission_code VARCHAR(96) NOT NULL PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    resource VARCHAR(64) NOT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_role (
+    role_code VARCHAR(64) NOT NULL PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_role_permission (
+    role_code VARCHAR(64) NOT NULL,
+    permission_code VARCHAR(96) NOT NULL,
+    PRIMARY KEY (role_code, permission_code),
+    CONSTRAINT fk_sf_role_permission_role FOREIGN KEY (role_code) REFERENCES sf_role(role_code)
+);
+
+CREATE TABLE IF NOT EXISTS sf_user_account (
+    user_id VARCHAR(128) NOT NULL PRIMARY KEY,
+    display_name VARCHAR(128) NOT NULL,
+    active BOOLEAN NOT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_user_role (
+    user_id VARCHAR(128) NOT NULL,
+    role_code VARCHAR(64) NOT NULL,
+    PRIMARY KEY (user_id, role_code),
+    CONSTRAINT fk_sf_user_role_user FOREIGN KEY (user_id) REFERENCES sf_user_account(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS sf_admin_audit_log (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    actor VARCHAR(128) NOT NULL,
+    action VARCHAR(64) NOT NULL,
+    resource_type VARCHAR(64) NOT NULL,
+    resource_id VARCHAR(128) NOT NULL,
+    request_id VARCHAR(128) NULL,
+    idempotency_key VARCHAR(128) NULL,
+    detail_json TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_idempotency_record (
+    idempotency_key VARCHAR(160) NOT NULL PRIMARY KEY,
+    operation VARCHAR(64) NOT NULL,
+    resource_id VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sf_service_monitor (
+    service_id VARCHAR(128) NOT NULL PRIMARY KEY,
+    status VARCHAR(32) NOT NULL,
+    checked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    metrics_json TEXT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

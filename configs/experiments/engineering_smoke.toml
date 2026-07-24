@@ -1,0 +1,14 @@
+[experiment]
+name = "engineering_smoke"
+provider = "sample"
+purpose = "CPU-only lineage and data-flow smoke; not a valid model experiment"
+model_valid = false
+
+[tracking]
+backend = "local_append_only"
+lineage_path = "artifacts/lineage/lineage.jsonl"
+
+[gates]
+allowed_provider = "sample"
+forbid_model_valid = true
+require_hashes = ["data", "config", "code", "seed", "split", "blind_manifest", "checkpoint"]

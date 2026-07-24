@@ -1,0 +1,99 @@
+[freeze]
+name = "r3-task25-loss-comparison"
+immutable = true
+preflight_artifact = "artifacts/r3_task25/preflight/cuda_memory.json"
+evaluation_locked_until_all_runs_complete = true
+
+[data]
+dataset = "artifacts/diagnostics/R0_V2_TENSOR_DATASET_856D/v2-tensor-dataset.pkl"
+dataset_sha256 = "c6fe493b6169e63cb0a8b8ef29d073b4142c97a7d97f1d120cc5282a66544fc9"
+dataset_manifest = "artifacts/diagnostics/R0_V2_TENSOR_DATASET_856D/manifest.json"
+dataset_manifest_sha256 = "845c092519cc952f810257fb94c38e77eaf08f306089544be1c5e94d2c93660d"
+label_schema = "executable_excess_return_v2"
+selection_horizon = 1
+minimum_train_dates = 320
+purge_days = 6
+embargo_days = 6
+folds = [0, 1]
+seeds = [2026, 2027, 2028]
+
+[graph]
+seat_cooccurrence = false
+add_reverse_relations = true
+concept_graph = false
+hard_max_edges = 100000
+missing_optional_relations = ["stock_correlation", "industry_stock"]
+legacy_relation_conversion_is_explicit = true
+
+[device]
+device = "cuda"
+mixed_precision = true
+preferred_dtype = "fp16"
+serial_seed_workers = 1
+graphs_per_step = 1
+maximum_peak_gpu_gib = 7.2
+
+[model]
+hidden_dim = 64
+num_heads = 2
+num_layers = 2
+edge_hidden_dim = 16
+dropout = 0.15
+relation_dropout = 0.10
+use_residual = true
+use_layer_norm = true
+maximum_parameters = 5000000
+
+[training]
+epochs = 20
+learning_rate = 0.0003
+weight_decay = 0.0001
+gradient_accumulation_steps = 4
+gradient_clip_norm = 1.0
+optimizer = "adamw"
+optimizer_foreach = false
+validation_metric = "none"
+early_stopping = false
+max_pairs_per_date = 1024
+
+[objectives.L0]
+smooth_l1_weight = 0.45
+pairwise_rank_weight = 0.30
+pearson_weight = 0.15
+direction_weight = 0.10
+regression_target = "residual_return"
+ranking_target = "residual_return"
+
+[objectives.L1]
+smooth_l1_weight = 0.35
+pairwise_rank_weight = 0.40
+pearson_weight = 0.15
+direction_weight = 0.10
+regression_target = "residual_zscore"
+ranking_target = "residual_zscore"
+
+[objectives.L2]
+smooth_l1_weight = 0.30
+lambda_rank_at5_weight = 0.45
+pearson_weight = 0.15
+direction_weight = 0.10
+regression_target = "residual_zscore"
+ranking_target = "residual_rank_percentile"
+lambda_rank_k = 5
+true_top_fraction = 0.20
+prediction_boundary_end = 10
+
+[costs]
+buy_cost_bps = 8.0
+sell_cost_bps = 18.0
+top_k = 5
+weighting = "equal"
+
+[artifacts]
+root = "artifacts/r3_task25"
+planned_manifest = "artifacts/r3_task25/run_manifest.json"
+fold_manifest = "artifacts/r3_task25/folds.json"
+completion_manifest = "artifacts/r3_task25/completion_manifest.json"
+evaluation = "artifacts/r3_task25/evaluation.json"
+allow_overwrite = false
+

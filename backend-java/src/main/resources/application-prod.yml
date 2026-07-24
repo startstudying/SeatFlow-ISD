@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: ${SEATFLOW_DB_URL}
+    username: ${SEATFLOW_DB_USERNAME}
+    password: ${SEATFLOW_DB_PASSWORD}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+seatflow:
+  security:
+    enabled: true
+    api-key: ${SEATFLOW_API_KEY}
+  encryption:
+    enabled: true
+    key: ${SEATFLOW_ENCRYPTION_KEY}

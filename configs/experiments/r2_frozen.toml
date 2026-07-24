@@ -1,0 +1,41 @@
+[freeze]
+name = "r2-seatranklite-engineering-smoke"
+frozen_at = "2026-07-23"
+code_commit = "daff03311dec7b865f71683276324c3517ef9d4a"
+source_config = "configs/experiments/r2_seatranklite_8gb.toml"
+source_config_sha256 = "5d42ef7b497b59e8f13474d8a6cb6cb5b16ac6e226598ff14f764628ec19b0e8"
+artifact_manifest = "artifacts/r2_frozen_manifest.json"
+freeze_scope = "engineering_smoke_only"
+immutable = true
+
+[status]
+model_valid = false
+development_candidate = false
+complete_15_run_evidence = false
+future_blind_allowed = false
+failure_attribution_ready = false
+
+[protocol]
+folds = [0, 1, 2]
+seeds = [2026, 2027, 2028, 2029, 2030]
+available_smoke_folds = [0]
+available_smoke_seeds = [2026, 2027]
+data_cutoff_known = false
+fold_definition_known = false
+graph_schema_hash_known = false
+scaler_hash_known = false
+
+[engineering_evidence]
+parameter_count = 171316
+gpu_name = "NVIDIA GeForce RTX 5060 Laptop GPU"
+gpu_total_memory_mib = 8151
+torch_version = "2.11.0+cu128"
+peak_allocated_bytes = 19952128
+peak_reserved_bytes = 25165824
+production_snapshot_peak_known = false
+
+[guardrails]
+maximum_peak_gpu_gib = 7.2
+maximum_parameters = 5000000
+allow_overwrite_frozen_artifacts = false
+

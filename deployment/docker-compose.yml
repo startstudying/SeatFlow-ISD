@@ -1,0 +1,188 @@
+name: seatflow
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-seatflow}
+      MYSQL_USER: ${MYSQL_USER:-seatflow}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me-seatflow}
+      SEATFLOW_DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-seatflow}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SEATFLOW_DB_USERNAME: ${MYSQL_USER:-seatflow}
+      SEATFLOW_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me-seatflow}
+      SEATFLOW_FLYWAY_ENABLED: "true"
+      SEATFLOW_REDIS_HOST: redis
+      SEATFLOW_REDIS_PORT: 6379
+      SEATFLOW_NEO4J_ENABLED: ${SEATFLOW_NEO4J_ENABLED:-false}
+      SEATFLOW_NEO4J_BASE_URL: http://neo4j:7474
+      SEATFLOW_NEO4J_USERNAME: ${NEO4J_USER:-neo4j}
+      SEATFLOW_NEO4J_PASSWORD: ${NEO4J_PASSWORD:-}
+      SEATFLOW_NEO4J_DATABASE: ${SEATFLOW_NEO4J_DATABASE:-neo4j}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../database/mysql_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.1.1
+    restart: unless-stopped
+    command:
+      - mlflow
+      - server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+      - --backend-store-uri
+      - sqlite:////mlflow/mlflow.db
+      - --default-artifact-root
+      - /mlflow/artifacts
+    ports:
+      - "${MLFLOW_PORT:-5000}:5000"
+    volumes:
+      - mlflow_data:/mlflow
+      - ../artifacts:/workspace/artifacts:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  fastapi:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SEATFLOW_DATA_PROVIDER: ${SEATFLOW_DATA_PROVIDER:-sample}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+      SEATFLOW_RUNTIME_MODE: degraded-until-real-checkpoint-mounted
+    ports:
+      - "${FASTAPI_PORT:-8000}:8000"
+    volumes:
+      - ../data:/workspace/data:ro
+      - ../checkpoints:/workspace/checkpoints:ro
+      - ../artifacts:/workspace/artifacts:ro
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import json,urllib.request; data=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)); raise SystemExit(0 if data.get('status') == 'ok' else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  backend-java:
+    build:
+      context: ../backend-java
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SEATFLOW_JAVA_PORT: 8080
+      SEATFLOW_FASTAPI_BASE_URL: http://fastapi:8000
+      SEATFLOW_SCOPE: local_internal_research
+      SEATFLOW_AUTH_MODE: local-internal
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-seatflow}
+      MYSQL_USER: ${MYSQL_USER:-seatflow}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me-seatflow}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+    ports:
+      - "${JAVA_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      fastapi:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/ready >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SEATFLOW_DATA_CENTER_SOURCE: ${NEXT_PUBLIC_SEATFLOW_DATA_CENTER_SOURCE:-java-api}
+        NEXT_PUBLIC_SEATFLOW_SETTINGS_SOURCE: ${NEXT_PUBLIC_SEATFLOW_SETTINGS_SOURCE:-java-api}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_SEATFLOW_API_BASE_URL: http://backend-java:8080
+      NEXT_PUBLIC_SEATFLOW_PROVIDER: ${SEATFLOW_DATA_PROVIDER:-sample}
+      NEXT_PUBLIC_SEATFLOW_TRADE_DATE: ${SEATFLOW_DEFAULT_TRADE_DATE:-2026-01-15}
+      NEXT_PUBLIC_SEATFLOW_DEFAULT_MODEL_ID: ${SEATFLOW_DEFAULT_MODEL_ID:-}
+      NEXT_PUBLIC_SEATFLOW_DEFAULT_RUN_ID: ${SEATFLOW_DEFAULT_RUN_ID:-}
+      NEXT_PUBLIC_SEATFLOW_DATA_CENTER_SOURCE: ${NEXT_PUBLIC_SEATFLOW_DATA_CENTER_SOURCE:-java-api}
+      NEXT_PUBLIC_SEATFLOW_SETTINGS_SOURCE: ${NEXT_PUBLIC_SEATFLOW_SETTINGS_SOURCE:-java-api}
+      SEATFLOW_JAVA_INTERNAL_BASE_URL: http://backend-java:8080
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend-java:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  neo4j:
+    image: neo4j:5.26-community
+    profiles: ["graph"]
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-change-me-neo4j}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+    ports:
+      - "${NEO4J_HTTP_PORT:-7474}:7474"
+      - "${NEO4J_BOLT_PORT:-7687}:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:7474 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+volumes:
+  mysql_data:
+  mlflow_data:
+  redis_data:
+  neo4j_data:
+  neo4j_logs:

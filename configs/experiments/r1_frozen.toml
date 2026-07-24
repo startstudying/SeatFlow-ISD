@@ -1,0 +1,18 @@
+[status]
+model_valid = false
+research_only = true
+independent_validation = false
+oos_selection_contaminated = true
+positive_runs = 6
+total_runs = 15
+required_positive_runs = 10
+
+[governance]
+read_only = true
+allowed_use = "historical_comparison_and_diagnosis"
+forbid_loss_weight_selection = true
+forbid_seed_selection = true
+forbid_fold_selection = true
+forbid_threshold_selection = true
+forbid_feature_selection = true
+forbid_ensemble_weight_selection = true

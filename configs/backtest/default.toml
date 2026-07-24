@@ -1,0 +1,22 @@
+[backtest]
+run_id = "m6-auditable-backtest"
+mode = "fixture_smoke"
+initial_cash = "1000000"
+top_n = 5
+minimum_score = "0"
+commission_bps = "3"
+stamp_tax_bps = "5"
+slippage_bps = "5"
+max_participation_rate = "0.10"
+limit_up_pct = "0.10"
+limit_down_pct = "0.10"
+minimum_lot_size = 100
+
+[requirements]
+real_backtest_requires_verified_blind_manifest = true
+real_backtest_requires_historical_as_of_universe = true
+real_backtest_requires_trading_calendar = true
+real_backtest_requires_benchmark_returns = true
+real_backtest_requires_daily_bar_available_time = true
+real_backtest_requires_pre_close_for_limit_checks = true
+real_backtest_requires_volume_unit_shares_for_capacity = true

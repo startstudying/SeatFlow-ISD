@@ -1,0 +1,10 @@
+[labeling]
+horizons = [1, 3, 5]
+positive_return_threshold = "0"
+adjustment_policy = "frozen_adjusted_close_v1"
+calendar_policy = "frozen_trading_calendar_v1"
+
+[split_policy]
+purge_days = 5
+embargo_days = 5
+max_horizon_days = 5

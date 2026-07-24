@@ -1,0 +1,5 @@
+[mlflow]
+enabled = false
+tracking_uri = "file:./mlruns"
+experiment_name = "SeatFlow"
+note = "MLflow is optional; local append-only lineage is the fail-closed default."
