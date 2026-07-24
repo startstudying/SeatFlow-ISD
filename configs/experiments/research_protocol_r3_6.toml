@@ -1,0 +1,81 @@
+[protocol]
+name = "r3.6-cost-aware-seatrank"
+frozen_parent_commit = "0e2ccfb"
+development_only = true
+independent_validation = false
+eligible_for_model_valid = false
+task26_allowed = false
+allow_training_before_strategy_gate = false
+
+[inputs]
+task25_manifest = "artifacts/r3_task25/frozen_manifest.json"
+r3_5_decision = "artifacts/r3_5/diagnostic_decision.json"
+folds = [0, 1]
+seeds = [2026, 2027, 2028]
+candidate_exit_rule = "A"
+candidate_exit_rule_b_status = "unavailable_missing_out_of_pool_scores"
+
+[signals.S0]
+objective = "L0"
+source = "frozen_task25_prediction"
+
+[signals.S1]
+objective = "L2"
+source = "frozen_task25_prediction"
+
+[strategies.P0]
+name = "exact_top5"
+top_k = 5
+
+[strategies.P1]
+name = "maximum_one_voluntary_replacement"
+top_k = 5
+maximum_voluntary_replacements = 1
+forced_candidate_exits_exempt_from_voluntary_cap = true
+
+[strategies.P2]
+name = "rank_buffer"
+top_k = 5
+buy_rank = 5
+hold_rank = 10
+
+[strategies.P3]
+name = "ridge_cost_calibrated_net_utility"
+top_k = 5
+calibrator = "ridge"
+ridge_alpha = 1.0
+switch_margin = 0.0
+cost_multiplier = 1.0
+matured_label_only = true
+
+[costs]
+commission_bps = 3.0
+stamp_duty_bps = 5.0
+buy_slippage_bps = 5.0
+sell_slippage_bps = 10.0
+minimum_commission_cny = 5.0
+assumed_position_notional_cny = 100000.0
+selection_multiplier = 1.0
+stress_multipliers = [0.0, 1.0, 2.0, 5.0]
+
+[gates]
+minimum_positive_net_runs = 4
+minimum_fold_mean_net_spread = 0.0
+minimum_mean_gross_spread = 0.0
+minimum_cost_reduction_vs_p0 = 0.30
+minimum_turnover_reduction_vs_p0 = 0.30
+require_mean_net_above_p0 = true
+require_worst_run_not_below_p0 = true
+selection_order = [
+  "worst_fold_net_spread",
+  "positive_net_runs",
+  "seed_net_spread_std",
+  "turnover",
+  "mean_net_spread",
+]
+
+[conditional_training]
+task48_allowed_only_after_unique_strategy = true
+graph_variants = ["G0_full_graph", "G1_without_seat_stock"]
+run_count = 12
+forbidden_additions = ["GRU", "FiLM", "Mamba", "hypergraph", "new_ranking_loss"]
