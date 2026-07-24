@@ -88,7 +88,8 @@ def mask_tensorized_relations(
         store = cloned_data[edge_type]
         store.edge_index = store.edge_index[:, :0].clone()
         store.edge_attr = store.edge_attr[:0].clone()
-        store.edge_weight = store.edge_weight[:0].clone()
+        if hasattr(store, "edge_weight"):
+            store.edge_weight = store.edge_weight[:0].clone()
         edge_key = "::".join(edge_type)
         edge_shapes = metadata.get("edge_shapes")
         if isinstance(edge_shapes, dict):

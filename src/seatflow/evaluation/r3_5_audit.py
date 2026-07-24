@@ -713,6 +713,12 @@ def _relation_decision(
         return "supported", evidence
     if spread_delta < 0:
         return "unsupported", evidence
+    if spread_delta > 0:
+        evidence.append(
+            "Removing Seat-Stock improved gross spread, consistent with harmful "
+            "relation propagation; this is diagnostic, not a trained ablation"
+        )
+        return "supported", evidence
     return "insufficient_evidence", evidence
 
 

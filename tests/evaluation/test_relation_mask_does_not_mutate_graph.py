@@ -90,6 +90,22 @@ class RelationMaskTest(unittest.TestCase):
         self.assertEqual(masked.data[edge_type].edge_index.shape[1], 0)
         self.assertIsNot(masked.data, graph.data)
 
+    def test_tensorized_mask_accepts_relation_without_edge_weight(self) -> None:
+        import torch
+        from torch_geometric.data import HeteroData
+
+        data = HeteroData()
+        data["stock"].x = torch.ones((1, 1))
+        edge_type = ("stock", "correlates", "stock")
+        data[edge_type].edge_index = torch.tensor([[0], [0]])
+        data[edge_type].edge_attr = torch.ones((1, 2))
+        graph = TensorizedGraph(data=data, metadata={})
+
+        masked = mask_tensorized_relations(graph, "without_stock_stock")
+
+        self.assertEqual(masked.data[edge_type].edge_index.shape[1], 0)
+        self.assertEqual(graph.data[edge_type].edge_index.shape[1], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
