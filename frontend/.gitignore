@@ -1,0 +1,6 @@
+.next/
+node_modules/
+coverage/
+tsconfig.tsbuildinfo
+next-start.*.log
+.next-start.pid

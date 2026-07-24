@@ -1,0 +1,16 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  flyway:
+    enabled: ${SEATFLOW_FLYWAY_ENABLED:false}
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+seatflow:
+  security:
+    enabled: ${SEATFLOW_SECURITY_ENABLED:false}
+  encryption:
+    enabled: ${SEATFLOW_ENCRYPTION_ENABLED:false}

@@ -1,0 +1,12 @@
+[protocol]
+protocol_id = "engineering-smoke-v1"
+data_scope = "synthetic"
+primary_metric = "rank_ic"
+baseline_models = ["naive", "mlp", "lstm", "gat", "thgnn"]
+seeds = [2026, 2027, 2028]
+hyperparameter_budget = 0
+max_horizon_days = 5
+purge_days = 5
+embargo_days = 5
+blind_start = "2025-07-01"
+blind_end = "2025-12-31"

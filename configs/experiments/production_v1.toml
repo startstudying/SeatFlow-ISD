@@ -1,0 +1,44 @@
+# Production V1 research contract. This is intentionally fail-closed until R0/R1 gates pass.
+[protocol]
+protocol_id = "seatflow-production-v1-v2"
+data_scope = "real"
+seat_detail_scope = "institutional_proxy"
+label_status = "mixed"
+blind_status = "future_blind"
+model_family = "dt_flow_v2_unvalidated"
+primary_metric = "daily_rank_ic"
+baseline_models = ["logistic_regression", "lightgbm", "catboost", "mlp"]
+seeds = [2026, 2027, 2028, 2029, 2030]
+hyperparameter_budget = 0
+max_horizon_days = 5
+purge_days = 6
+embargo_days = 6
+blind_start = "2026-07-20"
+blind_end = "2026-12-31"
+
+# `top_inst` observations are InstitutionFlowEvent data, never StableSeat data.
+# V2 labels are executable-excess-return labels; their availability and source hashes
+# must be verified by the materialization artifact before any training run.
+[data_contract]
+event_entity = "InstitutionFlowEvent"
+stable_seat_data_required = false
+label_schema_version = "executable_excess_return_v2"
+model_valid = false
+
+[windows.train]
+start = "2023-01-03"
+end = "2024-12-31"
+label_status = "observed"
+blind_status = "not_applicable"
+
+[windows.dev_oos]
+start = "2025-01-01"
+end = "2026-07-17"
+label_status = "observed"
+blind_status = "contaminated_oos"
+
+[windows.future_blind]
+start = "2026-07-20"
+end = "2026-12-31"
+label_status = "unreleased"
+blind_status = "future_blind"

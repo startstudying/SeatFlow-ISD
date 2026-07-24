@@ -1,0 +1,28 @@
+[experiment]
+name = "dtseathgt_shape_smoke"
+provider = "sample"
+purpose = "Optional PyG/CPU shape smoke for DTSeatHGT; not a valid model experiment"
+model_valid = false
+
+[model]
+name = "DTSeatHGT"
+hidden_dim = 128
+num_heads = 4
+num_layers = 2
+dropout = 0.10
+heads = ["direction", "future_return"]
+
+[gates]
+allowed_provider = "sample"
+forbid_model_valid = true
+require_pyg = true
+require_hashes = [
+  "data",
+  "config",
+  "code",
+  "seed",
+  "split",
+  "blind_manifest",
+  "checkpoint",
+  "model_architecture",
+]

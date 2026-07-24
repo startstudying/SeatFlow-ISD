@@ -1,0 +1,13 @@
+# Locked before a real audit; changes require a new audit artifact and ADR.
+[coverage]
+minimum_trade_days = 720
+minimum_daily_coverage = 0.995
+minimum_summary_coverage = 1.0
+minimum_seat_detail_coverage = 1.0
+require_nonempty_daily = true
+require_nonempty_summary = true
+
+[scope]
+# `top_inst` is always institutional_only unless a separately licensed source contract proves complete seat coverage.
+allow_institutional_only_for_scoped_research = true
+allow_complete_seat_for_full_claims = true

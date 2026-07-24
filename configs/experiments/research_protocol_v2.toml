@@ -1,0 +1,64 @@
+[protocol]
+protocol_id = "seatflow-institutional-proxy-v2"
+data_scope = "real"
+seat_detail_scope = "institutional_proxy"
+label_status = "mixed"
+blind_status = "future_blind"
+model_family = "event_logistic_baseline_v1"
+primary_metric = "rank_ic"
+baseline_models = [
+  "naive_event_mean",
+  "event_logistic_baseline_v1",
+  "price_only_mlp",
+  "event_mlp",
+  "event_plus_seat_profile_mlp",
+  "price_lstm_or_transformer",
+  "stock_corr_gat",
+  "hist_static_and_hidden_concept",
+  "thgnn_adapted",
+  "dt_seathgt",
+]
+seeds = [2026, 2027, 2028, 2029, 2030]
+hyperparameter_budget = 0
+max_horizon_days = 5
+purge_days = 6
+embargo_days = 6
+positive_return_threshold = 0.0
+dt_selection_score_policy = "return_head_expected_return"
+blind_start = "2026-07-20"
+blind_end = "2026-12-31"
+
+[dt_seathgt_training]
+epochs = 3
+learning_rate = 0.001
+gradient_clip_norm = 1.0
+
+[windows.train]
+start = "2023-02-06"
+end = "2024-06-30"
+label_status = "observed"
+blind_status = "not_applicable"
+
+[windows.valid]
+start = "2024-07-01"
+end = "2024-12-31"
+label_status = "observed"
+blind_status = "not_applicable"
+
+[windows.dev_oos]
+start = "2025-01-01"
+end = "2025-12-31"
+label_status = "observed"
+blind_status = "not_applicable"
+
+[windows.contaminated_oos]
+start = "2026-01-01"
+end = "2026-07-17"
+label_status = "observed"
+blind_status = "contaminated_oos"
+
+[windows.future_blind]
+start = "2026-07-20"
+end = "2026-12-31"
+label_status = "unreleased"
+blind_status = "future_blind"

@@ -1,0 +1,27 @@
+{
+  "trade_date": "2026-07-20",
+  "captured_at": "2026-07-20T09:31:00+08:00",
+  "quotes": [
+    {
+      "stock_id": "600000.SH",
+      "price": "12.30",
+      "tradable": true,
+      "limit_up": false,
+      "limit_down": false
+    },
+    {
+      "stock_id": "000001.SZ",
+      "price": "11.20",
+      "tradable": true,
+      "limit_up": false,
+      "limit_down": false
+    },
+    {
+      "stock_id": "300750.SZ",
+      "price": "238.50",
+      "tradable": true,
+      "limit_up": false,
+      "limit_down": false
+    }
+  ]
+}
