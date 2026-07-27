@@ -1,0 +1,11 @@
+{
+  "evidence_complete": false,
+  "gate_name": "persistent_universe_structure_gate",
+  "observed": null,
+  "passed": false,
+  "stop_reason": "insufficient_evidence",
+  "task59_allowed": false,
+  "task60_allowed": false,
+  "task61_allowed": false,
+  "threshold": 0.3
+}

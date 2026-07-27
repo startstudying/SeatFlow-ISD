@@ -1,0 +1,19 @@
+{
+  "average_retained_holdings": null,
+  "candidate_exit_turnover_floor": null,
+  "candidate_pool_temporal_jaccard": null,
+  "evidence_complete": false,
+  "full_turnover_day_ratio": null,
+  "persistent_candidate_pool_size": null,
+  "schema_version": "r4_task58_structure_preflight.v1",
+  "simulated_rule_b_turnover": null,
+  "source_files_checked": [
+    "artifacts/r3_6/strategy_replay.json",
+    "artifacts/r3_6/strategy_daily_results.json",
+    "artifacts/r3_6/temporal_holdings.json",
+    "artifacts/r4/task51_turnover_floor.json"
+  ],
+  "status": "insufficient_evidence",
+  "stop_reason": "complete daily persistent_candidate_universe and simulated_rule_b_turnover evidence were not available as immutable artifacts",
+  "turnover_reduction_vs_p0": null
+}

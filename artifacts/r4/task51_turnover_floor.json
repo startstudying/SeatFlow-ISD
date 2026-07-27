@@ -1,0 +1,25 @@
+{
+  "candidate_pool_retention_rate": 0.32151346928818647,
+  "candidate_pool_temporal_jaccard": 0.19221088205269926,
+  "comparison_day_count": 1584,
+  "evidence_complete": true,
+  "full_candidate_exit_day_ratio": 0.16224747474747475,
+  "gate_passed": true,
+  "maximum_possible_reduction_under_rule_A": 0.2780122532334923,
+  "mean_candidate_exit_turnover_floor": 0.669570707070707,
+  "mean_total_turnover": 0.92739898989899,
+  "median_candidate_exit_turnover_floor": 0.6,
+  "missing_fields": [],
+  "portfolio_size": 5,
+  "schema_version": "r4_task51_turnover_floor.v1",
+  "source_files": [
+    "artifacts/r3_6/strategy_daily_results.json",
+    "artifacts/r3_task25/runs/*/*/*/predictions.json"
+  ],
+  "status": "ok",
+  "turnover_decomposition_complete": false,
+  "unavailable_decomposition_fields": [
+    "untradable_turnover",
+    "corporate_action_turnover"
+  ]
+}
