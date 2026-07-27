@@ -12,29 +12,56 @@ authors = [{ name = "SeatFlow Team" }]
 dependencies = []
 
 [project.optional-dependencies]
-ml = [
+# Numeric / tabular / config / HTTP core used by both training and serving.
+ml-core = [
   "numpy>=1.26",
   "pandas>=2.2",
+  "scikit-learn>=1.5",
+  "scipy>=1.13",
+  "joblib>=1.4",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "httpx>=0.27",
+]
+# Graph neural network stack.
+ml-graph = [
   "torch>=2.2",
   "torch-geometric>=2.5",
 ]
-tracking = [
-  "mlflow>=2.14",
-]
-data = [
-  "akshare>=1.18.64",
-]
+# Baseline models for benchmark and ablation studies.
 baselines = [
   "catboost>=1.2,<2",
+  "lightgbm>=4.3",
 ]
+# Parquet / on-disk dataset IO.
+parquet = [
+  "pyarrow>=15",
+  "fastparquet>=2024.5",
+]
+# Local FastAPI scoring service.
 api = [
   "fastapi>=0.111",
   "uvicorn>=0.30",
 ]
+# Experiment tracking.
+tracking = [
+  "mlflow>=2.14",
+]
+# Third-party data providers.
+data = [
+  "akshare>=1.18.64",
+]
+# Developer tooling.
 dev = [
   "pytest>=8.0",
+  "pytest-cov>=5",
+  "coverage[toml]>=7.6",
   "ruff>=0.5",
   "mypy>=1.10",
+]
+# Aggregate every optional group (used by CI and lock file generation).
+all = [
+  "seatflow[ml-core,ml-graph,baselines,parquet,api,tracking,data,dev]",
 ]
 
 [project.scripts]
@@ -65,3 +92,20 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["seatflow.graph.tensorize", "seatflow.models.seat_hgt"]
 disable_error_code = ["misc"]
+
+[tool.coverage.run]
+branch = true
+source = ["seatflow"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "if TYPE_CHECKING:",
+]
+show_missing = true
+fail_under = 60

@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main, claude/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "22"
+  JAVA_VERSION: "21"
+
+jobs:
+  lint-python:
+    name: Python lint & type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[all]"
+      - name: Ruff
+        run: ruff check .
+      - name: mypy
+        run: mypy src/seatflow
+
+  test-python:
+    name: Python tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install full deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[all]"
+      - name: Pytest with coverage
+        run: |
+          pytest --cov=seatflow --cov-report=xml --cov-report=term-missing -q tests/
+
+  build-java:
+    name: Java build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - name: mvn verify
+        run: cd backend-java && mvn -B -ntp verify
+
+  build-frontend:
+    name: Frontend lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: cd frontend && npm ci
+      - name: Lint
+        run: cd frontend && npm run lint
+      - name: Typecheck
+        run: cd frontend && npm run typecheck
+      - name: Test
+        run: cd frontend && npm run test
+      - name: Build
+        run: cd frontend && npm run build
+
+  docker-validate:
+    name: Docker compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose
+        run: docker compose -f deployment/docker-compose.yml config --quiet

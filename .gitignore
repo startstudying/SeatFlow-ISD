@@ -54,7 +54,35 @@ data/graphs/*
 !data/graphs/.gitkeep
 artifacts/*
 checkpoints/*
+logs/*
 mlruns/*
 reports/*
 !artifacts/.gitkeep
 !checkpoints/.gitkeep
+!logs/.gitkeep
+
+# PR-A: repository hygiene — ignore transient artifacts and model checkpoints.
+.tmp/
+.omc/
+.omx/
+catboost_info/
+results/
+*.pt
+*.pkl
+*.parquet
+*.sqlite3
+*.sqlite3-journal
+*.duckdb
+*.duckdb.wal
+*.log
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.pnp.*
+.tsbuildinfo
+next-env.d.ts
+
+# Maven wrapper (kept; targets/ is already ignored above).
+.mvn/wrapper/maven-wrapper.jar

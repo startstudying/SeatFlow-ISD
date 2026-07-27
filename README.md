@@ -127,3 +127,59 @@ SeatFlow/
 5. 用真实实验结果接入预测、传播路径、回测与前端展示。
 
 详细边界见 `docs/architecture.md`、`docs/data-contract.md`、`docs/data-sources.md` 和 `docs/training-preflight.md`。
+
+## CI & Development
+
+This repository ships a four-language CI pipeline (Python, Java, Frontend, Docker).
+Use the extras below to install exactly what you need:
+
+```bash
+# Reproducible install with lock file (recommended)
+python -m pip install -r requirements-all.lock
+
+# Or editable install with curated extras
+pip install -e ".[ml-core,ml-graph,baselines,parquet,api,tracking,data]"
+pip install -e ".[dev]"   # adds pytest, pytest-cov, ruff, mypy, coverage
+pip install -e ".[all]"   # everything above in one shot
+```
+
+Extras map to the priority axes called out in the 6-week plan:
+
+| Extra        | Purpose                                                        |
+|--------------|----------------------------------------------------------------|
+| `ml-core`    | numpy / pandas / scikit-learn / scipy / joblib / pydantic / httpx |
+| `ml-graph`   | torch + torch-geometric                                        |
+| `baselines`  | catboost + lightgbm                                            |
+| `parquet`    | pyarrow + fastparquet                                          |
+| `api`        | fastapi + uvicorn                                              |
+| `tracking`   | mlflow                                                         |
+| `data`       | akshare                                                        |
+| `dev`        | pytest, pytest-cov, coverage, ruff, mypy                       |
+| `all`        | aggregate of every group                                       |
+
+Local quality gates:
+
+```bash
+ruff check .
+mypy src tests
+pytest -q --cov=seatflow --cov-report=term-missing
+(cd backend-java && mvn -B -ntp verify)
+(cd frontend && npm ci && npm run lint && npm run typecheck && npm run test && npm run build)
+docker compose -f deployment/docker-compose.yml config --quiet
+./scripts/e2e_smoke.sh         # POSIX
+pwsh ./scripts/e2e_smoke.ps1    # Windows
+```
+
+### PR split in progress
+
+PR #4 (54 commits, 367 files) is being split into four reviewable PRs:
+
+| PR | Branch                          | Scope                                                |
+|----|---------------------------------|------------------------------------------------------|
+| A  | `chore/ci-repository-hygiene`   | `.gitignore`, `docker-compose.yml` env-var fix, `ci.yml`, dep locks, e2e smoke. **No model features.** |
+| B  | `feat/persistent-universe-pit`  | PIT schema, persistent candidate pool, decayed seat state, position-continuity scoring, structural turnover diagnostics, unit tests. Small JSON manifests only. |
+| C  | `feat/dtseathgt-v3-core`        | `dt_seat_hgt_v3.py`, typed edge-gated relation, 3-stage trainer, loss, E0/E1/E3 matrix, explainer, tests. M7–M12 and R6 unrun modules deferred. |
+| D  | `feat/paper-trading-mvp`        | Standalone paper-trading backend, not interleaved with model core. |
+
+Until each PR lands, the working tree on `claude/r5-dt-seathgt-v3` may contain transient `.tmp/`, `catboost_info/`, and `results/` artifacts that are now ignored by `.gitignore`.
+
