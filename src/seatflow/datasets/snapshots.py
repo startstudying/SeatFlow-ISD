@@ -5,7 +5,7 @@ import pickle
 import sqlite3
 from collections import defaultdict
 from collections.abc import Callable, Iterator, Mapping, MutableMapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from hashlib import sha256
 from pathlib import Path
@@ -120,8 +120,23 @@ def load_verified_historical_snapshots(
     *,
     provider: str,
     trading_calendar: Sequence[date] | None = None,
+    industry_membership_root: str | Path | None = None,
 ) -> VerifiedHistoricalSnapshots:
-    """Load only snapshots whose manifest, hash, and quality contract all verify."""
+    """Load only snapshots whose manifest, hash, and quality contract all verify.
+
+    If ``industry_membership_root`` points at a backfilled sw2021 membership
+    directory (layout: ``<root>/<provider>/sw2021_l1_industry_membership/
+    l1_code=*/is_new={Y,N}/data.json``), seat events with an empty
+    ``industry`` field are filled in point-in-time: a stock's industry on
+    ``trade_date`` is its ``l1_code`` whose membership interval
+    ``in_date <= trade_date < out_date`` contains the trade date. This is
+    the only data-side wiring needed to make industry relations carry
+    signal in the graph builder; without it every seat event has
+    ``industry=None`` and the graph has zero industry nodes.
+
+    The parameter is opt-in so callers that reproduce the R5 evidence
+    (where this wiring did not exist) keep their byte-identical inputs.
+    """
 
     root = Path(data_root) / "processed" / provider
     if not root.exists():
@@ -153,6 +168,13 @@ def load_verified_historical_snapshots(
                         f"dragon_tiger_seat_event rows have an unexpected trade date: {trade_date}"
                     )
                 seat_events.extend(parsed_events)
+    if industry_membership_root is not None:
+        membership_map = load_industry_membership_map(
+            industry_membership_root, provider=provider
+        )
+        seat_events = [
+            _fill_industry(record, membership_map) for record in seat_events
+        ]
     source_hash = _hash_manifest_hashes(manifest_hashes)
     return VerifiedHistoricalSnapshots(
         provider=provider,
@@ -345,6 +367,106 @@ def _seat_event_from_dict(row: Mapping[str, object]) -> DragonTigerRecord:
         source_side_set=_string_tuple(row.get("source_side_set")),
         identity_scope=str(row.get("identity_scope") or "named_seat"),
     )
+
+
+def load_industry_membership_map(
+    root: str | Path,
+    *,
+    provider: str,
+) -> dict[date, dict[str, str]]:
+    """Load the sw2021 L1 industry membership as a point-in-time map.
+
+    Walks ``<root>/<provider>/sw2021_l1_industry_membership/l1_code=*/
+    is_new={Y,N}/data.json`` and returns ``{trade_date: {stock_id:
+    l1_code}}`` where every ``trade_date`` is the first day a stock is a
+    member of an L1 industry and the membership ends on the day before
+    ``out_date`` (None means still active). Each trade_date is one calendar
+    day; downstream code should fall back to the most recent prior entry
+    for any trade_date not in the map. Empty / missing root is a hard
+    error — the wiring is opt-in but it must be consistent.
+    """
+    membership_root = Path(root) / provider / "sw2021_l1_industry_membership"
+    if not membership_root.exists():
+        raise ValueError(f"industry membership root does not exist: {membership_root}")
+    intervals: list[tuple[date, date | None, str, str]] = []
+    for l1_dir in sorted(membership_root.glob("l1_code=*")):
+        if not l1_dir.is_dir():
+            continue
+        l1_code = l1_dir.name.removeprefix("l1_code=")
+        for is_new_dir in sorted(l1_dir.glob("is_new=*")):
+            if not is_new_dir.is_dir():
+                continue
+            data_path = is_new_dir / "data.json"
+            if not data_path.exists():
+                continue
+            try:
+                rows = json.loads(data_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                raise ValueError(
+                    f"industry membership file is unreadable: {data_path}"
+                ) from error
+            if not isinstance(rows, list):
+                raise ValueError(
+                    f"industry membership file must be a list: {data_path}"
+                )
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                stock_id = row.get("stock_id")
+                if not isinstance(stock_id, str) or not stock_id.strip():
+                    continue
+                in_date_raw = row.get("in_date")
+                if not isinstance(in_date_raw, str) or not in_date_raw:
+                    continue
+                try:
+                    in_date = date.fromisoformat(in_date_raw)
+                except ValueError:
+                    continue
+                out_date_raw = row.get("out_date")
+                out_date: date | None = None
+                if isinstance(out_date_raw, str) and out_date_raw:
+                    try:
+                        out_date = date.fromisoformat(out_date_raw)
+                    except ValueError:
+                        out_date = None
+                intervals.append((in_date, out_date, stock_id, l1_code))
+
+    by_day: dict[date, dict[str, str]] = defaultdict(dict)
+    for in_date, out_date, stock_id, l1_code in intervals:
+        if in_date not in by_day[in_date]:
+            by_day[in_date][stock_id] = l1_code
+        if out_date is not None and out_date not in by_day[out_date]:
+            by_day[out_date][stock_id] = "__LEAVE__"
+    return dict(sorted(by_day.items()))
+
+
+def _fill_industry(
+    record: DragonTigerRecord,
+    membership_by_day: Mapping[date, Mapping[str, str]],
+) -> DragonTigerRecord:
+    """Return ``record`` with ``industry`` set from PIT membership if empty.
+
+    Membership changes on two kinds of days: ``in_date`` (stock joins an
+    L1) and ``out_date`` (stock leaves). We walk the day-sorted membership
+    keys and track the most recent l1_code for each stock; a stock not seen
+    since the start has no industry. The ``__LEAVE__`` sentinel clears the
+    tracked l1_code on out_date.
+    """
+    if record.industry:
+        return record
+    tracked: dict[str, str] = {}
+    for day, snapshot in membership_by_day.items():
+        if day > record.trade_date:
+            break
+        for stock_id, value in snapshot.items():
+            if value == "__LEAVE__":
+                tracked.pop(stock_id, None)
+            else:
+                tracked[stock_id] = value
+    l1_code = tracked.get(record.stock_id)
+    if l1_code is None:
+        return record
+    return replace(record, industry=l1_code)
 
 
 def _optional_text(value: object | None) -> str | None:
