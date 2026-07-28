@@ -1,3 +1,11 @@
+"""Legacy basic stock features (trailing returns, moving averages, volatility).
+
+Preserved from the original ``seatflow.features`` module when the
+``seatflow.features`` package was introduced. Re-exported from the package
+``__init__`` so existing ``from seatflow.features import compute_basic_features``
+imports continue to resolve.
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict

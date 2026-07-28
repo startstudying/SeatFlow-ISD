@@ -11,7 +11,7 @@ from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
-from math import isfinite, sqrt
+from math import isfinite, log1p, sqrt
 
 from seatflow.data.contracts import normalize_stock_id
 from seatflow.data.records import (
@@ -260,9 +260,12 @@ def _features_for_stock(
     total_amount = sum(seat_amounts.values())
     seat_count = len(distinct_seats)
     features = {
-        "seat_buy_amount": buy_amount,
-        "seat_sell_amount": sell_amount,
-        "seat_net_amount": buy_amount - sell_amount,
+        # Raw amounts are sign-preserving log1p-normalized on the data side
+        # to keep ~1e10 yuan values from exploding the E3 seat branch even
+        # with LayerNorm after the projection.
+        "seat_buy_amount": _signed_log1p(buy_amount),
+        "seat_sell_amount": _signed_log1p(sell_amount),
+        "seat_net_amount": _signed_log1p(buy_amount - sell_amount),
         "seat_count": float(seat_count),
         "institution_seat_ratio": _seat_ratio(current_records, _is_institution_record),
         "northbound_seat_ratio": _seat_ratio(current_records, _is_northbound_record),
@@ -352,6 +355,22 @@ def _is_northbound_record(record: DragonTigerRecord) -> bool:
         if item
     ).lower()
     return any(token in text for token in _NORTHBOUND_TOKENS)
+
+
+def _signed_log1p(value: float) -> float:
+    """Sign-preserving log1p for raw monetary seat amounts.
+
+    Maps ~1e10 yuan to ~23.0 while preserving sign and ordering, so the E3
+    seat branch receives bounded inputs instead of values that explode the
+    projection's weight gradients before LayerNorm can clamp the forward pass.
+    NaN/inf inputs collapse to 0.0 so a single bad record cannot poison the
+    whole feature vector.
+    """
+    if not isfinite(value):
+        return 0.0
+    if value >= 0:
+        return log1p(value)
+    return -log1p(-value)
 
 
 def _validate_feature_order(feature_order: Sequence[str]) -> tuple[str, ...]:

@@ -14,6 +14,7 @@ from seatflow.r4_features import (
     SEAT_AGGREGATE_FEATURES,
     build_stock_seat_aggregate_features_asof,
 )
+from seatflow.r4_features.seat_aggregates import _signed_log1p
 
 
 class SeatAggregateAsOfTest(unittest.TestCase):
@@ -61,9 +62,11 @@ class SeatAggregateAsOfTest(unittest.TestCase):
 
         row = next(item for item in rows if item.stock_id == "000001.SZ")
         self.assertEqual(tuple(row.features), SEAT_AGGREGATE_FEATURES)
-        self.assertEqual(row.features["seat_buy_amount"], 400.0)
-        self.assertEqual(row.features["seat_sell_amount"], 200.0)
-        self.assertEqual(row.features["seat_net_amount"], 200.0)
+        # Raw amounts are sign-preserving log1p-normalized on the data side
+        # to keep ~1e10 yuan values from exploding the E3 seat branch.
+        self.assertAlmostEqual(row.features["seat_buy_amount"], _signed_log1p(400.0))
+        self.assertAlmostEqual(row.features["seat_sell_amount"], _signed_log1p(200.0))
+        self.assertAlmostEqual(row.features["seat_net_amount"], _signed_log1p(200.0))
         self.assertEqual(row.features["seat_count"], 3.0)
         self.assertAlmostEqual(row.features["institution_seat_ratio"], 1.0 / 3.0)
         self.assertAlmostEqual(row.features["northbound_seat_ratio"], 1.0 / 3.0)
