@@ -19,6 +19,7 @@ from seatflow.paper_trading import (
     QuoteBatch,
     SignalBatch,
 )
+from seatflow.paper_trading.risk import PortfolioRiskState, RiskRuleConfig
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -55,6 +56,31 @@ def _quotes(day: date, *items: tuple[str, str]) -> QuoteBatch:
     )
 
 
+def _risk_kwargs(day: date) -> dict[str, object]:
+    """Standard risk envelope for tests that exercise service.run.
+
+    All caps are permissive so the test focuses on the broker / rebalance
+    logic, not the risk layer. data_complete + model_valid are True to
+    pass the fail-closed gate.
+    """
+    return {
+        "risk_rule_config": RiskRuleConfig(
+            max_single_stock_pct=Decimal("1"),
+            max_total_position_pct=Decimal("1"),
+            max_sector_pct=Decimal("1"),
+            daily_loss_limit_pct=Decimal("0"),
+            max_drawdown_pct=Decimal("0"),
+        ),
+        "risk_state": PortfolioRiskState(
+            peak_equity=Decimal("1000000"),
+            session_start_equity=Decimal("1000000"),
+            trade_date=day,
+        ),
+        "data_complete": True,
+        "model_valid": True,
+    }
+
+
 class PaperTradingTest(unittest.TestCase):
     def test_service_buys_replays_and_rebalances_on_next_day(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
@@ -78,6 +104,7 @@ class PaperTradingTest(unittest.TestCase):
                     ("000001.SZ", "20"),
                     ("300750.SZ", "50"),
                 ),
+                **_risk_kwargs(date(2026, 7, 20)),
             )
 
             first_positions = first.account_after.position_map()
@@ -99,6 +126,7 @@ class PaperTradingTest(unittest.TestCase):
                     ("000001.SZ", "20"),
                     ("300750.SZ", "50"),
                 ),
+                **_risk_kwargs(date(2026, 7, 20)),
             )
             self.assertTrue(replay.sell_batch.replayed)
             self.assertTrue(replay.buy_batch.replayed)
@@ -118,6 +146,7 @@ class PaperTradingTest(unittest.TestCase):
                         ("000001.SZ", "20"),
                         ("300750.SZ", "50"),
                     ),
+                    **_risk_kwargs(date(2026, 7, 20)),
                 )
 
             second = service.run(
@@ -133,6 +162,7 @@ class PaperTradingTest(unittest.TestCase):
                     ("000001.SZ", "20"),
                     ("300750.SZ", "50"),
                 ),
+                **_risk_kwargs(date(2026, 7, 21)),
             )
 
             second_positions = second.account_after.position_map()
@@ -260,6 +290,7 @@ class PaperTradingTest(unittest.TestCase):
                     cycle_id="invalid",
                     signal_batch=_signals(date(2026, 7, 20), ("600000.SH", "0.9")),
                     quote_batch=_quotes(date(2026, 7, 20), ("600000.SH", "10")),
+                    **_risk_kwargs(date(2026, 7, 20)),
                 )
 
     def test_service_compares_signal_and_quote_as_absolute_times(self) -> None:
@@ -278,6 +309,7 @@ class PaperTradingTest(unittest.TestCase):
                     cycle_id="timezone-future",
                     signal_batch=signal_batch,
                     quote_batch=_quotes(date(2026, 7, 20), ("600000.SH", "10")),
+                    **_risk_kwargs(date(2026, 7, 20)),
                 )
 
 

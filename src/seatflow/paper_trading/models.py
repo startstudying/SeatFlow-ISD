@@ -289,3 +289,38 @@ class PaperTradingReport:
             "buy_batch": self.buy_batch.to_dict(),
             "account_after": self.account_after.to_dict(),
         }
+
+
+@dataclass(frozen=True)
+class DecisionTrace:
+    """Week-3 audit record joining risk rejections and fills for one cycle.
+
+    The decision trace is the single artifact that lets a reviewer reconstruct
+    why a given order did or did not execute: it captures the risk rule
+    verdict (which orders were accepted / rejected and why) alongside the
+    broker fill outcomes. It is written to ``sf_decision_trace`` by the IO
+    layer so every paper-trading decision is auditable end-to-end.
+    """
+
+    cycle_id: str
+    trade_date: date
+    cycle_request_hash: str
+    risk_accepted: tuple[PaperOrder, ...]
+    risk_rejections: tuple[dict[str, object], ...]
+    data_complete: bool
+    model_valid: bool
+    sell_fills: tuple[PaperFill, ...]
+    buy_fills: tuple[PaperFill, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "cycle_id": self.cycle_id,
+            "trade_date": self.trade_date.isoformat(),
+            "cycle_request_hash": self.cycle_request_hash,
+            "risk_accepted": [order.to_dict() for order in self.risk_accepted],
+            "risk_rejections": list(self.risk_rejections),
+            "data_complete": self.data_complete,
+            "model_valid": self.model_valid,
+            "sell_fills": [fill.to_dict() for fill in self.sell_fills],
+            "buy_fills": [fill.to_dict() for fill in self.buy_fills],
+        }

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import tomllib
 from datetime import date, datetime
 from pathlib import Path
@@ -8,6 +10,7 @@ from typing import Any, cast
 
 from seatflow.data.contracts import parse_decimal
 from seatflow.paper_trading.models import (
+    DecisionTrace,
     MarketQuote,
     PaperSignal,
     PaperTradingConfig,
@@ -100,6 +103,42 @@ def _load_json_object(path: str | Path) -> dict[str, object]:
     if not isinstance(raw, dict):
         raise ValueError("input file must contain a JSON object")
     return cast(dict[str, object], raw)
+
+
+def write_decision_trace(trace: DecisionTrace, path: str | Path) -> None:
+    """Persist a Week-3 decision trace as a JSON audit record.
+
+    Mirrors the columns of ``sf_decision_trace`` so the Java side can ingest
+    the file verbatim: cycle_id, trade_date, cycle_request_hash, the risk
+    verdict (accepted orders, rejections with rule + reason, data_complete,
+    model_valid), and the resulting sell/buy fills. One file per cycle,
+    written atomically: bytes are flushed to a temp file in the same
+    directory, fsync-ed, then os.replace-d to the final path so a crash
+    can never leave a partial audit record at ``path``.
+    """
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    content = json.dumps(
+        trace.to_dict(), ensure_ascii=False, indent=2, sort_keys=True
+    ).encode("utf-8")
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=target.name + ".",
+        suffix=".tmp",
+        dir=str(target.parent),
+    )
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(tmp_path, target)
+    except BaseException:
+        # Clean up the temp file on any failure (write, fsync, or replace)
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def _required_str(raw: dict[str, object], field: str) -> str:
