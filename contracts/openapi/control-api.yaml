@@ -2,10 +2,17 @@ openapi: 3.1.0
 info:
   title: SeatFlow Control Center API
   version: 3.0.0-dev
-  description: "Control Center API for SeatFlow V3. Provides a single point of coordination\nacross projects, data sources, datasets, quality gates, experiments, runs,\nmodels, predictions, backtests, paper\
-    \ trading, audit, and system endpoints.\n\n## Conventions\n- All endpoints are versioned under `/api/v1`.\n- All error responses use the `SeatFlowError` envelope (see `components/schemas/SeatFlowError`).\n\
-    - Long-running operations return a `taskId`; clients should poll the task state\n  or subscribe to the task event stream for state transitions.\n- Every operation defines a stable `operationId` used\
-    \ by client SDKs.\n"
+  description: |
+    Control Center API for SeatFlow V3. Provides a single point of coordination
+    across projects, data sources, datasets, quality gates, experiments, runs,
+    models, predictions, backtests, paper trading, audit, and system endpoints.
+
+    ## Conventions
+    - All endpoints are versioned under `/api/v1`.
+    - All error responses use the `SeatFlowError` envelope (see `components/schemas/SeatFlowError`).
+    - Long-running operations return a `taskId`; clients should poll the task state
+      or subscribe to the task event stream for state transitions.
+    - Every operation defines a stable `operationId` used by client SDKs.
   contact:
     name: SeatFlow API Team
   license:
@@ -1017,7 +1024,7 @@ paths:
           content:
             text/event-stream:
               schema:
-                $ref: ../events/task-events.schema.json
+                $ref: '#/components/schemas/TaskEvent'
         '404':
           $ref: '#/components/responses/SeatFlowErrorResponse'
 components:
@@ -1163,8 +1170,13 @@ components:
           $ref: '#/components/schemas/SeatFlowError'
     TaskStatus:
       type: string
-      description: "Lifecycle states. Allowed transitions:\n  REQUESTED -> QUEUED -> RUNNING -> COMPLETED\n  REQUESTED | QUEUED | RUNNING -> CANCELLED\n  RUNNING -> FAILED\n  REQUESTED | QUEUED | RUNNING\
-        \ -> BLOCKED\nTerminal states (COMPLETED, CANCELLED, FAILED) must not transition further.\n"
+      description: |
+        Lifecycle states. Allowed transitions:
+          REQUESTED -> QUEUED -> RUNNING -> COMPLETED
+          REQUESTED | QUEUED | RUNNING -> CANCELLED
+          RUNNING -> FAILED
+          REQUESTED | QUEUED | RUNNING -> BLOCKED
+        Terminal states (COMPLETED, CANCELLED, FAILED) must not transition further.
       enum:
       - REQUESTED
       - QUEUED
@@ -1770,3 +1782,76 @@ components:
           type: string
         commit:
           type: string
+    TaskEvent:
+      type: object
+      description: SSE event payload for task lifecycle transitions. See contracts/events/task-events.schema.json for the
+        full standalone JSON Schema.
+      required:
+      - eventType
+      - taskId
+      - timestamp
+      - payload
+      - traceId
+      properties:
+        eventType:
+          type: string
+          description: The type of task lifecycle event. Maps directly to task state transitions.
+          enum:
+          - TASK_CREATED
+          - TASK_QUEUED
+          - TASK_STARTED
+          - TASK_PROGRESS
+          - TASK_COMPLETED
+          - TASK_FAILED
+          - TASK_CANCELLED
+          - TASK_BLOCKED
+        taskId:
+          type: string
+          description: Unique identifier of the task this event pertains to.
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the event was emitted.
+        payload:
+          type: object
+          description: Event-specific data. Structure varies by eventType.
+          properties:
+            status:
+              $ref: '#/components/schemas/TaskStatus'
+              description: Current task status after this event.
+            progress:
+              type: number
+              minimum: 0
+              maximum: 1
+              description: Progress fraction (0..1). Present for TASK_PROGRESS events.
+            message:
+              type: string
+              description: Human-readable description of the event.
+            result:
+              description: Task result payload. Present for TASK_COMPLETED events.
+              type: object
+              additionalProperties: true
+            error:
+              description: Error detail. Present for TASK_FAILED events.
+              type: object
+              properties:
+                code:
+                  type: string
+                message:
+                  type: string
+              required:
+              - code
+              - message
+            blockedBy:
+              description: List of task IDs blocking this task. Present for TASK_BLOCKED events.
+              type: array
+              items:
+                type: string
+            cancelledBy:
+              description: User or system that triggered cancellation. Present for TASK_CANCELLED events.
+              type: string
+          additionalProperties: true
+        traceId:
+          type: string
+          description: Distributed trace identifier for correlating events across services.
+      additionalProperties: false

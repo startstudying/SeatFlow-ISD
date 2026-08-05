@@ -1,7 +1,11 @@
 server:
-  port: 8080
+  port: 0
 
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL
     driver-class-name: org.h2.Driver
@@ -12,3 +16,9 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: false
+
+seatflow:
+  security:
+    jwt:
+      secret: seatflow-test-secret-key-for-testing-only-0123456789abcdef
+      ttl: PT1H

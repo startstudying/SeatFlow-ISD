@@ -155,6 +155,13 @@ Task lifecycle transitions are published over Server-Sent Events. Each
 SSE `data:` line is a JSON object conforming to
 `contracts/events/task-events.schema.json`.
 
+The standalone JSON Schema is the source of truth for the event payload.
+Both OpenAPI documents also define a `TaskEvent` component schema that
+mirrors the standalone schema (with `$ref`s repointed at
+`#/components/schemas/TaskStatus`) so that the `text/event-stream`
+response is self-contained. When the standalone schema changes, the
+`TaskEvent` component schema must be regenerated to match.
+
 Required fields: `eventType`, `taskId`, `timestamp`, `payload`,
 `traceId`.
 

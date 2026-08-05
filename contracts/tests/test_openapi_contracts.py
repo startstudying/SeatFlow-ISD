@@ -79,33 +79,40 @@ def _iter_operations(doc: Dict[str, Any]) -> Iterator[Tuple[str, str, str, Dict[
             yield path, method.lower(), operation_id, operation
 
 
-def _is_long_running(path: str) -> bool:
-    """Determine whether a path is a long-running operation.
+def _strip_version_prefix(path: str) -> str:
+    """Strip the ``/api/v1`` or ``/research/v1`` version prefix from a path.
 
-    A path is long-running if the final segment (after the version prefix)
-    matches one of the documented long-running operation suffixes.
+    Returns the resource portion of the path, e.g. ``/datasets/build``.
     """
-    # Strip the /api/v1 or /research/v1 prefix, then take the last path segment.
-    parts = [p for p in path.split("/") if p]
-    # Drop non-resource prefix segments such as api, v1, research.
-    filtered: List[str] = []
-    for part in parts:
-        if part in {"api", "v1", "research", "v3", "system", "tasks"}:
-            continue
-        filtered.append(part)
-    if not filtered:
+    for prefix in ("/api/v1", "/research/v1"):
+        if path.startswith(prefix):
+            return path[len(prefix):]
+    return path
+
+
+def _is_long_running(path: str, method: str) -> bool:
+    """Determine whether a path+method is a long-running operation.
+
+    A POST that submits work to one of the documented long-running suffixes
+    is long-running. GET operations on the same resource (list/detail) are
+    synchronous and are excluded.
+    """
+    if method != "post":
         return False
-    tail = "/".join(filtered)
-    if tail in {"build", "validate", "backtests", "inference/daily"}:
-        return True
-    return tail in {
-        "training/base",
-        "training/direct",
-        "training/spillover",
-        "training/full",
-        "evaluation/walk-forward",
-        "evaluation/blind",
+    resource = _strip_version_prefix(path)
+    suffixes = {
+        "/datasets/build",
+        "/datasets/validate",
+        "/training/base",
+        "/training/direct",
+        "/training/spillover",
+        "/training/full",
+        "/evaluation/walk-forward",
+        "/evaluation/blind",
+        "/backtests",
+        "/inference/daily",
     }
+    return resource in suffixes
 
 
 def _response_statuses(operation: Dict[str, Any]) -> List[str]:
@@ -126,16 +133,59 @@ def _references_seatflow_error(operation: Dict[str, Any]) -> bool:
     )
 
 
-def _operation_returns_task_id(operation: Dict[str, Any]) -> bool:
-    """Check whether any 2xx response schema exposes a taskId field."""
+def _resolve_ref(doc: Dict[str, Any], ref: str) -> Dict[str, Any]:
+    """Resolve a local ``$ref`` like ``#/components/schemas/TaskHandle`` within ``doc``."""
+    if not ref.startswith("#/"):
+        return {}
+    node: Any = doc
+    for part in ref[2:].split("/"):
+        if not isinstance(node, dict) or part not in node:
+            return {}
+        node = node[part]
+    return node if isinstance(node, dict) else {}
+
+
+def _schema_has_task_id(schema: Dict[str, Any], doc: Dict[str, Any], depth: int = 0) -> bool:
+    """Recursively check whether a schema (resolving ``$ref``) exposes ``taskId``."""
+    if depth > 5 or not isinstance(schema, dict):
+        return False
+    if "$ref" in schema:
+        schema = _resolve_ref(doc, schema["$ref"])
+    # Direct property.
+    props = schema.get("properties", {})
+    if isinstance(props, dict) and "taskId" in props:
+        return True
+    # Required shortcut (some schemas list taskId in required only).
+    if "taskId" in schema.get("required", []):
+        return True
+    # Check composed schemas.
+    for key in ("allOf", "oneOf", "anyOf"):
+        for sub in schema.get(key, []):
+            if isinstance(sub, dict) and _schema_has_task_id(sub, doc, depth + 1):
+                return True
+    # Check array items.
+    items = schema.get("items")
+    if isinstance(items, dict) and _schema_has_task_id(items, doc, depth + 1):
+        return True
+    return False
+
+
+def _operation_returns_task_id(operation: Dict[str, Any], doc: Dict[str, Any]) -> bool:
+    """Check whether any 2xx response schema exposes a taskId field.
+
+    Resolves local ``$ref`` pointers against ``doc`` so that responses
+    referencing ``TaskHandle`` are recognised.
+    """
     for code, response in operation.get("responses", {}).items():
         if not str(code).startswith("2"):
             continue
+        # The response itself may be a $ref to SeatFlowErrorResponse.
+        if "$ref" in response:
+            response = _resolve_ref(doc, response["$ref"])
         content = response.get("content", {})
         for media_type, media in content.items():
             schema = media.get("schema", {}) if isinstance(media, dict) else {}
-            serialized = json.dumps(schema, default=str)
-            if "taskId" in serialized:
+            if _schema_has_task_id(schema, doc):
                 return True
     return False
 
@@ -278,9 +328,9 @@ def test_long_running_operations_return_task_id(doc_path: Path) -> None:
     doc = _load_yaml(doc_path)
     missing = []
     for path, method, _, operation in _iter_operations(doc):
-        if not _is_long_running(path):
+        if not _is_long_running(path, method):
             continue
-        if not _operation_returns_task_id(operation):
+        if not _operation_returns_task_id(operation, doc):
             missing.append(f"{method.upper()} {path}")
     assert not missing, (
         f"{doc_path.name} long-running operations missing taskId in response schema: " + ", ".join(missing)
@@ -329,14 +379,18 @@ def test_task_status_enum_matches_contract(doc_path: Path) -> None:
 
 
 def test_no_transition_leaves_terminal_state() -> None:
-    """The transition graph must not allow any move out of a terminal state."""
+    """The transition graph must not allow any move out of a terminal state.
+
+    Terminal states (COMPLETED, CANCELLED, FAILED) must have no outgoing
+    transitions. Non-terminal states may freely transition to any state
+    (including terminal ones like COMPLETED/CANCELLED/FAILED).
+    """
     for state, targets in ALLOWED_TRANSITIONS.items():
-        for target in targets:
-            assert target not in TERMINAL_STATES or state in TERMINAL_STATES, (
-                f"Invalid transition {state} -> {target} escapes terminal state"
-            )
         if state in TERMINAL_STATES:
-            assert targets == set(), f"Terminal state {state} must have no outgoing transitions"
+            assert targets == set(), (
+                f"Terminal state {state} must have no outgoing transitions, "
+                f"but allows transitions to {targets}"
+            )
 
 
 def test_required_transitions_are_present() -> None:
