@@ -1,0 +1,193 @@
+# SeatFlow V3 local infrastructure.
+#
+# All ports are configurable through environment variables. Copy
+# `.env.example` to `.env` and override the defaults for local development.
+#
+# NOTE: This file is for local development only. The placeholder credentials
+# in `.env.example` MUST be replaced before any non-local deployment.
+
+name: seatflow
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: seatflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-seatflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-seatflow_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-control_center}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-seatflow} -d ${POSTGRES_DB:-control_center}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - seatflow-net
+
+  redis:
+    image: redis:7
+    container_name: seatflow-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - seatflow-net
+
+  minio:
+    image: minio/minio:latest
+    container_name: seatflow-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-seatflow_minio_user}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-seatflow_minio_dev_password}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - seatflow-net
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: seatflow-mlflow
+    restart: unless-stopped
+    command: >
+      sh -c "mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --artifacts-destination s3://mlflow-artifacts
+      --serve-artifacts"
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-seatflow_minio_user}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-seatflow_minio_dev_password}
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+    ports:
+      - "${MLFLOW_PORT:-5000}:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - seatflow-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: seatflow-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - seatflow-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: seatflow-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-seatflow_grafana_dev_password}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - seatflow-net
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: seatflow-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-seatflow_minio_user}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-seatflow_minio_dev_password}
+    entrypoint: >
+      sh -c "
+      mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc mb -p local/datasets &&
+      mc mb -p local/models &&
+      mc mb -p local/reports &&
+      mc mb -p local/predictions &&
+      mc mb -p local/backtests &&
+      mc anonymous set download local/models &&
+      echo 'MinIO buckets initialized successfully.'
+      "
+    restart: "no"
+    networks:
+      - seatflow-net
+
+networks:
+  seatflow-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: seatflow_postgres_data
+  redis_data:
+    name: seatflow_redis_data
+  minio_data:
+    name: seatflow_minio_data
+  mlflow_data:
+    name: seatflow_mlflow_data
+  prometheus_data:
+    name: seatflow_prometheus_data
+  grafana_data:
+    name: seatflow_grafana_data

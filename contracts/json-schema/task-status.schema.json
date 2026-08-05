@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/task-status.schema.json",
+  "title": "Task Status",
+  "description": "Tracks the lifecycle state of an asynchronous task in the SeatFlow pipeline.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Unique identifier for the task."
+    },
+    "task_type": {
+      "type": "string",
+      "description": "Type category of the task (e.g. INGEST, BACKFILL, PREDICT)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "QUEUED",
+        "RUNNING",
+        "COMPLETED",
+        "CANCELLED",
+        "FAILED",
+        "BLOCKED"
+      ],
+      "description": "Current status of the task."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key to deduplicate task submissions."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the task was created."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the task was last updated."
+    },
+    "actor": {
+      "type": "string",
+      "description": "Identity of the actor that created or triggered the task."
+    }
+  },
+  "required": [
+    "task_id",
+    "task_type",
+    "status",
+    "idempotency_key",
+    "created_at",
+    "updated_at",
+    "actor"
+  ]
+}

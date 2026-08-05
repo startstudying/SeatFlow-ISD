@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/prediction-sample.schema.json",
+  "title": "Prediction Sample",
+  "description": "A sample record used for model training or inference, anchored to an event cycle.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "sample_id": {
+      "type": "string",
+      "description": "Unique identifier for the prediction sample."
+    },
+    "cycle_id": {
+      "type": "string",
+      "description": "Identifier of the event cycle this sample is derived from."
+    },
+    "stock_id": {
+      "type": "string",
+      "description": "Identifier of the stock this sample pertains to."
+    },
+    "prediction_date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO-8601 date for which the prediction is made."
+    },
+    "cutoff_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp after which no data is used (point-in-time boundary)."
+    },
+    "days_since_last_event": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Calendar days since the last LHB event in the cycle."
+    },
+    "dataset_version": {
+      "type": "string",
+      "description": "Version tag of the dataset this sample belongs to."
+    },
+    "feature_schema_hash": {
+      "type": "string",
+      "description": "Hash of the feature schema used to generate this sample."
+    },
+    "label_policy_hash": {
+      "type": "string",
+      "description": "Hash of the label policy used to assign ground-truth labels."
+    }
+  },
+  "required": [
+    "sample_id",
+    "cycle_id",
+    "stock_id",
+    "prediction_date",
+    "cutoff_time",
+    "days_since_last_event",
+    "dataset_version",
+    "feature_schema_hash",
+    "label_policy_hash"
+  ]
+}

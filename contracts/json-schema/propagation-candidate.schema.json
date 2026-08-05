@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/propagation-candidate.schema.json",
+  "title": "Propagation Candidate",
+  "description": "A candidate link indicating how a LHB event may propagate to a target stock.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "source_event_id": {
+      "type": "string",
+      "description": "Identifier of the source LHB event."
+    },
+    "source_stock_id": {
+      "type": "string",
+      "description": "Identifier of the stock at the source of the propagation."
+    },
+    "target_stock_id": {
+      "type": "string",
+      "description": "Identifier of the stock that may be affected by propagation."
+    },
+    "relation_type": {
+      "type": "string",
+      "enum": [
+        "SAME_SEAT_RELAY",
+        "SAME_COALITION_RELAY",
+        "SAME_THEME_DIFFUSION",
+        "SAME_INDUSTRY_DIFFUSION",
+        "CAPITAL_ROTATION",
+        "REPEAT_EVENT_PATH",
+        "HISTORICAL_PRICE_COMOVEMENT_AUX"
+      ],
+      "description": "The hypothesized relation explaining the propagation."
+    },
+    "candidate_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score for the propagation candidate, between 0 and 1."
+    },
+    "available_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this candidate became available (business time)."
+    },
+    "candidate_evidence": {
+      "type": ["string", "null"],
+      "description": "Provenance evidence supporting this propagation candidate."
+    }
+  },
+  "required": [
+    "source_event_id",
+    "source_stock_id",
+    "target_stock_id",
+    "relation_type",
+    "candidate_score",
+    "available_time",
+    "candidate_evidence"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/stock.schema.json",
+  "title": "Stock",
+  "description": "A listed stock instrument on an exchange.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "stock_id": {
+      "type": "string",
+      "description": "Unique identifier for the stock."
+    },
+    "ts_code": {
+      "type": "string",
+      "description": "Tushare-style ticker code (e.g. 000001.SZ)."
+    },
+    "exchange": {
+      "type": "string",
+      "description": "Exchange code (e.g. SSE, SZSE)."
+    },
+    "board": {
+      "type": "string",
+      "description": "Listing board (e.g. MAIN, STAR, ChiNext, BSE)."
+    },
+    "listing_date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO-8601 date the stock was listed."
+    },
+    "delisting_date": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "ISO-8601 date the stock was delisted, or null if still listed."
+    }
+  },
+  "required": [
+    "stock_id",
+    "ts_code",
+    "exchange",
+    "board",
+    "listing_date",
+    "delisting_date"
+  ]
+}

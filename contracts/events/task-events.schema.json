@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.io/schemas/task-events.schema.json",
+  "title": "SeatFlow Task Event",
+  "description": "Schema for Server-Sent Events (SSE) emitted during SeatFlow task lifecycle transitions. Each SSE data payload is a JSON object conforming to this schema.",
+  "type": "object",
+  "required": ["eventType", "taskId", "timestamp", "payload", "traceId"],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "description": "The type of task lifecycle event. Maps directly to task state transitions.",
+      "enum": [
+        "TASK_CREATED",
+        "TASK_QUEUED",
+        "TASK_STARTED",
+        "TASK_PROGRESS",
+        "TASK_COMPLETED",
+        "TASK_FAILED",
+        "TASK_CANCELLED",
+        "TASK_BLOCKED"
+      ]
+    },
+    "taskId": {
+      "type": "string",
+      "description": "Unique identifier of the task this event pertains to."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the event was emitted."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific data. Structure varies by eventType.",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/taskStatus",
+          "description": "Current task status after this event."
+        },
+        "progress": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Progress fraction (0..1). Present for TASK_PROGRESS events."
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable description of the event."
+        },
+        "result": {
+          "description": "Task result payload. Present for TASK_COMPLETED events.",
+          "type": "object",
+          "additionalProperties": true
+        },
+        "error": {
+          "description": "Error detail. Present for TASK_FAILED events.",
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": ["code", "message"]
+        },
+        "blockedBy": {
+          "description": "List of task IDs blocking this task. Present for TASK_BLOCKED events.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cancelledBy": {
+          "description": "User or system that triggered cancellation. Present for TASK_CANCELLED events.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "traceId": {
+      "type": "string",
+      "description": "Distributed trace identifier for correlating events across services."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "taskStatus": {
+      "type": "string",
+      "description": "Task lifecycle states. Terminal states: COMPLETED, CANCELLED, FAILED.",
+      "enum": [
+        "REQUESTED",
+        "QUEUED",
+        "RUNNING",
+        "COMPLETED",
+        "CANCELLED",
+        "FAILED",
+        "BLOCKED"
+      ]
+    }
+  }
+}

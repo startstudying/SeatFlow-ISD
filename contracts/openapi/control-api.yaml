@@ -1,0 +1,1772 @@
+openapi: 3.1.0
+info:
+  title: SeatFlow Control Center API
+  version: 3.0.0-dev
+  description: "Control Center API for SeatFlow V3. Provides a single point of coordination\nacross projects, data sources, datasets, quality gates, experiments, runs,\nmodels, predictions, backtests, paper\
+    \ trading, audit, and system endpoints.\n\n## Conventions\n- All endpoints are versioned under `/api/v1`.\n- All error responses use the `SeatFlowError` envelope (see `components/schemas/SeatFlowError`).\n\
+    - Long-running operations return a `taskId`; clients should poll the task state\n  or subscribe to the task event stream for state transitions.\n- Every operation defines a stable `operationId` used\
+    \ by client SDKs.\n"
+  contact:
+    name: SeatFlow API Team
+  license:
+    name: Proprietary
+servers:
+- url: http://localhost:8080/api/v1
+  description: Local development
+tags:
+- name: auth
+  description: Authentication and session management
+- name: projects
+  description: Project lifecycle and configuration
+- name: data-sources
+  description: External data source registration and credential management
+- name: datasets
+  description: Dataset versioning, build, and validation
+- name: quality-gates
+  description: Quality gate definitions and execution
+- name: experiments
+  description: Experiment design, comparison, and reporting
+- name: runs
+  description: Run orchestration and lifecycle
+- name: models
+  description: Model registry, promotion, and retirement
+- name: predictions
+  description: Online and batch prediction endpoints
+- name: backtests
+  description: Backtest orchestration and replay
+- name: paper-trading
+  description: Paper trading sessions and orders
+- name: audit
+  description: Audit trail, lineage, and compliance queries
+- name: system
+  description: Health, version, and operational endpoints
+paths:
+  /auth/login:
+    post:
+      tags:
+      - auth
+      operationId: authLogin
+      summary: Exchange credentials for a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '429':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /auth/logout:
+    post:
+      tags:
+      - auth
+      operationId: authLogout
+      summary: Terminate the current session
+      responses:
+        '204':
+          description: Session terminated
+        '401':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /auth/refresh:
+    post:
+      tags:
+      - auth
+      operationId: authRefresh
+      summary: Refresh an expiring session token
+      responses:
+        '200':
+          description: Session refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /auth/me:
+    get:
+      tags:
+      - auth
+      operationId: authGetCurrentUser
+      summary: Get the current authenticated user
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /projects:
+    get:
+      tags:
+      - projects
+      operationId: projectsList
+      summary: List all projects
+      parameters:
+      - $ref: '#/components/parameters/CursorPagination'
+      responses:
+        '200':
+          description: Project list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectPage'
+        '401':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - projects
+      operationId: projectsCreate
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '401':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '409':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /projects/{projectId}:
+    parameters:
+    - $ref: '#/components/parameters/ProjectId'
+    get:
+      tags:
+      - projects
+      operationId: projectsGet
+      summary: Get project by id
+      responses:
+        '200':
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    patch:
+      tags:
+      - projects
+      operationId: projectsUpdate
+      summary: Update project metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdateRequest'
+      responses:
+        '200':
+          description: Project updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    delete:
+      tags:
+      - projects
+      operationId: projectsDelete
+      summary: Delete a project (soft)
+      responses:
+        '202':
+          description: Deletion accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHandle'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /data-sources:
+    get:
+      tags:
+      - data-sources
+      operationId: dataSourcesList
+      summary: List registered data sources
+      responses:
+        '200':
+          description: Data source list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSourcePage'
+        '401':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - data-sources
+      operationId: dataSourcesRegister
+      summary: Register a new data source
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSourceCreateRequest'
+      responses:
+        '201':
+          description: Data source registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSource'
+        '400':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '409':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /data-sources/{dataSourceId}:
+    parameters:
+    - $ref: '#/components/parameters/DataSourceId'
+    get:
+      tags:
+      - data-sources
+      operationId: dataSourcesGet
+      summary: Get a data source
+      responses:
+        '200':
+          description: Data source
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSource'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    delete:
+      tags:
+      - data-sources
+      operationId: dataSourcesDelete
+      summary: Delete a data source
+      responses:
+        '204':
+          description: Data source deleted
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /data-sources/{dataSourceId}/test:
+    parameters:
+    - $ref: '#/components/parameters/DataSourceId'
+    post:
+      tags:
+      - data-sources
+      operationId: dataSourcesTestConnection
+      summary: Test connectivity to a data source
+      responses:
+        '200':
+          description: Connection test result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSourceTestResult'
+        '502':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /datasets:
+    get:
+      tags:
+      - datasets
+      operationId: datasetsList
+      summary: List datasets
+      responses:
+        '200':
+          description: Dataset list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - datasets
+      operationId: datasetsCreate
+      summary: Create a dataset definition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetCreateRequest'
+      responses:
+        '201':
+          description: Dataset created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /datasets/{datasetId}:
+    parameters:
+    - $ref: '#/components/parameters/DatasetId'
+    get:
+      tags:
+      - datasets
+      operationId: datasetsGet
+      summary: Get a dataset definition
+      responses:
+        '200':
+          description: Dataset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /datasets/{datasetId}/build:
+    parameters:
+    - $ref: '#/components/parameters/DatasetId'
+    post:
+      tags:
+      - datasets
+      operationId: datasetsBuild
+      summary: Build a dataset version (long-running)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetBuildRequest'
+      responses:
+        '202':
+          description: Build task accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHandle'
+        '400':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '409':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /datasets/{datasetId}/validate:
+    parameters:
+    - $ref: '#/components/parameters/DatasetId'
+    post:
+      tags:
+      - datasets
+      operationId: datasetsValidate
+      summary: Validate a dataset against quality gates
+      responses:
+        '202':
+          description: Validation task accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHandle'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /quality-gates:
+    get:
+      tags:
+      - quality-gates
+      operationId: qualityGatesList
+      summary: List quality gates
+      responses:
+        '200':
+          description: Quality gate list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityGatePage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - quality-gates
+      operationId: qualityGatesCreate
+      summary: Create a quality gate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QualityGateCreateRequest'
+      responses:
+        '201':
+          description: Quality gate created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityGate'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /experiments:
+    get:
+      tags:
+      - experiments
+      operationId: experimentsList
+      summary: List experiments
+      responses:
+        '200':
+          description: Experiment list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - experiments
+      operationId: experimentsCreate
+      summary: Create a new experiment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentCreateRequest'
+      responses:
+        '201':
+          description: Experiment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Experiment'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /experiments/{experimentId}:
+    parameters:
+    - $ref: '#/components/parameters/ExperimentId'
+    get:
+      tags:
+      - experiments
+      operationId: experimentsGet
+      summary: Get experiment detail
+      responses:
+        '200':
+          description: Experiment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Experiment'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /experiments/{experimentId}/compare:
+    parameters:
+    - $ref: '#/components/parameters/ExperimentId'
+    post:
+      tags:
+      - experiments
+      operationId: experimentsCompare
+      summary: Compare runs within an experiment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentCompareRequest'
+      responses:
+        '200':
+          description: Comparison report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentCompareReport'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /runs:
+    get:
+      tags:
+      - runs
+      operationId: runsList
+      summary: List runs
+      parameters:
+      - in: query
+        name: experimentId
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          $ref: '#/components/schemas/RunStatus'
+      responses:
+        '200':
+          description: Run list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - runs
+      operationId: runsCreate
+      summary: Submit a new run (long-running)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunCreateRequest'
+      responses:
+        '202':
+          description: Run accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHandle'
+        '400':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /runs/{runId}:
+    parameters:
+    - $ref: '#/components/parameters/RunId'
+    get:
+      tags:
+      - runs
+      operationId: runsGet
+      summary: Get run detail
+      responses:
+        '200':
+          description: Run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /runs/{runId}/cancel:
+    parameters:
+    - $ref: '#/components/parameters/RunId'
+    post:
+      tags:
+      - runs
+      operationId: runsCancel
+      summary: Cancel a running run
+      responses:
+        '202':
+          description: Cancellation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHandle'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '409':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /runs/{runId}/artifacts:
+    parameters:
+    - $ref: '#/components/parameters/RunId'
+    get:
+      tags:
+      - runs
+      operationId: runsListArtifacts
+      summary: List artifacts produced by a run
+      responses:
+        '200':
+          description: Artifact list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /models:
+    get:
+      tags:
+      - models
+      operationId: modelsList
+      summary: List registered models
+      responses:
+        '200':
+          description: Model list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - models
+      operationId: modelsRegister
+      summary: Register a model artifact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRegisterRequest'
+      responses:
+        '201':
+          description: Model registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /models/{modelId}:
+    parameters:
+    - $ref: '#/components/parameters/ModelId'
+    get:
+      tags:
+      - models
+      operationId: modelsGet
+      summary: Get model detail
+      responses:
+        '200':
+          description: Model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /models/{modelId}/promote:
+    parameters:
+    - $ref: '#/components/parameters/ModelId'
+    post:
+      tags:
+      - models
+      operationId: modelsPromote
+      summary: Promote a model version to a stage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelPromoteRequest'
+      responses:
+        '200':
+          description: Model promoted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '409':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /models/{modelId}/retire:
+    parameters:
+    - $ref: '#/components/parameters/ModelId'
+    post:
+      tags:
+      - models
+      operationId: modelsRetire
+      summary: Retire a model version
+      responses:
+        '202':
+          description: Retirement task accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHandle'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /predictions:
+    post:
+      tags:
+      - predictions
+      operationId: predictionsCreate
+      summary: Generate predictions for a single inference request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictionRequest'
+      responses:
+        '200':
+          description: Predictions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionResponse'
+        '400':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '503':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /predictions/batch:
+    post:
+      tags:
+      - predictions
+      operationId: predictionsCreateBatch
+      summary: Submit a batch prediction job (long-running)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictionBatchRequest'
+      responses:
+        '202':
+          description: Batch job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHandle'
+        '400':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /backtests:
+    get:
+      tags:
+      - backtests
+      operationId: backtestsList
+      summary: List backtests
+      responses:
+        '200':
+          description: Backtest list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BacktestPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - backtests
+      operationId: backtestsCreate
+      summary: Create a backtest (long-running)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BacktestCreateRequest'
+      responses:
+        '202':
+          description: Backtest accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHandle'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /backtests/{backtestId}:
+    parameters:
+    - $ref: '#/components/parameters/BacktestId'
+    get:
+      tags:
+      - backtests
+      operationId: backtestsGet
+      summary: Get backtest detail
+      responses:
+        '200':
+          description: Backtest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Backtest'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /backtests/{backtestId}/report:
+    parameters:
+    - $ref: '#/components/parameters/BacktestId'
+    get:
+      tags:
+      - backtests
+      operationId: backtestsGetReport
+      summary: Get backtest report
+      responses:
+        '200':
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BacktestReport'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /paper-trading/sessions:
+    get:
+      tags:
+      - paper-trading
+      operationId: paperTradingListSessions
+      summary: List paper trading sessions
+      responses:
+        '200':
+          description: Session list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperTradingSessionPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - paper-trading
+      operationId: paperTradingCreateSession
+      summary: Create a paper trading session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperTradingSessionCreateRequest'
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperTradingSession'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /paper-trading/sessions/{sessionId}:
+    parameters:
+    - $ref: '#/components/parameters/PaperTradingSessionId'
+    get:
+      tags:
+      - paper-trading
+      operationId: paperTradingGetSession
+      summary: Get session detail
+      responses:
+        '200':
+          description: Session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperTradingSession'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /paper-trading/sessions/{sessionId}/orders:
+    parameters:
+    - $ref: '#/components/parameters/PaperTradingSessionId'
+    get:
+      tags:
+      - paper-trading
+      operationId: paperTradingListOrders
+      summary: List orders for a session
+      responses:
+        '200':
+          description: Order list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperTradingOrderPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+    post:
+      tags:
+      - paper-trading
+      operationId: paperTradingPlaceOrder
+      summary: Place a paper order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperTradingOrderRequest'
+      responses:
+        '201':
+          description: Order accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperTradingOrder'
+        '400':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /audit/events:
+    get:
+      tags:
+      - audit
+      operationId: auditListEvents
+      summary: Query audit events
+      parameters:
+      - in: query
+        name: actor
+        schema:
+          type: string
+      - in: query
+        name: action
+        schema:
+          type: string
+      - in: query
+        name: since
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: until
+        schema:
+          type: string
+          format: date-time
+      responses:
+        '200':
+          description: Audit event list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventPage'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /audit/lineage/{entityType}/{entityId}:
+    parameters:
+    - in: path
+      name: entityType
+      required: true
+      schema:
+        type: string
+    - in: path
+      name: entityId
+      required: true
+      schema:
+        type: string
+    get:
+      tags:
+      - audit
+      operationId: auditGetLineage
+      summary: Get lineage for an entity
+      responses:
+        '200':
+          description: Lineage graph
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineageGraph'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /system/health:
+    get:
+      tags:
+      - system
+      operationId: systemHealth
+      summary: Liveness and readiness probe
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReport'
+        '503':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /system/version:
+    get:
+      tags:
+      - system
+      operationId: systemVersion
+      summary: Service version information
+      responses:
+        '200':
+          description: Version info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionInfo'
+        '500':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /system/tasks/{taskId}:
+    parameters:
+    - $ref: '#/components/parameters/TaskId'
+    get:
+      tags:
+      - system
+      operationId: systemGetTask
+      summary: Get task state by id
+      responses:
+        '200':
+          description: Task state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskState'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /system/tasks/{taskId}/cancel:
+    parameters:
+    - $ref: '#/components/parameters/TaskId'
+    post:
+      tags:
+      - system
+      operationId: systemCancelTask
+      summary: Cancel a task by id
+      responses:
+        '202':
+          description: Cancellation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskState'
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+        '409':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+  /system/tasks/{taskId}/events:
+    parameters:
+    - $ref: '#/components/parameters/TaskId'
+    get:
+      tags:
+      - system
+      operationId: systemStreamTaskEvents
+      summary: Stream task events via Server-Sent Events
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                $ref: ../events/task-events.schema.json
+        '404':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
+components:
+  parameters:
+    ProjectId:
+      in: path
+      name: projectId
+      required: true
+      schema:
+        type: string
+    DataSourceId:
+      in: path
+      name: dataSourceId
+      required: true
+      schema:
+        type: string
+    DatasetId:
+      in: path
+      name: datasetId
+      required: true
+      schema:
+        type: string
+    ExperimentId:
+      in: path
+      name: experimentId
+      required: true
+      schema:
+        type: string
+    RunId:
+      in: path
+      name: runId
+      required: true
+      schema:
+        type: string
+    ModelId:
+      in: path
+      name: modelId
+      required: true
+      schema:
+        type: string
+    BacktestId:
+      in: path
+      name: backtestId
+      required: true
+      schema:
+        type: string
+    PaperTradingSessionId:
+      in: path
+      name: sessionId
+      required: true
+      schema:
+        type: string
+    TaskId:
+      in: path
+      name: taskId
+      required: true
+      schema:
+        type: string
+    CursorPagination:
+      in: query
+      name: cursor
+      schema:
+        type: string
+      required: false
+  responses:
+    SeatFlowErrorResponse:
+      description: Error envelope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SeatFlowError'
+  schemas:
+    SeatFlowError:
+      type: object
+      required:
+      - code
+      - message
+      - traceId
+      properties:
+        code:
+          type: string
+          description: Stable, machine-readable error code
+          example: VALIDATION_FAILED
+        message:
+          type: string
+          description: Human-readable error description
+        details:
+          type: object
+          additionalProperties: true
+        traceId:
+          type: string
+          description: Distributed trace id for correlation
+        timestamp:
+          type: string
+          format: date-time
+        retryable:
+          type: boolean
+          default: false
+        remediation:
+          type: string
+          description: Suggested next steps
+    TaskHandle:
+      type: object
+      required:
+      - taskId
+      - status
+      properties:
+        taskId:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        acceptedAt:
+          type: string
+          format: date-time
+        pollUrl:
+          type: string
+          format: uri
+        streamUrl:
+          type: string
+          format: uri
+    TaskState:
+      type: object
+      required:
+      - taskId
+      - status
+      - updatedAt
+      properties:
+        taskId:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        updatedAt:
+          type: string
+          format: date-time
+        result:
+          type: object
+          additionalProperties: true
+        error:
+          $ref: '#/components/schemas/SeatFlowError'
+    TaskStatus:
+      type: string
+      description: "Lifecycle states. Allowed transitions:\n  REQUESTED -> QUEUED -> RUNNING -> COMPLETED\n  REQUESTED | QUEUED | RUNNING -> CANCELLED\n  RUNNING -> FAILED\n  REQUESTED | QUEUED | RUNNING\
+        \ -> BLOCKED\nTerminal states (COMPLETED, CANCELLED, FAILED) must not transition further.\n"
+      enum:
+      - REQUESTED
+      - QUEUED
+      - RUNNING
+      - COMPLETED
+      - CANCELLED
+      - FAILED
+      - BLOCKED
+    Session:
+      type: object
+      required:
+      - token
+      - expiresAt
+      properties:
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      required:
+      - id
+      - email
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+    LoginRequest:
+      type: object
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    Project:
+      type: object
+      required:
+      - id
+      - name
+      - createdAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProjectPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        nextCursor:
+          type: string
+    ProjectCreateRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    ProjectUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    DataSource:
+      type: object
+      required:
+      - id
+      - name
+      - type
+      - createdAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    DataSourcePage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataSource'
+    DataSourceCreateRequest:
+      type: object
+      required:
+      - name
+      - type
+      - config
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        config:
+          type: object
+          additionalProperties: true
+    DataSourceTestResult:
+      type: object
+      required:
+      - ok
+      - latencyMs
+      properties:
+        ok:
+          type: boolean
+        latencyMs:
+          type: number
+        message:
+          type: string
+    Dataset:
+      type: object
+      required:
+      - id
+      - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+    DatasetPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dataset'
+    DatasetCreateRequest:
+      type: object
+      required:
+      - name
+      - sourceId
+      properties:
+        name:
+          type: string
+        sourceId:
+          type: string
+    DatasetBuildRequest:
+      type: object
+      required:
+      - version
+      properties:
+        version:
+          type: string
+    QualityGate:
+      type: object
+      required:
+      - id
+      - name
+      - rules
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        rules:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    QualityGatePage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/QualityGate'
+    QualityGateCreateRequest:
+      type: object
+      required:
+      - name
+      - rules
+      properties:
+        name:
+          type: string
+        rules:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Experiment:
+      type: object
+      required:
+      - id
+      - name
+      - createdAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ExperimentPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Experiment'
+    ExperimentCreateRequest:
+      type: object
+      required:
+      - name
+      - projectId
+      properties:
+        name:
+          type: string
+        projectId:
+          type: string
+    ExperimentCompareRequest:
+      type: object
+      required:
+      - runIds
+      properties:
+        runIds:
+          type: array
+          items:
+            type: string
+    ExperimentCompareReport:
+      type: object
+      properties:
+        metrics:
+          type: object
+          additionalProperties: true
+    RunStatus:
+      type: string
+      enum:
+      - PENDING
+      - RUNNING
+      - SUCCEEDED
+      - FAILED
+      - CANCELLED
+    Run:
+      type: object
+      required:
+      - id
+      - status
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/RunStatus'
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+    RunPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Run'
+    RunCreateRequest:
+      type: object
+      required:
+      - experimentId
+      - config
+      properties:
+        experimentId:
+          type: string
+        config:
+          type: object
+          additionalProperties: true
+    ArtifactPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Model:
+      type: object
+      required:
+      - id
+      - name
+      - version
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        stage:
+          type: string
+    ModelPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+    ModelRegisterRequest:
+      type: object
+      required:
+      - name
+      - version
+      - artifactUri
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+        artifactUri:
+          type: string
+          format: uri
+    ModelPromoteRequest:
+      type: object
+      required:
+      - stage
+      properties:
+        stage:
+          type: string
+          enum:
+          - STAGING
+          - PRODUCTION
+          - ARCHIVED
+    PredictionRequest:
+      type: object
+      required:
+      - modelId
+      - inputs
+      properties:
+        modelId:
+          type: string
+        inputs:
+          type: object
+          additionalProperties: true
+    PredictionResponse:
+      type: object
+      properties:
+        outputs:
+          type: object
+          additionalProperties: true
+        modelVersion:
+          type: string
+    PredictionBatchRequest:
+      type: object
+      required:
+      - modelId
+      - datasetId
+      properties:
+        modelId:
+          type: string
+        datasetId:
+          type: string
+    Backtest:
+      type: object
+      required:
+      - id
+      - modelId
+      - status
+      properties:
+        id:
+          type: string
+        modelId:
+          type: string
+        status:
+          type: string
+    BacktestPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Backtest'
+    BacktestCreateRequest:
+      type: object
+      required:
+      - modelId
+      - datasetId
+      - range
+      properties:
+        modelId:
+          type: string
+        datasetId:
+          type: string
+        range:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date-time
+            to:
+              type: string
+              format: date-time
+    BacktestReport:
+      type: object
+      properties:
+        metrics:
+          type: object
+          additionalProperties: true
+        equityCurve:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    PaperTradingSession:
+      type: object
+      required:
+      - id
+      - modelId
+      - createdAt
+      properties:
+        id:
+          type: string
+        modelId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    PaperTradingSessionPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaperTradingSession'
+    PaperTradingSessionCreateRequest:
+      type: object
+      required:
+      - modelId
+      properties:
+        modelId:
+          type: string
+    PaperTradingOrder:
+      type: object
+      required:
+      - id
+      - sessionId
+      - side
+      - symbol
+      - quantity
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        side:
+          type: string
+          enum:
+          - BUY
+          - SELL
+        symbol:
+          type: string
+        quantity:
+          type: number
+    PaperTradingOrderPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaperTradingOrder'
+    PaperTradingOrderRequest:
+      type: object
+      required:
+      - side
+      - symbol
+      - quantity
+      properties:
+        side:
+          type: string
+          enum:
+          - BUY
+          - SELL
+        symbol:
+          type: string
+        quantity:
+          type: number
+    AuditEvent:
+      type: object
+      required:
+      - id
+      - actor
+      - action
+      - timestamp
+      properties:
+        id:
+          type: string
+        actor:
+          type: string
+        action:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        entity:
+          type: object
+          additionalProperties: true
+    AuditEventPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+    LineageGraph:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        edges:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    HealthReport:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: string
+          enum:
+          - UP
+          - DOWN
+          - DEGRADED
+        components:
+          type: object
+          additionalProperties: true
+    VersionInfo:
+      type: object
+      required:
+      - version
+      - build
+      - commit
+      properties:
+        version:
+          type: string
+        build:
+          type: string
+        commit:
+          type: string

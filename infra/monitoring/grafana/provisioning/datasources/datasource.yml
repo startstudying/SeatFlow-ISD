@@ -1,0 +1,17 @@
+# SeatFlow V3 Grafana datasource provisioning.
+#
+# Automatically configures Prometheus as the default datasource so that
+# dashboards work out of the box on first startup.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST

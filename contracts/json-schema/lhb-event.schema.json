@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/lhb-event.schema.json",
+  "title": "LHB Event",
+  "description": "A Long-Hu-Ban (Dragon-Tiger List) event for a stock on a trading day.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique identifier for the LHB event."
+    },
+    "stock_id": {
+      "type": "string",
+      "description": "Identifier of the stock involved in the event."
+    },
+    "trade_date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO-8601 date of the trade."
+    },
+    "available_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the event became available (business time)."
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Reason codes describing why the stock appeared on the LHB."
+    },
+    "total_buy": {
+      "type": "number",
+      "description": "Total buy amount across all participating seats."
+    },
+    "total_sell": {
+      "type": "number",
+      "description": "Total sell amount across all participating seats."
+    },
+    "net_amount": {
+      "type": "number",
+      "description": "Net amount (total_buy - total_sell)."
+    },
+    "turnover_rate": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Turnover rate for the stock on the event day."
+    },
+    "event_confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score for the event, between 0 and 1."
+    },
+    "source_lineage": {
+      "type": "string",
+      "description": "Provenance lineage for the event data."
+    }
+  },
+  "required": [
+    "event_id",
+    "stock_id",
+    "trade_date",
+    "available_time",
+    "reason_codes",
+    "total_buy",
+    "total_sell",
+    "net_amount",
+    "turnover_rate",
+    "event_confidence",
+    "source_lineage"
+  ]
+}

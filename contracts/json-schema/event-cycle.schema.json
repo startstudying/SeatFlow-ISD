@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/event-cycle.schema.json",
+  "title": "Event Cycle",
+  "description": "A cycle of consecutive LHB events for a single stock.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "cycle_id": {
+      "type": "string",
+      "description": "Unique identifier for the event cycle."
+    },
+    "stock_id": {
+      "type": "string",
+      "description": "Identifier of the stock this cycle belongs to."
+    },
+    "cycle_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the cycle started."
+    },
+    "last_event_date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO-8601 date of the most recent event in the cycle."
+    },
+    "cycle_end": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the cycle ended, or null if still active."
+    },
+    "event_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of LHB events in this cycle."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "EXPIRED"],
+      "description": "Current status of the cycle."
+    }
+  },
+  "required": [
+    "cycle_id",
+    "stock_id",
+    "cycle_start",
+    "last_event_date",
+    "cycle_end",
+    "event_count",
+    "status"
+  ]
+}

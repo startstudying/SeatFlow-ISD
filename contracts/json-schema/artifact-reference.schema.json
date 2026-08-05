@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/artifact-reference.schema.json",
+  "title": "Artifact Reference",
+  "description": "A reference to a versioned artifact (dataset, model, report) stored externally.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "artifactUri": {
+      "type": "string",
+      "format": "uri",
+      "description": "URI locating the artifact."
+    },
+    "manifestHash": {
+      "type": "string",
+      "description": "Content hash of the artifact manifest for integrity verification."
+    },
+    "schemaVersion": {
+      "type": "string",
+      "description": "Version of the schema the artifact conforms to."
+    },
+    "sizeBytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Size of the artifact in bytes."
+    },
+    "mediaType": {
+      "type": "string",
+      "description": "IANA media type of the artifact (e.g. application/parquet, application/json)."
+    }
+  },
+  "required": [
+    "artifactUri",
+    "manifestHash",
+    "schemaVersion",
+    "sizeBytes",
+    "mediaType"
+  ]
+}

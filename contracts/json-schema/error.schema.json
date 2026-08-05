@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/error.schema.json",
+  "title": "Error",
+  "description": "A structured error response returned by SeatFlow services.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Stable machine-readable error code."
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable error message."
+    },
+    "traceId": {
+      "type": "string",
+      "description": "Distributed trace identifier for correlating the error across services."
+    },
+    "taskId": {
+      "type": ["string", "null"],
+      "description": "Identifier of the task associated with the error, if any."
+    },
+    "details": {
+      "type": ["object", "null"],
+      "description": "Additional structured details about the error."
+    },
+    "retryable": {
+      "type": "boolean",
+      "description": "Whether the failed operation may be retried."
+    }
+  },
+  "required": [
+    "code",
+    "message",
+    "traceId",
+    "taskId",
+    "details",
+    "retryable"
+  ]
+}

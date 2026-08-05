@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seatflow.local/schemas/v3/seat.schema.json",
+  "title": "Seat",
+  "description": "A trading seat (broker branch, institution, northbound channel, etc.) on the exchange.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "seat_id": {
+      "type": "string",
+      "description": "Unique identifier for the seat."
+    },
+    "canonical_name": {
+      "type": "string",
+      "description": "Human-readable canonical name of the seat."
+    },
+    "seat_type": {
+      "type": "string",
+      "enum": [
+        "BROKER_BRANCH",
+        "INSTITUTION",
+        "NORTHBOUND_SH",
+        "NORTHBOUND_SZ",
+        "SPECIAL_SEAT",
+        "UNKNOWN"
+      ],
+      "description": "Classification of the seat."
+    },
+    "identity_confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score for the seat identity assignment, between 0 and 1."
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this seat record becomes valid."
+    },
+    "valid_to": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this seat record expires, or null if still valid."
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Alternative names or codes for this seat."
+    },
+    "source_evidence": {
+      "type": ["string", "null"],
+      "description": "Provenance evidence for the seat identity."
+    }
+  },
+  "required": [
+    "seat_id",
+    "canonical_name",
+    "seat_type",
+    "identity_confidence",
+    "valid_from",
+    "aliases",
+    "source_evidence"
+  ]
+}
