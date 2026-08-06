@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
 from dataclasses import FrozenInstanceError
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import torch
@@ -126,6 +126,17 @@ class TestBaseFeatureContract:
         with pytest.raises(FrozenInstanceError):
             batch.stock_ids = ("changed",)  # type: ignore[misc]
 
+    def test_base_feature_batch_public_constructor_is_not_an_issuance_path(self) -> None:
+        contract = BaseFeatureContract(_base_specs())
+        with pytest.raises(TypeError, match="validate_batch"):
+            BaseFeatureBatch(
+                features=torch.ones(1, 3),
+                stock_ids=("stock-a",),
+                feature_names=contract.feature_names,
+                schema_fingerprint=contract.schema_fingerprint,
+                _contract_fingerprint=contract.schema_fingerprint,
+            )
+
     @pytest.mark.parametrize(
         ("scope", "source", "current_event", "message"),
         [
@@ -182,7 +193,11 @@ class TestBaseFeatureContract:
 
         contract = BaseFeatureContract(_base_specs())
         with pytest.raises(ValueError, match="unknown"):
-            contract.validate_tensor(torch.ones(1, 3), ["stock-a"], feature_names=["missing"])
+            contract.validate_tensor(
+                torch.ones(1, 3),
+                ["stock-a"],
+                feature_names=("missing", "market_excess_return_1d", "market_excess_return_5d"),
+            )
 
     def test_rejects_nonfinite_values_and_dimension_drift(self) -> None:
         contract = BaseFeatureContract(_base_specs())
@@ -192,6 +207,23 @@ class TestBaseFeatureContract:
             contract.validate_tensor(torch.ones(1, 2), ["stock-a"])
         with pytest.raises(ValueError, match="stock metadata"):
             contract.validate_tensor(torch.ones(2, 3), ["stock-a"])
+
+    def test_rejects_empty_stock_ids_and_duplicate_or_wrong_order_names(self) -> None:
+        contract = BaseFeatureContract(_base_specs())
+        with pytest.raises(ValueError, match="stock metadata"):
+            contract.validate_batch(torch.ones(1, 3), [""], feature_names=contract.feature_names)
+        with pytest.raises(ValueError, match="Duplicate"):
+            contract.validate_batch(
+                torch.ones(1, 3),
+                ["stock-a"],
+                feature_names=("stock_volatility_5d", "stock_volatility_5d", "market_excess_return_5d"),
+            )
+        with pytest.raises(ValueError, match="order"):
+            contract.validate_batch(
+                torch.ones(1, 3),
+                ["stock-a"],
+                feature_names=tuple(reversed(contract.feature_names)),
+            )
 
     def test_schema_fingerprint_is_deterministic_and_order_sensitive(self) -> None:
         contract_a = BaseFeatureContract(_base_specs())
@@ -207,6 +239,13 @@ class TestBaseFeatureContract:
         renamed = contract.validate_batch(features, ["renamed-stock"], feature_names=contract.feature_names)
         assert torch.equal(original.features, renamed.features)
         assert original.stock_ids != renamed.stock_ids
+
+    def test_validate_batch_clones_input_tensor(self) -> None:
+        contract = BaseFeatureContract(_base_specs())
+        x = torch.tensor([[0.2, 0.01, -0.03]])
+        batch = contract.validate_batch(x, ["stock-a"], feature_names=contract.feature_names)
+        x[0, 0] = 99.0
+        assert batch.features[0, 0].item() == pytest.approx(0.2)
 
 
 class TestBasePredictionDTO:
@@ -325,14 +364,39 @@ class TestFormalPredictionPath:
 
     def test_validated_batch_rejects_schema_fingerprint_tamper(self) -> None:
         contract = BaseFeatureContract(_base_specs())
+        model = BaseMarketModel(contract=contract, hidden_dim=8, dropout=0.0)
+        batch = contract.validate_batch(
+            torch.ones(1, 3),
+            ["stock-a"],
+            feature_names=contract.feature_names,
+        )
+        object.__setattr__(batch, "schema_fingerprint", "sha256:" + ("b" * 64))
         with pytest.raises(ValueError, match="schema fingerprint"):
-            BaseFeatureBatch(
-                features=torch.ones(1, 3),
-                stock_ids=("stock-a",),
-                feature_names=contract.feature_names,
-                schema_fingerprint="sha256:" + ("b" * 64),
-                _contract_fingerprint=contract.schema_fingerprint,
-            )
+            model(batch)
+
+    def test_forward_revalidates_tampered_feature_names_even_with_correct_fingerprint(self) -> None:
+        contract = BaseFeatureContract(_base_specs())
+        model = BaseMarketModel(contract=contract, hidden_dim=8, dropout=0.0)
+        batch = contract.validate_batch(
+            torch.ones(1, 3),
+            ["stock-a"],
+            feature_names=contract.feature_names,
+        )
+        object.__setattr__(batch, "feature_names", tuple(reversed(contract.feature_names)))
+        with pytest.raises(ValueError, match="order"):
+            model(batch)
+
+    def test_forward_rejects_batch_feature_tensor_mutation(self) -> None:
+        contract = BaseFeatureContract(_base_specs())
+        model = BaseMarketModel(contract=contract, hidden_dim=8, dropout=0.0)
+        batch = contract.validate_batch(
+            torch.ones(1, 3),
+            ["stock-a"],
+            feature_names=contract.feature_names,
+        )
+        batch.features[0, 0] = 42.0
+        with pytest.raises(ValueError, match="content fingerprint"):
+            model(batch)
 
 
 class TestBaseLoss:

@@ -29,6 +29,7 @@ BASE_PROVENANCE = "BASE_ONLY"
 _BASE_ALLOWED_SCOPES = frozenset({FeatureScope.STOCK_PIT, FeatureScope.MARKET_PIT})
 _BASE_ALLOWED_SOURCES = frozenset({SourceKind.STOCK_PIT, SourceKind.MARKET_PIT})
 _SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+_ISSUANCE_SENTINEL = object()
 
 
 def _validate_daily_path_tensor(daily_path: torch.Tensor) -> None:
@@ -105,7 +106,22 @@ def _validate_aware_datetime(value: datetime, field_name: str) -> None:
         raise ValueError(f"BasePrediction {field_name} must be timezone-aware")
 
 
-@dataclass(frozen=True)
+def _tensor_content_fingerprint(tensor: torch.Tensor) -> str:
+    detached = tensor.detach().contiguous().cpu()
+    payload = detached.numpy().tobytes()
+    header = json.dumps(
+        {
+            "dtype": str(detached.dtype),
+            "shape": list(detached.shape),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    digest = hashlib.sha256(header + b"\0" + payload).hexdigest()
+    return "sha256:" + digest
+
+
+@dataclass(frozen=True, init=False)
 class BaseFeatureBatch:
     """Frozen Base input batch already validated against a feature contract."""
 
@@ -113,13 +129,45 @@ class BaseFeatureBatch:
     stock_ids: tuple[str, ...]
     feature_names: tuple[str, ...]
     schema_fingerprint: str
-    _contract_fingerprint: str
+    feature_content_fingerprint: str
+    _issued_by_contract: object
 
-    def __post_init__(self) -> None:
-        if self.schema_fingerprint != self._contract_fingerprint:
-            raise ValueError("BaseFeatureBatch schema fingerprint does not match contract")
+    def __init__(self, *_args: object, **_kwargs: object) -> None:
+        raise TypeError("BaseFeatureBatch must be issued by BaseFeatureContract.validate_batch")
+
+    @classmethod
+    def _issue(
+        cls,
+        *,
+        issuance_sentinel: object,
+        features: torch.Tensor,
+        stock_ids: tuple[str, ...],
+        feature_names: tuple[str, ...],
+        schema_fingerprint: str,
+    ) -> BaseFeatureBatch:
+        if issuance_sentinel is not _ISSUANCE_SENTINEL:
+            raise TypeError("BaseFeatureBatch issuance is private")
+        batch = object.__new__(cls)
+        object.__setattr__(batch, "features", features)
+        object.__setattr__(batch, "stock_ids", stock_ids)
+        object.__setattr__(batch, "feature_names", feature_names)
+        object.__setattr__(batch, "schema_fingerprint", schema_fingerprint)
+        object.__setattr__(
+            batch,
+            "feature_content_fingerprint",
+            _tensor_content_fingerprint(features),
+        )
+        object.__setattr__(batch, "_issued_by_contract", issuance_sentinel)
+        batch._validate()
+        return batch
+
+    def _validate(self) -> None:
+        if self._issued_by_contract is not _ISSUANCE_SENTINEL:
+            raise ValueError("BaseFeatureBatch was not issued by BaseFeatureContract")
         if not _SHA256_RE.fullmatch(self.schema_fingerprint):
             raise ValueError("BaseFeatureBatch schema fingerprint must be sha256:<64 hex>")
+        if not _SHA256_RE.fullmatch(self.feature_content_fingerprint):
+            raise ValueError("BaseFeatureBatch content fingerprint must be sha256:<64 hex>")
         if self.features.ndim != 2:
             raise ValueError("BaseFeatureBatch features must have shape [batch, feature_dim]")
         if self.features.shape[0] != len(self.stock_ids):
@@ -168,14 +216,23 @@ class BaseFeatureContract:
             )
         if features.shape[0] != len(stock_ids):
             raise ValueError("Base stock metadata length must match feature batch size")
+        if any(not isinstance(stock_id, str) or not stock_id for stock_id in stock_ids):
+            raise ValueError("Base stock metadata must contain non-empty stock IDs")
         if not torch.isfinite(features).all():
             raise ValueError("Base feature tensor must contain only finite values")
 
-        if feature_names is not None and tuple(feature_names) != self.feature_names:
-            unknown = [name for name in feature_names if name not in self.feature_names]
-            if unknown:
-                raise ValueError(f"Base feature tensor contains unknown features: {unknown}")
-            raise ValueError("Base feature tensor order or names do not match schema")
+        if feature_names is not None:
+            names = tuple(feature_names)
+            duplicates = sorted({name for name in names if names.count(name) > 1})
+            if duplicates:
+                raise ValueError(f"Duplicate Base feature names: {duplicates}")
+            if len(names) != self.input_dim:
+                raise ValueError("Base feature_names length must match feature dimension")
+            if names != self.feature_names:
+                unknown = [name for name in names if name not in self.feature_names]
+                if unknown:
+                    raise ValueError(f"Base feature tensor contains unknown features: {unknown}")
+                raise ValueError("Base feature tensor order or names do not match schema")
 
         return features
 
@@ -191,13 +248,28 @@ class BaseFeatureContract:
             stock_ids,
             feature_names=feature_names,
         )
-        return BaseFeatureBatch(
-            features=validated,
+        owned_features = validated.detach().clone()
+        return BaseFeatureBatch._issue(
+            issuance_sentinel=_ISSUANCE_SENTINEL,
+            features=owned_features,
             stock_ids=tuple(stock_ids),
             feature_names=tuple(feature_names),
             schema_fingerprint=self.schema_fingerprint,
-            _contract_fingerprint=self.schema_fingerprint,
         )
+
+    def revalidate_batch(self, batch: BaseFeatureBatch) -> None:
+        if batch._issued_by_contract is not _ISSUANCE_SENTINEL:
+            raise ValueError("BaseFeatureBatch was not issued by BaseFeatureContract")
+        if batch.schema_fingerprint != self.schema_fingerprint:
+            raise ValueError("BaseFeatureBatch schema fingerprint does not match contract")
+        self.validate_tensor(
+            batch.features,
+            batch.stock_ids,
+            feature_names=batch.feature_names,
+        )
+        current_fingerprint = _tensor_content_fingerprint(batch.features)
+        if current_fingerprint != batch.feature_content_fingerprint:
+            raise ValueError("BaseFeatureBatch content fingerprint changed after validation")
 
     @staticmethod
     def _validate_spec(spec: FeatureSpec) -> None:
@@ -297,8 +369,7 @@ class BaseMarketModel(nn.Module):
             raise TypeError("Formal Base forward requires a BaseFeatureBatch")
         if self.contract is None:
             raise ValueError("Non-formal legacy Base model cannot use formal forward")
-        if batch.schema_fingerprint != self.contract.schema_fingerprint:
-            raise ValueError("BaseFeatureBatch schema fingerprint does not match model contract")
+        self.contract.revalidate_batch(batch)
         return self._run_network(batch.features)
 
     def _forward_nonformal_legacy(self, x: torch.Tensor) -> torch.Tensor:
