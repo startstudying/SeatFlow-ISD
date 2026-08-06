@@ -31,7 +31,7 @@
     "eslint": "^8",
     "eslint-config-next": "^15.0",
     "vitest": "^1.2",
-    "@testing-library/react": "^14",
+    "@testing-library/react": "^16.1.0",
     "@testing-library/jest-dom": "^6",
     "jsdom": "^23",
     "@playwright/test": "^1.41"
