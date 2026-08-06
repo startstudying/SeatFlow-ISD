@@ -202,6 +202,34 @@ class TestShuffledGraph:
         assert not np.array_equal(edge_index[1], shuf[1])
 
     @pytest.mark.parametrize(
+        ("edge_index", "seed"),
+        [
+            (np.array([[0, 1, 2, 3], [1, 2, 3, 0]]), 1),
+            (np.array([[0, 1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 0]]), 228),
+        ],
+    )
+    def test_degree_preserving_graph_shuffle_never_accepts_identity_when_permutable(
+        self,
+        edge_index: np.ndarray[Any, Any],
+        seed: int,
+    ) -> None:
+        """Catches RNG identity draws that leave a permutable graph unchanged."""
+        shuf1 = shuffle_graph_edges(edge_index, seed=seed, preserve_degree=True)
+        shuf2 = shuffle_graph_edges(edge_index, seed=seed, preserve_degree=True)
+
+        np.testing.assert_array_equal(shuf1, shuf2)
+        assert verify_degree_preserved(edge_index, shuf1)
+        assert sorted(map(tuple, shuf1.T.tolist())) != sorted(map(tuple, edge_index.T.tolist()))
+        assert sorted(shuf1[1].tolist()) == sorted(edge_index[1].tolist())
+        assert not np.any(shuf1[0] == shuf1[1])
+        assert not np.array_equal(edge_index[1], shuf1[1])
+
+    def test_degree_preserving_graph_shuffle_rejects_nonpermutable_without_identity(self) -> None:
+        """Catches labeling an unchanged reciprocal pair as a graph shuffle."""
+        with pytest.raises(ValueError, match="semantic"):
+            shuffle_graph_edges(np.array([[0, 1], [1, 0]]), seed=42, preserve_degree=True)
+
+    @pytest.mark.parametrize(
         ("edge_index", "match"),
         [
             (np.array([0, 1, 2]), "shape"),
