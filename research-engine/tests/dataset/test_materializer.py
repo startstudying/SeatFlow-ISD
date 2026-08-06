@@ -139,7 +139,9 @@ def test_valid_materialization_seals_from_computed_evidence() -> None:
     materialized = _materialize()
     report = seal_dataset(materialized, _manifest(materialized))
 
-    assert report.passed is True
+    assert report.integrity_passed is True
+    assert report.formal_passed is False
+    assert report.seal_kind == "ENGINEERING"
     assert report.violation_count == 0
     assert {sample.pool_type for sample in materialized.evaluation_samples} == {
         PoolType.DIRECT
@@ -177,7 +179,7 @@ def test_replaced_findings_cannot_spoof_computed_gate_evidence() -> None:
 
     report = seal_dataset(forged, _manifest(forged))
 
-    assert report.passed is False
+    assert report.integrity_passed is False
     assert report.gate_results[HardGate.PIT_AVAILABLE_TIME_VIOLATION.value] is False
 
 
@@ -197,7 +199,7 @@ def test_future_feature_available_time_fails_pit_gate() -> None:
 
     findings = _failed(materialized, HardGate.PIT_AVAILABLE_TIME_VIOLATION)
     assert findings[0].row_reference == "s-001:stock_volatility_5d"
-    assert seal_dataset(materialized, _manifest(materialized)).passed is False
+    assert seal_dataset(materialized, _manifest(materialized)).integrity_passed is False
 
 
 def test_label_not_mature_at_materialization_time_fails_gate() -> None:
@@ -212,7 +214,7 @@ def test_label_not_mature_at_materialization_time_fails_gate() -> None:
     )
 
     _failed(materialized, HardGate.IMMATURE_LABEL)
-    assert seal_dataset(materialized, _manifest(materialized)).passed is False
+    assert seal_dataset(materialized, _manifest(materialized)).integrity_passed is False
 
 
 def test_same_day_label_cannot_claim_a_complete_five_day_horizon() -> None:
@@ -264,7 +266,7 @@ def test_d0_plus_four_trading_day_label_matures_across_weekend() -> None:
         materialized_at=mature_time,
     )
 
-    assert seal_dataset(materialized, _manifest(materialized)).passed is True
+    assert seal_dataset(materialized, _manifest(materialized)).integrity_passed is True
 
 
 def test_tampered_label_horizon_end_cannot_self_certify_maturity() -> None:
@@ -284,7 +286,7 @@ def test_tampered_label_horizon_end_cannot_self_certify_maturity() -> None:
         in finding.evidence
         for finding in findings
     )
-    assert seal_dataset(materialized, _manifest(materialized)).passed is False
+    assert seal_dataset(materialized, _manifest(materialized)).integrity_passed is False
 
 
 def test_missing_label_horizon_evidence_fails_closed() -> None:
@@ -299,7 +301,7 @@ def test_missing_label_horizon_evidence_fails_closed() -> None:
     )
 
     _failed(materialized, HardGate.IMMATURE_LABEL)
-    assert seal_dataset(materialized, _manifest(materialized)).passed is False
+    assert seal_dataset(materialized, _manifest(materialized)).integrity_passed is False
 
 
 def test_duplicate_sample_primary_key_fails_gate() -> None:
@@ -420,7 +422,7 @@ def test_support_only_stock_is_excluded_from_main_evaluation_and_blocks_seal() -
 
     assert materialized.evaluation_samples == ()
     _failed(materialized, HardGate.SUPPORT_ONLY_TARGET)
-    assert seal_dataset(materialized, _manifest(materialized)).passed is False
+    assert seal_dataset(materialized, _manifest(materialized)).integrity_passed is False
 
 
 def test_direct_and_legitimate_spillover_pools_remain_evaluation_targets() -> None:
@@ -471,7 +473,7 @@ def test_manifest_fingerprint_tampering_blocks_seal() -> None:
 
     report = seal_dataset(materialized, tampered)
 
-    assert report.passed is False
+    assert report.integrity_passed is False
     assert report.gate_results[HardGate.MANIFEST_EVIDENCE_MISMATCH.value] is False
 
 

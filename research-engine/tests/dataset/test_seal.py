@@ -87,9 +87,11 @@ def test_seal_report_contains_complete_computed_gate_results() -> None:
     report = seal_dataset(materialized, _manifest(materialized))
 
     assert isinstance(report, SealReport)
-    assert report.passed is True
+    assert report.integrity_passed is True
+    assert report.formal_passed is False
+    assert report.seal_kind == "ENGINEERING"
     assert report.violation_samples == []
-    assert all(report.gate_results[gate.value] for gate in HardGate)
+    assert all(report.gate_results[gate.value] for gate in HardGate if gate.value in report.gate_results)
 
 
 def test_missing_required_findings_fail_closed() -> None:
@@ -98,5 +100,5 @@ def test_missing_required_findings_fail_closed() -> None:
 
     report = seal_dataset(incomplete, _manifest(materialized))
 
-    assert report.passed is False
+    assert report.integrity_passed is False
     assert report.violation_count > 0

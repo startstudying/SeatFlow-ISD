@@ -29,13 +29,20 @@ from seatflow.lineage.models import (
 class SealReport:
     """Result of binding and validating a materialized dataset manifest."""
 
-    passed: bool
-    formal: bool
+    integrity_passed: bool
+    formal_passed: bool
+    seal_kind: str
     gate_results: dict[str, bool]
     violation_count: int
     violation_samples: list[PredictionSample]
     findings: tuple[GateFinding, ...]
     sealed_manifest_hash: str
+
+    @property
+    def passed(self) -> bool:
+        """Backward-compatible alias that is fail-closed for formal readiness."""
+
+        return self.formal_passed
 
 
 @dataclass(frozen=True)
@@ -274,7 +281,7 @@ def _formal_evidence_mismatches(
     for sample_lineage in evidence.sample_lineages:
         try:
             traces.append(evidence.lineage_graph.trace_sample(sample_lineage))
-        except Exception as exc:
+        except (KeyError, ValueError) as exc:
             mismatches.append(("sample_lineage_trace", str(exc)))
 
     tensor_artifacts = _tensor_artifacts(evidence.lineage_graph)
@@ -288,6 +295,21 @@ def _formal_evidence_mismatches(
     row_indices = [sample.tensor_row_index for sample in evidence.sample_lineages]
     if sorted(row_indices) != list(range(len(materialized.samples))):
         mismatches.append(("tensor_rows", "Tensor rows must be unique and cover dataset rows"))
+    expected_row_by_sample_id = {
+        sample.sample_id: index for index, sample in enumerate(materialized.samples)
+    }
+    for sample_lineage in evidence.sample_lineages:
+        if (
+            sample_lineage.sample_id in expected_row_by_sample_id
+            and sample_lineage.tensor_row_index
+            != expected_row_by_sample_id[sample_lineage.sample_id]
+        ):
+            mismatches.append(
+                (
+                    "tensor_row_sample_alignment",
+                    "SampleLineage row must match dataset row",
+                )
+            )
 
     classifications = _formal_classifications(evidence.lineage_graph, evidence.sample_lineages)
     if classifications != {DataClassification.REAL_VERIFIED}:
@@ -414,8 +436,9 @@ def seal_dataset(
         ]
 
     return SealReport(
-        passed=not failed_gates,
-        formal=False,
+        integrity_passed=not failed_gates,
+        formal_passed=False,
+        seal_kind="ENGINEERING",
         gate_results=gate_results,
         violation_count=len(failed_gates),
         violation_samples=violation_samples,
@@ -456,19 +479,35 @@ def seal_formal_dataset(
         evidence=mismatches,
         passed=not mismatches,
     )
-    findings = engineering_report.findings + (formal_finding,)
+    audit_finding = GateFinding(
+        gate=HardGate.FORMAL_AUDIT_ATTESTATION_REQUIRED,
+        row_reference=None,
+        evidence=(
+            (
+                "reason",
+                "Task5C immutable full-audit attestation has not been bound",
+            ),
+        ),
+        passed=False,
+    )
+    findings = engineering_report.findings + (formal_finding, audit_finding)
     gate_results = dict(engineering_report.gate_results)
     gate_results[HardGate.MANIFEST_EVIDENCE_MISMATCH.value] = (
         engineering_report.gate_results[HardGate.MANIFEST_EVIDENCE_MISMATCH.value]
         and formal_finding.passed
     )
+    gate_results[HardGate.FORMAL_AUDIT_ATTESTATION_REQUIRED.value] = False
+    integrity_passed = (
+        engineering_report.integrity_passed and formal_finding.passed
+    )
     failed_gates = {gate for gate, passed in gate_results.items() if not passed}
     return SealReport(
-        passed=not failed_gates,
-        formal=True,
+        integrity_passed=integrity_passed,
+        formal_passed=False,
+        seal_kind="FORMAL",
         gate_results=gate_results,
         violation_count=len(failed_gates),
-        violation_samples=[] if not failed_gates else list(materialized.samples),
+        violation_samples=[] if integrity_passed else list(materialized.samples),
         findings=findings,
         sealed_manifest_hash=compute_manifest_hash(manifest),
     )

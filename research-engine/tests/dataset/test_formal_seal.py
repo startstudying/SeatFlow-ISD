@@ -1,4 +1,4 @@
-"""Formal Dataset Seal must be derived from lineage-backed evidence."""
+﻿"""Formal Dataset Seal must be derived from lineage-backed evidence."""
 
 from __future__ import annotations
 
@@ -233,14 +233,18 @@ def _formal_manifest(materialized, evidence: FormalDatasetEvidence) -> DatasetMa
     return bind_formal_dataset_evidence(_manifest(materialized), materialized, evidence)
 
 
-def test_minimal_real_verified_formal_seal_derives_manifest_from_lineage() -> None:
+def test_real_verified_lineage_bridge_remains_blocked_without_audit_attestation() -> None:
     materialized = _materialized()
     evidence = _formal_evidence(materialized=materialized)
     manifest = _formal_manifest(materialized, evidence)
 
     report = seal_formal_dataset(materialized, manifest, evidence)
 
-    assert report.passed is True
+    assert report.integrity_passed is True
+    assert report.formal_passed is False
+    assert report.seal_kind == "FORMAL"
+    assert report.passed is False
+    assert report.gate_results["FORMAL_AUDIT_ATTESTATION_REQUIRED"] is False
     assert manifest.formal is True
     assert manifest.source_manifest_hash == _sha("a")
     assert manifest.artifact_uris == ["file:///artifacts/tensor.parquet"]
@@ -252,8 +256,10 @@ def test_engineering_seal_does_not_become_formal_readiness() -> None:
     materialized = _materialized()
     report = seal_dataset(materialized, _manifest(materialized))
 
-    assert report.passed is True
-    assert report.formal is False
+    assert report.integrity_passed is True
+    assert report.formal_passed is False
+    assert report.seal_kind == "ENGINEERING"
+    assert report.passed is False
 
 
 def test_caller_source_hash_and_artifact_uri_spoofing_fails_formal_manifest() -> None:
@@ -267,7 +273,7 @@ def test_caller_source_hash_and_artifact_uri_spoofing_fails_formal_manifest() ->
         data_classification=DataClassification.REAL_VERIFIED.value,
     )
 
-    assert seal_formal_dataset(materialized, manifest, evidence).passed is False
+    assert seal_formal_dataset(materialized, manifest, evidence).integrity_passed is False
 
 
 def test_every_dataset_sample_requires_exactly_one_sample_lineage() -> None:
@@ -287,7 +293,11 @@ def test_every_dataset_sample_requires_exactly_one_sample_lineage() -> None:
     )
 
     assert (
-        seal_formal_dataset(materialized, _formal_manifest(materialized, missing), missing).passed
+        seal_formal_dataset(
+            materialized,
+            _formal_manifest(materialized, missing),
+            missing,
+        ).integrity_passed
         is False
     )
 
@@ -312,7 +322,11 @@ def test_every_dataset_sample_requires_exactly_one_sample_lineage() -> None:
         ),
     )
     assert (
-        seal_formal_dataset(materialized, _formal_manifest(materialized, duplicate), duplicate).passed
+        seal_formal_dataset(
+            materialized,
+            _formal_manifest(materialized, duplicate),
+            duplicate,
+        ).integrity_passed
         is False
     )
 
@@ -337,14 +351,75 @@ def test_tensor_rows_must_be_valid_unique_and_cover_dataset(
         ),
     )
 
-    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).passed is False
+    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).integrity_passed is False
+
+
+def test_tensor_rows_must_match_materialized_sample_order_exactly() -> None:
+    materialized = _materialized(samples=(_sample("s-001"), _sample("s-002")))
+    evidence = _formal_evidence(
+        materialized=materialized,
+        tensor_row_count=2,
+        sample_lineages=(
+            SampleLineage(
+                "s-001",
+                "tensor",
+                1,
+                ("sample:s-001", "calendar:2026-01"),
+                DataClassification.REAL_VERIFIED,
+            ),
+            SampleLineage(
+                "s-002",
+                "tensor",
+                0,
+                ("sample:s-001", "calendar:2026-01"),
+                DataClassification.REAL_VERIFIED,
+            ),
+        ),
+    )
+
+    report = seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence)
+
+    assert report.integrity_passed is False
+    assert any(
+        ("tensor_row_sample_alignment", "SampleLineage row must match dataset row")
+        in finding.evidence
+        for finding in report.findings
+    )
+
+
+def test_sample_lineage_cannot_be_reordered_across_tensor_artifacts() -> None:
+    materialized = _materialized(samples=(_sample("s-001"), _sample("s-002")))
+    evidence = _formal_evidence(
+        materialized=materialized,
+        tensor_row_count=2,
+        sample_lineages=(
+            SampleLineage(
+                "s-001",
+                "tensor",
+                0,
+                ("sample:s-001", "calendar:2026-01"),
+                DataClassification.REAL_VERIFIED,
+            ),
+            SampleLineage(
+                "s-002",
+                "tensor-extra",
+                1,
+                ("sample:s-001", "calendar:2026-01"),
+                DataClassification.REAL_VERIFIED,
+            ),
+        ),
+    )
+
+    report = seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence)
+
+    assert report.integrity_passed is False
 
 
 def test_tensor_row_count_must_match_dataset_sample_count() -> None:
     materialized = _materialized()
     evidence = _formal_evidence(materialized=materialized, tensor_row_count=2)
 
-    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).passed is False
+    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).integrity_passed is False
 
 
 @pytest.mark.parametrize(
@@ -357,7 +432,7 @@ def test_formal_seal_rejects_non_formal_classification(
     materialized = _materialized()
     evidence = _formal_evidence(materialized=materialized, classification=classification)
 
-    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).passed is False
+    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).integrity_passed is False
 
 
 def test_formal_seal_rejects_mixed_classification() -> None:
@@ -376,7 +451,7 @@ def test_formal_seal_rejects_mixed_classification() -> None:
         ),
     )
 
-    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).passed is False
+    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).integrity_passed is False
 
 
 def test_calendar_source_record_must_be_in_tensor_ancestry() -> None:
@@ -386,7 +461,7 @@ def test_calendar_source_record_must_be_in_tensor_ancestry() -> None:
         calendar_record_ids=("calendar:not-in-ancestry",),
     )
 
-    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).passed is False
+    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).integrity_passed is False
 
 
 def test_arbitrary_self_consistent_calendar_without_content_hash_fails() -> None:
@@ -399,7 +474,7 @@ def test_arbitrary_self_consistent_calendar_without_content_hash_fails() -> None
         ),
     )
 
-    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).passed is False
+    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).integrity_passed is False
 
 
 def test_calendar_and_source_manifest_tampering_changes_formal_manifest_hash() -> None:
@@ -409,8 +484,8 @@ def test_calendar_and_source_manifest_tampering_changes_formal_manifest_hash() -
     tampered_calendar = replace(manifest, calendar_content_hash="0" * 64)
     tampered_manifest_uri = replace(manifest, source_manifest_uri="file:///source/tampered.json")
 
-    assert seal_formal_dataset(materialized, tampered_calendar, evidence).passed is False
-    assert seal_formal_dataset(materialized, tampered_manifest_uri, evidence).passed is False
+    assert seal_formal_dataset(materialized, tampered_calendar, evidence).integrity_passed is False
+    assert seal_formal_dataset(materialized, tampered_manifest_uri, evidence).integrity_passed is False
 
 
 def test_pit_source_after_sample_cutoff_fails_formal_seal() -> None:
@@ -426,7 +501,7 @@ def test_pit_source_after_sample_cutoff_fails_formal_seal() -> None:
         ),
     )
 
-    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).passed is False
+    assert seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence).integrity_passed is False
 
 
 def test_formal_fingerprint_is_deterministic_and_tamper_evident() -> None:
@@ -437,4 +512,19 @@ def test_formal_fingerprint_is_deterministic_and_tamper_evident() -> None:
 
     assert first.formal_evidence_fingerprint == second.formal_evidence_fingerprint
     tampered = replace(first, formal_evidence_fingerprint="0" * 64)
-    assert seal_formal_dataset(materialized, tampered, evidence).passed is False
+    assert seal_formal_dataset(materialized, tampered, evidence).integrity_passed is False
+
+
+def test_unexpected_trace_sample_error_is_not_swallowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    materialized = _materialized()
+    evidence = _formal_evidence(materialized=materialized)
+
+    def raise_bug(_self: object, _sample_lineage: SampleLineage) -> object:
+        raise RuntimeError("programmer error")
+
+    monkeypatch.setattr(type(evidence.lineage_graph), "trace_sample", raise_bug)
+
+    with pytest.raises(RuntimeError, match="programmer error"):
+        seal_formal_dataset(materialized, _formal_manifest(materialized, evidence), evidence)
