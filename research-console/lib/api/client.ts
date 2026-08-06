@@ -12,6 +12,27 @@ export interface ErrorResponse {
   taskId?: string;
   details?: Record<string, unknown>;
   retryable: boolean;
+  remediation?: string;
+  timestamp?: string;
+}
+
+export type TaskStatus =
+  | "REQUESTED"
+  | "QUEUED"
+  | "RUNNING"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "FAILED"
+  | "BLOCKED";
+
+export interface TaskState {
+  taskId: string;
+  status: TaskStatus;
+  progress?: number;
+  updatedAt: string;
+  result?: Record<string, unknown> | null;
+  error?: ErrorResponse | null;
+  blockedBy?: string[];
 }
 
 export interface PaginatedResponse<T> {
@@ -116,6 +137,8 @@ export class APIError extends Error {
     public taskId?: string,
     public retryable: boolean = false,
     public details?: Record<string, unknown>,
+    public remediation?: string,
+    public timestamp?: string,
   ) {
     super(message);
     this.name = "APIError";
@@ -138,6 +161,8 @@ async function handleResponse<T>(response: Response): Promise<T> {
         body.taskId,
         body.retryable,
         body.details,
+        body.remediation,
+        body.timestamp,
       );
     }
     throw new APIError(
@@ -202,6 +227,9 @@ export const api = {
   listBacktests: (page = 1, pageSize = 20) =>
     get<PaginatedResponse<Backtest>>(`/backtests?page=${page}&pageSize=${pageSize}`),
   getBacktest: (id: string) => get<Backtest>(`/backtests/${id}`),
+
+  // Control-plane task state. BLOCKED/error fields are returned unchanged.
+  getTask: (id: string) => get<TaskState>(`/system/tasks/${id}`),
 };
 
 export default api;

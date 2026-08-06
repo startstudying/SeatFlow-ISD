@@ -69,7 +69,7 @@ class ExperimentControllerTest {
     }
 
     @Test
-    void compare_returns200WithReport() throws Exception {
+    void compare_withoutVerifiedResearchArtifact_returnsUnavailableEnvelope() throws Exception {
         ExperimentCreateRequest request = new ExperimentCreateRequest("Compare Exp", "proj-1", null);
         MvcResult createResult = mockMvc.perform(post("/api/v1/experiments")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -81,8 +81,12 @@ class ExperimentControllerTest {
         mockMvc.perform(post("/api/v1/experiments/" + id + "/compare")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.experimentId").value(id))
-                .andExpect(jsonPath("$.metrics").isMap());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("RESEARCH_ARTIFACT_UNAVAILABLE"))
+                .andExpect(jsonPath("$.details.status").value("BLOCKED"))
+                .andExpect(jsonPath("$.details.operation").value("experiments.compare"))
+                .andExpect(jsonPath("$.retryable").value(true))
+                .andExpect(jsonPath("$.remediation").isNotEmpty())
+                .andExpect(jsonPath("$.metrics").doesNotExist());
     }
 }

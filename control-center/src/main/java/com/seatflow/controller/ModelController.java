@@ -3,16 +3,14 @@ package com.seatflow.controller;
 import com.seatflow.dto.ModelPromoteRequest;
 import com.seatflow.dto.ModelRegisterRequest;
 import com.seatflow.dto.Page;
-import com.seatflow.dto.TaskHandle;
+import com.seatflow.model.ErrorResponse;
 import com.seatflow.model.Model;
-import com.seatflow.model.TaskStatus;
 import com.seatflow.security.UserPrincipal;
 import com.seatflow.service.ModelService;
+import com.seatflow.service.ResearchArtifactBoundary;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
-import java.time.Instant;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,14 +30,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class ModelController {
 
     private final ModelService modelService;
+    private final ResearchArtifactBoundary researchBoundary;
 
     /**
      * Construct the controller.
      *
      * @param modelService model service
+     * @param researchBoundary fail-closed research artifact boundary
      */
-    public ModelController(ModelService modelService) {
+    public ModelController(ModelService modelService, ResearchArtifactBoundary researchBoundary) {
         this.modelService = modelService;
+        this.researchBoundary = researchBoundary;
     }
 
     /**
@@ -91,37 +92,26 @@ public class ModelController {
      * @param modelId   model identifier
      * @param request   promotion request
      * @param principal authenticated principal
-     * @return promoted model, or 409 on invalid transition
+     * @return blocked response until the model artifact can be verified
      */
     @PostMapping("/{modelId}/promote")
     @Operation(operationId = "modelsPromote", summary = "Promote a model version to a stage")
-    public ResponseEntity<Model> promote(
+    public ResponseEntity<ErrorResponse> promote(
             @PathVariable String modelId,
             @RequestBody ModelPromoteRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        try {
-            Model promoted = modelService.promote(modelId, request, principal);
-            return ResponseEntity.ok(promoted);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
+        return researchBoundary.unavailable("models.promote");
     }
 
     /**
      * Retire a model version.
      *
      * @param modelId model identifier
-     * @return task handle (202)
+     * @return blocked response instead of an untracked task handle
      */
     @PostMapping("/{modelId}/retire")
     @Operation(operationId = "modelsRetire", summary = "Retire a model version")
-    public ResponseEntity<TaskHandle> retire(@PathVariable String modelId) {
-        String taskId = UUID.randomUUID().toString();
-        TaskHandle handle = new TaskHandle(taskId, TaskStatus.QUEUED, Instant.now(),
-                "/api/v1/system/tasks/" + taskId,
-                "/api/v1/system/tasks/" + taskId + "/events");
-        return ResponseEntity.accepted().body(handle);
+    public ResponseEntity<ErrorResponse> retire(@PathVariable String modelId) {
+        return researchBoundary.unavailable("models.retire");
     }
 }

@@ -1,14 +1,10 @@
 package com.seatflow.controller;
 
-import com.seatflow.dto.Page;
-import com.seatflow.model.TaskStatus;
-import com.seatflow.dto.TaskHandle;
+import com.seatflow.model.ErrorResponse;
+import com.seatflow.service.ResearchArtifactBoundary;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.time.Instant;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,39 +14,43 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Dataset listing endpoints. Dataset build and validation are represented as
- * long-running tasks that return a {@link TaskHandle}.
+ * Dataset endpoints delegated to the canonical research artifact boundary.
  */
 @RestController
 @RequestMapping("/api/v1/datasets")
 @Tag(name = "datasets", description = "Dataset versioning, build, and validation")
 public class DatasetController {
 
+    private final ResearchArtifactBoundary researchBoundary;
+
+    /**
+     * @param researchBoundary fail-closed research artifact boundary
+     */
+    public DatasetController(ResearchArtifactBoundary researchBoundary) {
+        this.researchBoundary = researchBoundary;
+    }
+
     /**
      * List datasets.
      *
-     * @return paginated dataset list
+     * @return blocked response until a verified artifact gateway is available
      */
     @GetMapping
     @Operation(operationId = "datasetsList", summary = "List datasets")
-    public ResponseEntity<Page<Map<String, Object>>> list() {
-        // In-memory placeholder dataset list.
-        List<Map<String, Object>> items = List.of(
-                Map.of("id", "ds-1", "name", "default", "version", "v1"),
-                Map.of("id", "ds-2", "name", "enriched", "version", "v2"));
-        return ResponseEntity.ok(Page.of(items));
+    public ResponseEntity<ErrorResponse> list() {
+        return researchBoundary.unavailable("datasets.list");
     }
 
     /**
      * Get a dataset definition.
      *
      * @param datasetId dataset identifier
-     * @return dataset, or 404
+     * @return blocked response until a verified dataset artifact is available
      */
     @GetMapping("/{datasetId}")
     @Operation(operationId = "datasetsGet", summary = "Get a dataset definition")
-    public ResponseEntity<Map<String, Object>> get(@PathVariable String datasetId) {
-        return ResponseEntity.ok(Map.of("id", datasetId, "name", "dataset-" + datasetId, "version", "v1"));
+    public ResponseEntity<ErrorResponse> get(@PathVariable String datasetId) {
+        return researchBoundary.unavailable("datasets.get");
     }
 
     /**
@@ -58,33 +58,25 @@ public class DatasetController {
      *
      * @param datasetId dataset identifier
      * @param request   build request body
-     * @return task handle (202)
+     * @return blocked response instead of an untracked task handle
      */
     @PostMapping("/{datasetId}/build")
     @Operation(operationId = "datasetsBuild", summary = "Build a dataset version (long-running)")
-    public ResponseEntity<TaskHandle> build(
+    public ResponseEntity<ErrorResponse> build(
             @PathVariable String datasetId,
             @RequestBody Map<String, Object> request) {
-        String taskId = UUID.randomUUID().toString();
-        TaskHandle handle = new TaskHandle(taskId, TaskStatus.QUEUED, Instant.now(),
-                "/api/v1/system/tasks/" + taskId,
-                "/api/v1/system/tasks/" + taskId + "/events");
-        return ResponseEntity.accepted().body(handle);
+        return researchBoundary.unavailable("datasets.build");
     }
 
     /**
      * Validate a dataset against quality gates.
      *
      * @param datasetId dataset identifier
-     * @return task handle (202)
+     * @return blocked response instead of an untracked task handle
      */
     @PostMapping("/{datasetId}/validate")
     @Operation(operationId = "datasetsValidate", summary = "Validate a dataset against quality gates")
-    public ResponseEntity<TaskHandle> validate(@PathVariable String datasetId) {
-        String taskId = UUID.randomUUID().toString();
-        TaskHandle handle = new TaskHandle(taskId, TaskStatus.QUEUED, Instant.now(),
-                "/api/v1/system/tasks/" + taskId,
-                "/api/v1/system/tasks/" + taskId + "/events");
-        return ResponseEntity.accepted().body(handle);
+    public ResponseEntity<ErrorResponse> validate(@PathVariable String datasetId) {
+        return researchBoundary.unavailable("datasets.validate");
     }
 }

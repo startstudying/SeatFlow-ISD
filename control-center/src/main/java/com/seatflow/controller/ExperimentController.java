@@ -3,12 +3,13 @@ package com.seatflow.controller;
 import com.seatflow.dto.ExperimentCreateRequest;
 import com.seatflow.dto.Page;
 import com.seatflow.model.Experiment;
+import com.seatflow.model.ErrorResponse;
 import com.seatflow.security.UserPrincipal;
 import com.seatflow.service.ExperimentService;
+import com.seatflow.service.ResearchArtifactBoundary;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
-import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,14 +30,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExperimentController {
 
     private final ExperimentService experimentService;
+    private final ResearchArtifactBoundary researchBoundary;
 
     /**
      * Construct the controller.
      *
      * @param experimentService experiment service
+     * @param researchBoundary fail-closed research artifact boundary
      */
-    public ExperimentController(ExperimentService experimentService) {
+    public ExperimentController(
+            ExperimentService experimentService,
+            ResearchArtifactBoundary researchBoundary) {
         this.experimentService = experimentService;
+        this.researchBoundary = researchBoundary;
     }
 
     /**
@@ -87,20 +93,13 @@ public class ExperimentController {
      *
      * @param experimentId experiment identifier
      * @param request      compare request body (runIds)
-     * @return comparison report
+     * @return blocked response until verified run artifacts are available
      */
     @PostMapping("/{experimentId}/compare")
     @Operation(operationId = "experimentsCompare", summary = "Compare runs within an experiment")
-    public ResponseEntity<Map<String, Object>> compare(
+    public ResponseEntity<ErrorResponse> compare(
             @PathVariable String experimentId,
             @RequestBody Map<String, Object> request) {
-        List<String> runIds = request.get("runIds") instanceof List<?> l
-                ? l.stream().map(Object::toString).toList()
-                : List.of();
-        Map<String, Object> report = Map.of(
-                "experimentId", experimentId,
-                "runIds", runIds,
-                "metrics", Map.of());
-        return ResponseEntity.ok(report);
+        return researchBoundary.unavailable("experiments.compare");
     }
 }

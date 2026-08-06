@@ -2,16 +2,14 @@ package com.seatflow.controller;
 
 import com.seatflow.dto.Page;
 import com.seatflow.dto.RunCreateRequest;
-import com.seatflow.dto.TaskHandle;
+import com.seatflow.model.ErrorResponse;
 import com.seatflow.model.Run;
 import com.seatflow.model.RunStatus;
-import com.seatflow.model.TaskStatus;
 import com.seatflow.security.UserPrincipal;
 import com.seatflow.service.ExperimentService;
+import com.seatflow.service.ResearchArtifactBoundary;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.time.Instant;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,14 +30,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class RunController {
 
     private final ExperimentService experimentService;
+    private final ResearchArtifactBoundary researchBoundary;
 
     /**
      * Construct the controller.
      *
      * @param experimentService experiment service
+     * @param researchBoundary fail-closed research artifact boundary
      */
-    public RunController(ExperimentService experimentService) {
+    public RunController(
+            ExperimentService experimentService,
+            ResearchArtifactBoundary researchBoundary) {
         this.experimentService = experimentService;
+        this.researchBoundary = researchBoundary;
     }
 
     /**
@@ -62,18 +65,14 @@ public class RunController {
      *
      * @param request   run creation request
      * @param principal authenticated principal
-     * @return task handle (202)
+     * @return blocked response instead of an untracked task handle
      */
     @PostMapping
     @Operation(operationId = "runsCreate", summary = "Submit a new run (long-running)")
-    public ResponseEntity<TaskHandle> create(
+    public ResponseEntity<ErrorResponse> create(
             @RequestBody RunCreateRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        Run run = experimentService.createRun(request, principal);
-        TaskHandle handle = new TaskHandle(run.id(), TaskStatus.QUEUED, Instant.now(),
-                "/api/v1/system/tasks/" + run.id(),
-                "/api/v1/system/tasks/" + run.id() + "/events");
-        return ResponseEntity.accepted().body(handle);
+        return researchBoundary.unavailable("runs.create");
     }
 
     /**
@@ -95,30 +94,25 @@ public class RunController {
      *
      * @param runId     run identifier
      * @param principal authenticated principal
-     * @return task handle (202), or 404
+     * @return blocked response while no task gateway is configured
      */
     @PostMapping("/{runId}/cancel")
     @Operation(operationId = "runsCancel", summary = "Cancel a running run")
-    public ResponseEntity<TaskHandle> cancel(
+    public ResponseEntity<ErrorResponse> cancel(
             @PathVariable String runId,
             @AuthenticationPrincipal UserPrincipal principal) {
-        return experimentService.cancelRun(runId, principal)
-                .map(run -> ResponseEntity.accepted().body(new TaskHandle(
-                        run.id(), TaskStatus.CANCELLED, Instant.now(),
-                        "/api/v1/system/tasks/" + run.id(),
-                        "/api/v1/system/tasks/" + run.id() + "/events")))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        return researchBoundary.unavailable("runs.cancel");
     }
 
     /**
      * List artifacts produced by a run.
      *
      * @param runId run identifier
-     * @return paginated artifact list
+     * @return blocked response until verified run artifacts are available
      */
     @GetMapping("/{runId}/artifacts")
     @Operation(operationId = "runsListArtifacts", summary = "List artifacts produced by a run")
-    public ResponseEntity<Page<java.util.Map<String, Object>>> listArtifacts(@PathVariable String runId) {
-        return ResponseEntity.ok(Page.of(java.util.List.of()));
+    public ResponseEntity<ErrorResponse> listArtifacts(@PathVariable String runId) {
+        return researchBoundary.unavailable("runs.listArtifacts");
     }
 }

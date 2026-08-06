@@ -36,7 +36,7 @@ export function subscribeToTask(
   handler: TaskEventHandler,
   onError?: (error: Error) => void,
 ): () => void {
-  const url = `${SSE_BASE}/tasks/${taskId}/events`;
+  const url = `${SSE_BASE}/system/tasks/${taskId}/events`;
   const eventSource = new EventSource(url, { withCredentials: true });
 
   eventSource.onmessage = (raw) => {
@@ -90,16 +90,4 @@ export function subscribeToAllTasks(
   return () => {
     eventSource.close();
   };
-}
-
-/**
- * React hook for task event subscription.
- */
-export function useTaskEvents(taskId: string): {
-  events: TaskEvent[];
-  connected: boolean;
-} {
-  // This is a placeholder; the real implementation uses React state
-  // with useRef for the EventSource and useState for events.
-  return { events: [], connected: false };
 }

@@ -72,7 +72,7 @@ class ModelControllerTest {
     }
 
     @Test
-    void promote_toStaging_returns200() throws Exception {
+    void promote_withoutVerifiedResearchArtifact_returnsUnavailableEnvelope() throws Exception {
         ModelRegisterRequest register = new ModelRegisterRequest("promote-test", "1.0", "s3://artifacts/promote-test");
         MvcResult createResult = mockMvc.perform(post("/api/v1/models")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -84,13 +84,14 @@ class ModelControllerTest {
         mockMvc.perform(post("/api/v1/models/" + id + "/promote")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(promote)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id))
-                .andExpect(jsonPath("$.stage").value("STAGING"));
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("RESEARCH_ARTIFACT_UNAVAILABLE"))
+                .andExpect(jsonPath("$.details.operation").value("models.promote"))
+                .andExpect(jsonPath("$.remediation").isNotEmpty());
     }
 
     @Test
-    void promote_invalidTransition_returns409() throws Exception {
+    void promote_invalidTransition_isNotEvaluatedWithoutVerifiedResearchArtifact() throws Exception {
         ModelRegisterRequest register = new ModelRegisterRequest("bad-transition", "1.0", "s3://artifacts/bad");
         MvcResult createResult = mockMvc.perform(post("/api/v1/models")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -103,20 +104,22 @@ class ModelControllerTest {
         mockMvc.perform(post("/api/v1/models/" + id + "/promote")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(promote)))
-                .andExpect(status().isConflict());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("RESEARCH_ARTIFACT_UNAVAILABLE"));
     }
 
     @Test
-    void promote_unknownModel_returns404() throws Exception {
+    void promote_unknownModel_stillFailsClosedAtResearchBoundary() throws Exception {
         ModelPromoteRequest promote = new ModelPromoteRequest(ModelStage.STAGING);
         mockMvc.perform(post("/api/v1/models/does-not-exist/promote")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(promote)))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("RESEARCH_ARTIFACT_UNAVAILABLE"));
     }
 
     @Test
-    void retire_returns202WithTaskHandle() throws Exception {
+    void retire_withoutTaskGateway_returnsUnavailableInsteadOfUntrackedHandle() throws Exception {
         ModelRegisterRequest register = new ModelRegisterRequest("retire-test", "1.0", "s3://artifacts/retire");
         MvcResult createResult = mockMvc.perform(post("/api/v1/models")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -125,8 +128,9 @@ class ModelControllerTest {
         String id = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
 
         mockMvc.perform(post("/api/v1/models/" + id + "/retire"))
-                .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.taskId").isNotEmpty())
-                .andExpect(jsonPath("$.status").value("QUEUED"));
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("RESEARCH_ARTIFACT_UNAVAILABLE"))
+                .andExpect(jsonPath("$.details.operation").value("models.retire"))
+                .andExpect(jsonPath("$.taskId").doesNotExist());
     }
 }
