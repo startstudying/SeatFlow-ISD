@@ -34,6 +34,53 @@ _PREDICTION_ROW_KEYS = frozenset(
         "classification",
     }
 )
+_FOLD_EVIDENCE_KEYS = frozenset(
+    {
+        "fold_id",
+        "train_sample_id_hash",
+        "prediction_sample_id_hash",
+        "transform_fingerprint",
+        "checkpoint_sha256",
+        "prediction_content_hash",
+        "target_hash",
+        "cutoff_start",
+        "cutoff_end",
+        "prediction_count",
+        "train_start",
+        "train_end",
+        "validation_start",
+        "validation_end",
+        "test_start",
+        "test_end",
+        "purge_trading_days",
+        "embargo_trading_days",
+        "label_horizon_trading_days",
+        "fold_payload_hash",
+    }
+)
+_MANIFEST_KEYS = frozenset(
+    {
+        "classification",
+        "dataset_seal_hash",
+        "audit_attestation_hash",
+        "lineage_hash",
+        "materialization_hash",
+        "target_hash",
+        "split_hash",
+        "calendar_hash",
+        "calendar_evidence_hash",
+        "config_hash",
+        "git_hash",
+        "feature_schema_hash",
+        "seed_hash",
+        "folds",
+        "coverage",
+        "prediction_content_hash",
+        "eligible_sample_id_hash",
+        "predicted_sample_id_hash",
+        "manifest_fingerprint",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -196,6 +243,9 @@ class FoldEvidence:
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> Self:
+        keys = frozenset(payload)
+        if keys != _FOLD_EVIDENCE_KEYS:
+            raise ValueError("fold schema keys do not match FoldEvidence")
         return cls(
             fold_id=int(payload["fold_id"]),
             train_sample_id_hash=str(payload["train_sample_id_hash"]),
@@ -368,6 +418,9 @@ class OOFManifest:
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> Self:
+        keys = frozenset(payload)
+        if keys != _MANIFEST_KEYS:
+            raise ValueError("manifest schema keys do not match OOFManifest")
         return cls(
             classification=str(payload["classification"]),
             dataset_seal_hash=str(payload["dataset_seal_hash"]),
@@ -405,6 +458,17 @@ def validate_oof_artifacts(*, manifest_path: Path, prediction_path: Path) -> OOF
     manifest = OOFManifest.from_dict(payload)
     if prediction_rows_hash(prediction_rows) != manifest.prediction_content_hash:
         raise ValueError("prediction content hash mismatch")
+    sample_counts: dict[str, int] = {}
+    for row in prediction_rows:
+        sample_counts[row.sample_id] = sample_counts.get(row.sample_id, 0) + 1
+    duplicate_sample_ids = sorted(
+        sample_id for sample_id, count in sample_counts.items() if count != 1
+    )
+    if duplicate_sample_ids:
+        raise ValueError(f"duplicate sample_id in OOF predictions: {duplicate_sample_ids}")
+    unique_sample_count = len(sample_counts)
+    if unique_sample_count != len(prediction_rows):
+        raise ValueError("unique sample count must match prediction row count")
     expected_coverage = {
         "input_count",
         "predicted_count",
@@ -415,7 +479,7 @@ def validate_oof_artifacts(*, manifest_path: Path, prediction_path: Path) -> OOF
         raise ValueError("coverage keys mismatch")
     if int(manifest.coverage["predicted_count"]) != len(prediction_rows):
         raise ValueError("coverage predicted_count mismatch")
-    if int(manifest.coverage["eligible_count"]) != len(prediction_rows):
+    if int(manifest.coverage["eligible_count"]) != unique_sample_count:
         raise ValueError("coverage eligible_count mismatch")
     if int(manifest.coverage["fold_count"]) != len(manifest.folds):
         raise ValueError("coverage fold_count mismatch")

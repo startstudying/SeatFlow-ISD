@@ -354,11 +354,20 @@ class BaseOOFRunner:
         manifest: OOFManifest,
     ) -> None:
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        atomic_write_jsonl(
-            self.output_dir / "base_oof_predictions.jsonl",
-            (row.as_dict() for row in predictions),
-        )
-        atomic_write_json(self.output_dir / "base_oof_manifest.json", manifest.as_dict())
+        prediction_path = self.output_dir / "base_oof_predictions.jsonl"
+        manifest_path = self.output_dir / "base_oof_manifest.json"
+        for final_path in (prediction_path, manifest_path):
+            if final_path.exists():
+                raise FileExistsError(f"final artifact already exists: {final_path}")
+        prediction_written = False
+        try:
+            atomic_write_jsonl(prediction_path, (row.as_dict() for row in predictions))
+            prediction_written = True
+            atomic_write_json(manifest_path, manifest.as_dict())
+        except Exception:
+            if prediction_written:
+                prediction_path.unlink(missing_ok=True)
+            raise
 
 
 def _rows_for_cycles(

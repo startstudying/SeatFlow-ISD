@@ -20,6 +20,8 @@ from seatflow.training.base_oof_manifest import (
     FoldEvidence,
     OOFManifest,
     OOFPredictionRow,
+    prediction_rows_hash,
+    sample_ids_hash,
     validate_oof_artifacts,
 )
 
@@ -752,3 +754,133 @@ def test_validator_rejects_y_true_extra_schema_swapped_fold_hash_and_bad_coverag
     formal_path.write_text(json.dumps(formal_payload, sort_keys=True), encoding="utf-8")
     with pytest.raises(ValueError, match="SYNTHETIC_NON_FORMAL"):
         validate_oof_artifacts(manifest_path=formal_path, prediction_path=prediction_path)
+
+
+def test_manifest_loader_rejects_unknown_fields_even_when_self_consistent(tmp_path: Path) -> None:
+    _, _, manifest, _, _, _ = _run_fixture(tmp_path)
+    payload = manifest.as_dict()
+    payload["metrics"] = {"auc": 1.0}
+    with pytest.raises(ValueError, match="manifest schema"):
+        OOFManifest.from_dict(payload)
+
+    fold_payload = manifest.as_dict()
+    fold_payload["folds"][0]["status"] = "COMPLETED"
+    with pytest.raises(ValueError, match="fold schema"):
+        OOFManifest.from_dict(fold_payload)
+
+
+def test_validator_rejects_self_consistent_duplicate_samples_across_folds(tmp_path: Path) -> None:
+    _, _, manifest, _, _, _ = _run_fixture(tmp_path)
+    prediction_path = tmp_path / "base_oof_predictions.jsonl"
+    original_rows = tuple(
+        OOFPredictionRow.from_dict(json.loads(line))
+        for line in prediction_path.read_text(encoding="utf-8").splitlines()
+    )
+    duplicate = original_rows[0]
+    other_fold = next(fold.fold_id for fold in manifest.folds if fold.fold_id != duplicate.fold_id)
+    forged_duplicate = OOFPredictionRow(
+        sample_id=duplicate.sample_id,
+        cycle_id=duplicate.cycle_id,
+        stock_id=duplicate.stock_id,
+        fold_id=other_fold,
+        cutoff_time=duplicate.cutoff_time,
+        prediction_time=duplicate.prediction_time,
+        daily_path=duplicate.daily_path,
+        cumulative=duplicate.cumulative,
+        feature_schema_fingerprint=duplicate.feature_schema_fingerprint,
+        provenance=duplicate.provenance,
+        classification=duplicate.classification,
+    )
+    forged_rows = (*original_rows, forged_duplicate)
+    forged_folds = _rebind_fold_prediction_hashes(manifest.folds, forged_rows)
+    forged_manifest = OOFManifest.create(
+        **{
+            **manifest.without_fingerprint(),
+            "folds": forged_folds,
+            "coverage": {
+                **dict(manifest.coverage),
+                "predicted_count": len(forged_rows),
+                "eligible_count": len(forged_rows),
+            },
+            "predictions": forged_rows,
+        }
+    )
+    forged_prediction_path = tmp_path / "duplicate_predictions.jsonl"
+    forged_prediction_path.write_text(
+        "".join(json.dumps(row.as_dict(), sort_keys=True) + "\n" for row in forged_rows),
+        encoding="utf-8",
+    )
+    forged_manifest_path = tmp_path / "duplicate_manifest.json"
+    forged_manifest_path.write_text(
+        json.dumps(forged_manifest.as_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="duplicate sample_id|unique sample"):
+        validate_oof_artifacts(
+            manifest_path=forged_manifest_path,
+            prediction_path=forged_prediction_path,
+        )
+
+
+def test_runner_publish_rolls_back_prediction_when_manifest_final_is_preoccupied(tmp_path: Path) -> None:
+    calendar = _calendar()
+    cycles = _cycles(calendar)
+    plan = _plan(calendar, cycles)
+    rows, all_targets = _rows_targets(calendar, cycles)
+    targets = _development_targets(plan, rows, all_targets)
+    contract = BaseFeatureContract((_spec(),))
+    (tmp_path / "base_oof_manifest.json").write_text("preoccupied", encoding="utf-8")
+    with pytest.raises(FileExistsError):
+        BaseOOFRunner(
+            feature_contract=contract,
+            transformer_factory=lambda: RecordingTransformer(contract),
+            trainer=RecordingTrainer(),
+            output_dir=tmp_path,
+            seed=7,
+            config_hash=SHA_E,
+            git_hash=SHA_F,
+            audit_attestation_hash=SHA_B,
+        ).run(
+            rows=rows,
+            targets=targets,
+            cycles=cycles,
+            trading_calendar=calendar,
+            plan=plan,
+            synthetic=True,
+        )
+    assert not (tmp_path / "base_oof_predictions.jsonl").exists()
+    assert (tmp_path / "base_oof_manifest.json").read_text(encoding="utf-8") == "preoccupied"
+
+
+def _rebind_fold_prediction_hashes(
+    folds: tuple[FoldEvidence, ...],
+    rows: tuple[OOFPredictionRow, ...],
+) -> tuple[FoldEvidence, ...]:
+    rebound: list[FoldEvidence] = []
+    for fold in folds:
+        fold_rows = tuple(row for row in rows if row.fold_id == fold.fold_id)
+        rebound.append(
+            FoldEvidence(
+                fold_id=fold.fold_id,
+                train_sample_id_hash=fold.train_sample_id_hash,
+                prediction_sample_id_hash=sample_ids_hash(row.sample_id for row in fold_rows),
+                transform_fingerprint=fold.transform_fingerprint,
+                checkpoint_sha256=fold.checkpoint_sha256,
+                prediction_content_hash=prediction_rows_hash(fold_rows),
+                target_hash=fold.target_hash,
+                cutoff_start=fold.cutoff_start,
+                cutoff_end=fold.cutoff_end,
+                prediction_count=len(fold_rows),
+                train_start=fold.train_start,
+                train_end=fold.train_end,
+                validation_start=fold.validation_start,
+                validation_end=fold.validation_end,
+                test_start=fold.test_start,
+                test_end=fold.test_end,
+                purge_trading_days=fold.purge_trading_days,
+                embargo_trading_days=fold.embargo_trading_days,
+                label_horizon_trading_days=fold.label_horizon_trading_days,
+                fold_payload_hash=fold.fold_payload_hash,
+            )
+        )
+    return tuple(rebound)
