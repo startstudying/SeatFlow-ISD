@@ -70,6 +70,55 @@ def _price_df(bars: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 class TestDailyPath:
+    def test_path_legs_compound_to_cumulative_horizons_from_first_open(self):
+        prices = _price_df(
+            [
+                _bar("2026-01-05T00:00:00+00:00", 100, 110),
+                _bar("2026-01-06T00:00:00+00:00", 120, 90),
+                _bar("2026-01-07T00:00:00+00:00", 90, 95),
+                _bar("2026-01-08T00:00:00+00:00", 95, 110),
+                _bar("2026-01-09T00:00:00+00:00", 110, 121),
+            ]
+        )
+
+        path = compute_return_path(
+            stock_id="000001.SZ",
+            entry_date=_utc("2026-01-05T00:00:00+00:00"),
+            prices_df=prices,
+        )
+
+        daily = [
+            path.d1_return,
+            path.d2_return,
+            path.d3_return,
+            path.d4_return,
+            path.d5_return,
+        ]
+        assert path.entry_price == pytest.approx(100.0)
+        assert path.d1_return == pytest.approx(0.10, abs=1e-12)
+        assert path.d2_return == pytest.approx(90.0 / 110.0 - 1.0, abs=1e-12)
+        assert path.d3_return == pytest.approx(95.0 / 90.0 - 1.0, abs=1e-12)
+        assert cumulate_horizons(daily, h=1) == pytest.approx(0.10, abs=1e-12)
+        assert cumulate_horizons(daily, h=3) == pytest.approx(-0.05, abs=1e-12)
+        assert cumulate_horizons(daily, h=5) == pytest.approx(0.21, abs=1e-12)
+
+    def test_incomplete_five_bar_path_raises_clear_error(self):
+        prices = _price_df(
+            [
+                _bar("2026-01-05T00:00:00+00:00", 100, 110),
+                _bar("2026-01-06T00:00:00+00:00", 120, 90),
+                _bar("2026-01-07T00:00:00+00:00", 90, 95),
+                _bar("2026-01-08T00:00:00+00:00", 95, 110),
+            ]
+        )
+
+        with pytest.raises(ValueError, match="complete 5-day return path"):
+            compute_return_path(
+                stock_id="000001.SZ",
+                entry_date=_utc("2026-01-05T00:00:00+00:00"),
+                prices_df=prices,
+            )
+
     def test_daily_returns_open_to_close(self):
         """d1..d5 are simple Open-to-Close returns for each of the 5 days."""
         prices = _price_df(

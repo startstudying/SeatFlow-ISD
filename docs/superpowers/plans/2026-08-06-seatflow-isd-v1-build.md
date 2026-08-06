@@ -4,6 +4,10 @@
 
 **Goal:** Refresh the real Tushare snapshots through 2026-08-06 inclusive, then build a versioned SeatFlow-ISD V1.0 engineering dataset with deterministic manifests and fail-closed formal validity.
 
+**User-specified universe clarification (2026-08-06):** This delivery is LHB-only. Every stock that appears in `dragon_tiger_summary` at least once between 2023-01-03 and 2026-08-06 belongs to the dataset universe. Retain every DIRECT sample in every event cycle from D0 through the cycle's extended D+5. Do not emit SPILLOVER samples or unrelated never-listed stocks. Market-wide daily-bar and daily-basic snapshots may be read as source coverage, but output rows must be filtered to the LHB-ever universe.
+
+Frozen addendum: `docs/superpowers/specs/2026-08-06-seatflow-isd-v1-universe-addendum.md`.
+
 **Architecture:** Add a read-only legacy snapshot adapter and a focused ISD orchestration layer under `research-engine/src/seatflow/dataset/`. Reuse the existing event, cycle, sample, split, materializer, and seal types after correcting their trading-calendar and return-policy mismatches. Persist JSONL/JSON artifacts atomically and expose one CLI that builds or audits a version.
 
 **Tech Stack:** Python 3.11+, stdlib `json/hashlib/pathlib/tempfile`, existing Pydantic/dataclasses, pytest, Ruff, mypy; no new dependencies.
@@ -18,6 +22,7 @@
 - Any formal gate failure leaves `dataset_valid=false`; engineering output may still be written with blockers.
 - No new dependency and no mutation of source snapshots.
 - Recent-data refresh is append-only: existing dated snapshots are never overwritten, and the requested build upper bound is fixed at 2026-08-06; incomplete core sources on that date become explicit blockers.
+- Final dataset rows are restricted to the LHB-ever stock universe and DIRECT event-cycle samples; no propagation/SPILLOVER rows are emitted in this version.
 
 ---
 

@@ -109,6 +109,15 @@ def _event_dates_by_stock(
     return out
 
 
+def _events_by_stock(events: Iterable[LHBEvent]) -> dict[str, list[LHBEvent]]:
+    out: dict[str, list[LHBEvent]] = {}
+    for ev in events:
+        out.setdefault(ev.stock_id, []).append(ev)
+    for sid in out:
+        out[sid].sort(key=lambda event: event.trade_date)
+    return out
+
+
 def _days_since_last_event(
     prediction_date: datetime,
     event_dates: Sequence[datetime],
@@ -130,6 +139,17 @@ def _days_since_last_event(
         if last_event < d <= prediction_date:
             count += 1
     return count
+
+
+def _sample_available_time(
+    prediction_date: datetime,
+    events: Sequence[LHBEvent],
+) -> datetime:
+    prior_events = [event for event in events if event.trade_date <= prediction_date]
+    if not prior_events:
+        return prediction_date
+    latest_event_time = max(event.available_time for event in prior_events)
+    return max(prediction_date, latest_event_time)
 
 
 def _classify_for_sample(
@@ -209,24 +229,27 @@ def build_samples(
     # An expired cycle has no active window to sample.
     # (Its samples were emitted while it was active.)
 
-    # One event impulse is exactly five exchange trading days from D0.
-    # Later events may extend the cycle for grouping purposes, but must
-    # not silently expand this per-event prediction window.
     window_start = cycle.cycle_start
+    window_end = cycle.cycle_end or cycle.cycle_start
 
-    active_days = sorted({day for day in trade_calendar if day >= window_start})[:5]
+    active_days = sorted(
+        {day for day in trade_calendar if window_start <= day <= window_end}
+    )
     support_only = support_only_stock_ids or frozenset()
 
     # Index the direct events by stock for days_since_last_event.
     direct_event_dates = _event_dates_by_stock(direct_events)
+    direct_event_index = _events_by_stock(direct_events)
 
     samples: list[PredictionSample] = []
 
     # ── DIRECT samples (the cycle's own stock) ─────────────────────────
     if cycle.stock_id in stock_universe and cycle.stock_id not in support_only:
         ev_dates = direct_event_dates.get(cycle.stock_id, [])
+        evs = direct_event_index.get(cycle.stock_id, [])
         for day in active_days:
             dse = _days_since_last_event(day, ev_dates, trade_calendar)
+            available_time = _sample_available_time(day, evs)
             state, is_tradable, is_bt = _classify_for_sample(
                 cycle.stock_id, day, market_data
             )
@@ -240,7 +263,7 @@ def build_samples(
                     days_since_last_event=dse,
                     pool_type=PoolType.DIRECT,
                     tradeability=state,
-                    available_time=day,
+                    available_time=available_time,
                     is_tradable=is_tradable,
                     is_backtest_eligible=is_bt,
                 )
@@ -260,6 +283,7 @@ def build_samples(
             if day < available_from_dt:
                 continue
             dse = _days_since_last_event(day, cand_event_dates, trade_calendar)
+            available_time = max(day, available_from_dt)
             state, is_tradable, is_bt = _classify_for_sample(
                 cand_stock, day, market_data
             )
@@ -273,7 +297,7 @@ def build_samples(
                     days_since_last_event=dse,
                     pool_type=PoolType.SPILLOVER,
                     tradeability=state,
-                    available_time=day,
+                    available_time=available_time,
                     is_tradable=is_tradable,
                     is_backtest_eligible=is_bt,
                 )

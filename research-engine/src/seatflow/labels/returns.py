@@ -1,4 +1,4 @@
-"""Multi-horizon return labels (Task 12).
+﻿"""Multi-horizon return labels (Task 12).
 
 A *return path* records the daily and cumulative returns for a stock over
 a 5-trading-day horizon starting from the *entry date*. The labels are the
@@ -11,7 +11,7 @@ Given OHLC bars :math:`(O_t, C_t)` for trading days :math:`t = 1..5`
 following the entry date, with the entry price equal to the day-1 open
 :math:`P_0 = O_1`:
 
-- :math:`d_t = (C_t - O_t) / O_t`                              (intraday O→C)
+- :math:`d_t = (C_t - O_t) / O_t`                              (intraday O鈫扖)
 - :math:`R_1 = d_1`
 - :math:`R_3 = \\prod_{t=1}^{3} (1 + d_t) - 1`                  (exact compound)
 - :math:`R_5 = \\prod_{t=1}^{5} (1 + d_t) - 1`                  (exact compound)
@@ -31,7 +31,7 @@ from typing import Iterable, Sequence
 from seatflow.domain.time import assert_aware
 
 
-# ── Dataclasses ────────────────────────────────────────────────────────
+# 鈹€鈹€ Dataclasses 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 
 @dataclass(frozen=True)
@@ -67,7 +67,7 @@ class MarketExcessPath:
     cum_excess_5d: float
 
 
-# ── Validation helpers ─────────────────────────────────────────────────
+# 鈹€鈹€ Validation helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 
 _VALID_HORIZONS = (1, 3, 5)
@@ -90,7 +90,7 @@ def _align_window(
 ) -> list[dict]:
     """Return the slice of ``prices`` starting at the bar for ``entry_date``.
 
-    The window contains exactly :data:`_HORIZON_DAYS` bars — the entry-day
+    The window contains exactly :data:`_HORIZON_DAYS` bars 鈥?the entry-day
     bar plus the four subsequent bars. If fewer than five bars remain after
     the entry, returns whatever is available (caller decides on the
     tradeability state).
@@ -118,7 +118,7 @@ def _bar_open_close(bar: dict) -> tuple[float, float]:
     return float(bar["open"]), float(bar["close"])
 
 
-# ── Public API ─────────────────────────────────────────────────────────
+# 鈹€鈹€ Public API 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 
 def cumulate_horizons(daily_returns: Sequence[float], *, h: int) -> float:
@@ -127,14 +127,14 @@ def cumulate_horizons(daily_returns: Sequence[float], *, h: int) -> float:
     Parameters
     ----------
     daily_returns:
-        A sequence of simple daily returns ``d_1, d_2, …``.
+        A sequence of simple daily returns ``d_1, d_2, 鈥`.
     h:
         One of ``{1, 3, 5}``. Anything else raises ``ValueError``.
 
     Returns
     -------
     float
-        ``∏_{i=1..h} (1 + d_i) - 1``.
+        ``鈭廮{i=1..h} (1 + d_i) - 1``.
     """
     if h not in _VALID_HORIZONS:
         raise ValueError(
@@ -160,7 +160,7 @@ def compute_return_path(
 
     The first bar in ``prices_df`` whose date equals ``entry_date`` is the
     entry-day bar; its open is the *entry price*. The next four bars (or
-    however many remain) supply :math:`d_1, …, d_5`.
+    however many remain) supply :math:`d_1, 鈥? d_5`.
 
     ``exit_1d_price`` / ``exit_3d_price`` / ``exit_5d_price`` are the close
     of day 1 / 3 / 5 respectively.
@@ -178,20 +178,32 @@ def compute_return_path(
         raise ValueError(
             f"no price bar found at entry_date={entry_date.isoformat()}"
         )
+    if len(window) < _HORIZON_DAYS:
+        raise ValueError(
+            f"complete 5-day return path required for stock {stock_id!r} at "
+            f"entry_date={entry_date.isoformat()}, got {len(window)} bars"
+        )
 
     # Entry price = open of the entry-day bar (the first bar in the window).
     entry_open, _ = _bar_open_close(window[0])
+    if entry_open == 0:
+        raise ValueError(
+            f"entry open price must be non-zero for stock {stock_id!r} at "
+            f"entry_date={entry_date.isoformat()}"
+        )
     daily: list[float] = []
     exits: list[float] = []
-    for i in range(_HORIZON_DAYS):
-        if i < len(window):
-            o, c = _bar_open_close(window[i])
-            daily.append((c - o) / o if o != 0 else 0.0)
-            exits.append(c)
-        else:
-            # No bar available — model the missing day as flat.
-            daily.append(0.0)
-            exits.append(0.0)
+    previous_price = entry_open
+    for bar in window[:_HORIZON_DAYS]:
+        _, close = _bar_open_close(bar)
+        if previous_price == 0:
+            raise ValueError(
+                f"previous close price must be non-zero for stock {stock_id!r} "
+                f"at entry_date={entry_date.isoformat()}"
+            )
+        daily.append(close / previous_price - 1.0)
+        exits.append(close)
+        previous_price = close
 
     d1, d2, d3, d4, d5 = daily
 

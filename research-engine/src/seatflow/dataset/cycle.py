@@ -29,9 +29,9 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Optional, Sequence
 
 from seatflow.dataset.event import LHBEvent
 from seatflow.domain.time import assert_aware
@@ -106,17 +106,35 @@ def _cycle_id(stock_id: str, cycle_start: datetime) -> str:
 # ── Window check ───────────────────────────────────────────────────────
 
 
-def _within_window(
-    cycle_last: datetime,
-    new_date: datetime,
+def _sorted_calendar(trade_calendar: Sequence[datetime]) -> list[datetime]:
+    calendar = sorted(set(trade_calendar))
+    for day in calendar:
+        assert_aware(day, "trade_calendar")
+    return calendar
+
+
+def _trading_day_index(calendar: Sequence[datetime], day: datetime) -> int:
+    assert_aware(day, "trade_date")
+    try:
+        return calendar.index(day)
+    except ValueError as exc:
+        raise ValueError(
+            f"trade_date {day.isoformat()} is not in the exchange trade_calendar"
+        ) from exc
+
+
+def _extension_end(
+    event_date: datetime,
+    calendar: Sequence[datetime],
     extension_days: int,
-) -> bool:
-    """Return True if ``new_date`` is within ``extension_days`` of
-    ``cycle_last`` (inclusive on the boundary)."""
-    assert_aware(cycle_last, "last_event_date")
-    assert_aware(new_date, "trade_date")
-    gap = new_date - cycle_last
-    return gap <= timedelta(days=extension_days)
+) -> datetime:
+    end_idx = _trading_day_index(calendar, event_date) + extension_days
+    if end_idx >= len(calendar):
+        raise ValueError(
+            f"trade_calendar does not contain {extension_days} later exchange "
+            f"trading days after {event_date.isoformat()}"
+        )
+    return calendar[end_idx]
 
 
 # ── Public API ─────────────────────────────────────────────────────────
@@ -125,6 +143,8 @@ def _within_window(
 def extend_cycle(
     cycle: EventCycle,
     new_event: LHBEvent,
+    *,
+    trade_calendar: Sequence[datetime],
     extension_days: int = DEFAULT_EXTENSION_DAYS,
 ) -> EventCycle:
     """Return a new cycle extended with ``new_event``.
@@ -145,18 +165,22 @@ def extend_cycle(
             f"Cannot extend cycle for stock {cycle.stock_id!r} with an event "
             f"for stock {new_event.stock_id!r}"
         )
-    if not _within_window(cycle.last_event_date, new_event.trade_date, extension_days):
+    calendar = _sorted_calendar(trade_calendar)
+    if cycle.cycle_end is None:
+        raise ValueError("Cannot extend a cycle without a cycle_end")
+    if new_event.trade_date > cycle.cycle_end:
         raise ValueError(
             f"Event {new_event.event_id!r} trade_date {new_event.trade_date} is "
             f"outside the {extension_days}-day extension window of cycle "
-            f"{cycle.cycle_id!r} (last event {cycle.last_event_date})"
+            f"{cycle.cycle_id!r} (cycle_end {cycle.cycle_end})"
         )
+    cycle_end = _extension_end(new_event.trade_date, calendar, extension_days)
     return EventCycle(
         cycle_id=cycle.cycle_id,
         stock_id=cycle.stock_id,
         cycle_start=cycle.cycle_start,
         last_event_date=new_event.trade_date,
-        cycle_end=None,
+        cycle_end=cycle_end,
         event_count=cycle.event_count + 1,
         status=CycleStatus.ACTIVE,
     )
@@ -164,6 +188,8 @@ def extend_cycle(
 
 def build_cycles(
     events: list[LHBEvent],
+    *,
+    trade_calendar: Sequence[datetime],
     extension_days: int = DEFAULT_EXTENSION_DAYS,
 ) -> list[EventCycle]:
     """Group events into cycles per stock.
@@ -181,6 +207,8 @@ def build_cycles(
     """
     # Group events by stock, preserving nothing about input order — we
     # sort each group by trade_date for determinism.
+    calendar = _sorted_calendar(trade_calendar)
+
     by_stock: dict[str, list[LHBEvent]] = {}
     for ev in events:
         by_stock.setdefault(ev.stock_id, []).append(ev)
@@ -198,15 +226,20 @@ def build_cycles(
             stock_id=stock_id,
             cycle_start=first.trade_date,
             last_event_date=first.trade_date,
-            cycle_end=None,
+            cycle_end=_extension_end(first.trade_date, calendar, extension_days),
             event_count=1,
             status=CycleStatus.ACTIVE,
         )
 
         for ev in stock_events[1:]:
-            if _within_window(active.last_event_date, ev.trade_date, extension_days):
+            if active.cycle_end is not None and ev.trade_date <= active.cycle_end:
                 # Same cycle — extend it.
-                active = extend_cycle(active, ev, extension_days=extension_days)
+                active = extend_cycle(
+                    active,
+                    ev,
+                    trade_calendar=calendar,
+                    extension_days=extension_days,
+                )
             else:
                 # Gap too large: expire the active cycle and start a new one.
                 expired = EventCycle(
@@ -214,7 +247,7 @@ def build_cycles(
                     stock_id=active.stock_id,
                     cycle_start=active.cycle_start,
                     last_event_date=active.last_event_date,
-                    cycle_end=active.last_event_date,
+                    cycle_end=active.cycle_end,
                     event_count=active.event_count,
                     status=CycleStatus.EXPIRED,
                 )
@@ -224,7 +257,7 @@ def build_cycles(
                     stock_id=stock_id,
                     cycle_start=ev.trade_date,
                     last_event_date=ev.trade_date,
-                    cycle_end=None,
+                    cycle_end=_extension_end(ev.trade_date, calendar, extension_days),
                     event_count=1,
                     status=CycleStatus.ACTIVE,
                 )

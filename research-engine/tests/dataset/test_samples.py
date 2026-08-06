@@ -73,7 +73,7 @@ def _cycle(
         stock_id=stock_id,
         cycle_start=_utc(start),
         last_event_date=_utc(last),
-        cycle_end=_utc(last) if status == CycleStatus.EXPIRED else None,
+        cycle_end=_utc(last) if status == CycleStatus.EXPIRED else _utc(last) + timedelta(days=5),
         event_count=event_count,
         status=status,
     )
@@ -141,11 +141,79 @@ def _build(
 
 
 class TestBuildSamples:
+    def test_single_event_emits_direct_samples_from_d0_through_d5(self):
+        calendar = _trade_calendar(
+            [
+                "2026-01-05T00:00:00+00:00",
+                "2026-01-06T00:00:00+00:00",
+                "2026-01-07T00:00:00+00:00",
+                "2026-01-08T00:00:00+00:00",
+                "2026-01-09T00:00:00+00:00",
+                "2026-01-12T00:00:00+00:00",
+            ]
+        )
+        cycle = EventCycle(
+            cycle_id="cyc-1",
+            stock_id="000001.SZ",
+            cycle_start=calendar[0],
+            last_event_date=calendar[0],
+            cycle_end=calendar[5],
+            event_count=1,
+            status=CycleStatus.ACTIVE,
+        )
+
+        samples = _build(cycle=cycle, calendar=calendar)
+
+        direct = [sample for sample in samples if sample.pool_type == PoolType.DIRECT]
+        assert [sample.prediction_date for sample in direct] == calendar
+
+    def test_repeated_event_extends_direct_samples_through_reset_end_date(self):
+        calendar = _trade_calendar(
+            [
+                "2026-01-05T00:00:00+00:00",
+                "2026-01-06T00:00:00+00:00",
+                "2026-01-07T00:00:00+00:00",
+                "2026-01-08T00:00:00+00:00",
+                "2026-01-09T00:00:00+00:00",
+                "2026-01-12T00:00:00+00:00",
+                "2026-01-13T00:00:00+00:00",
+                "2026-01-14T00:00:00+00:00",
+                "2026-01-15T00:00:00+00:00",
+                "2026-01-16T00:00:00+00:00",
+                "2026-01-19T00:00:00+00:00",
+            ]
+        )
+        cycle = EventCycle(
+            cycle_id="cyc-1",
+            stock_id="000001.SZ",
+            cycle_start=calendar[0],
+            last_event_date=calendar[5],
+            cycle_end=calendar[10],
+            event_count=2,
+            status=CycleStatus.ACTIVE,
+        )
+        direct_events = [
+            _ev("e1", "000001.SZ", calendar[0].isoformat()),
+            _ev("e2", "000001.SZ", calendar[5].isoformat()),
+        ]
+
+        samples = _build(
+            cycle=cycle,
+            direct_events=direct_events,
+            calendar=calendar,
+        )
+
+        direct = [sample for sample in samples if sample.pool_type == PoolType.DIRECT]
+        assert [sample.prediction_date for sample in direct] == calendar
+        assert direct[4].days_since_last_event == 4
+        assert direct[5].days_since_last_event == 0
+        assert direct[10].days_since_last_event == 5
+
     def test_one_sample_per_trading_day_in_active_cycle(self):
         cycle = _cycle("cyc-1", "000001.SZ", "2026-01-05T00:00:00+00:00", "2026-01-05T00:00:00+00:00")
         samples = _build(cycle=cycle)
-        # Each event impulse is exactly D0..D0+4 exchange trading days.
-        assert len(samples) == 5
+        # Each event impulse is D0..D+5, inclusive.
+        assert len(samples) == 6
         assert all(s.pool_type == PoolType.DIRECT for s in samples)
         assert all(s.cycle_id == "cyc-1" for s in samples)
         assert all(s.stock_id == "000001.SZ" for s in samples)
@@ -200,11 +268,11 @@ class TestBuildSamples:
             cycle=cycle,
             propagation_candidates=propagation_candidates,
         )
-        # Five direct + five spillover targets.
+        # Six direct + six spillover targets.
         direct = [s for s in samples if s.pool_type == PoolType.DIRECT]
         spill = [s for s in samples if s.pool_type == PoolType.SPILLOVER]
-        assert len(direct) == 5
-        assert len(spill) == 5
+        assert len(direct) == 6
+        assert len(spill) == 6
         assert all(s.stock_id == "000002.SZ" for s in spill)
         assert all(s.cycle_id == "cyc-1" for s in spill)
 
@@ -288,9 +356,9 @@ class TestBuildSamples:
 
         samples = _build(cycle=cycle, calendar=calendar)
 
-        assert [sample.prediction_date for sample in samples] == calendar[:5]
+        assert [sample.prediction_date for sample in samples] == calendar
 
-    def test_cycle_extension_does_not_expand_original_impulse_window(self):
+    def test_cycle_extension_expands_samples_through_reset_end_date(self):
         calendar = _trade_calendar(
             [f"2026-01-{day:02d}T00:00:00+00:00" for day in range(5, 16)]
         )
@@ -311,9 +379,8 @@ class TestBuildSamples:
         first = _build(cycle=initial, calendar=calendar)
         second = _build(cycle=extended, calendar=calendar)
 
-        assert [sample.sample_id for sample in second] == [
-            sample.sample_id for sample in first
-        ]
+        assert [sample.prediction_date for sample in first] == calendar[:6]
+        assert [sample.prediction_date for sample in second] == calendar
 
     def test_support_only_stocks_never_become_prediction_samples(self):
         cycle = _cycle(
