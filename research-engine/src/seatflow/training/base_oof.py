@@ -244,9 +244,7 @@ class BaseOOFRunner:
 
         prediction_tuple = tuple(sorted(predictions, key=lambda row: (row.sample_id, row.fold_id)))
         _assert_exactly_once(prediction_tuple, expected_prediction_ids)
-        classification = (
-            OOFManifest.SYNTHETIC_CLASSIFICATION if synthetic else "FORMAL"
-        )
+        classification = OOFManifest.SYNTHETIC_CLASSIFICATION
         first_row = next(iter(row_by_sample.values()))
         first_target = next(iter(target_by_sample.values()))
         manifest = OOFManifest.create(
@@ -258,6 +256,7 @@ class BaseOOFRunner:
             target_hash=first_target.target_artifact_hash,
             split_hash=plan.fingerprint,
             calendar_hash=plan.calendar_fingerprint,
+            calendar_evidence_hash=plan.calendar_evidence_fingerprint,
             config_hash=self.config_hash,
             git_hash=self.git_hash,
             feature_schema_hash=self.feature_contract.schema_fingerprint,

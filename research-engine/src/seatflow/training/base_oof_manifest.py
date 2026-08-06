@@ -235,6 +235,7 @@ class OOFManifest:
     target_hash: str
     split_hash: str
     calendar_hash: str
+    calendar_evidence_hash: str
     config_hash: str
     git_hash: str
     feature_schema_hash: str
@@ -242,11 +243,13 @@ class OOFManifest:
     folds: tuple[FoldEvidence, ...]
     coverage: Mapping[str, int]
     prediction_content_hash: str
+    eligible_sample_id_hash: str
+    predicted_sample_id_hash: str
     manifest_fingerprint: str = field(default="")
 
     def __post_init__(self) -> None:
-        if self.classification not in {self.SYNTHETIC_CLASSIFICATION, "FORMAL"}:
-            raise ValueError("OOFManifest classification is not permitted for Task 6C")
+        if self.classification != self.SYNTHETIC_CLASSIFICATION:
+            raise ValueError("OOFManifest classification must be SYNTHETIC_NON_FORMAL in Task 6C")
         for field_name in (
             "dataset_seal_hash",
             "audit_attestation_hash",
@@ -255,10 +258,13 @@ class OOFManifest:
             "target_hash",
             "split_hash",
             "calendar_hash",
+            "calendar_evidence_hash",
             "config_hash",
             "git_hash",
             "seed_hash",
             "prediction_content_hash",
+            "eligible_sample_id_hash",
+            "predicted_sample_id_hash",
         ):
             _sha(str(getattr(self, field_name)), field_name)
         _sha_uri(self.feature_schema_hash, "feature_schema_hash")
@@ -283,6 +289,7 @@ class OOFManifest:
         target_hash: str,
         split_hash: str,
         calendar_hash: str,
+        calendar_evidence_hash: str,
         config_hash: str,
         git_hash: str,
         feature_schema_hash: str,
@@ -291,6 +298,8 @@ class OOFManifest:
         predictions: tuple[OOFPredictionRow, ...] | None = None,
         coverage: Mapping[str, int],
         prediction_content_hash: str | None = None,
+        eligible_sample_id_hash: str | None = None,
+        predicted_sample_id_hash: str | None = None,
     ) -> Self:
         if predictions is None and prediction_content_hash is None:
             raise ValueError("predictions or prediction_content_hash is required")
@@ -299,6 +308,14 @@ class OOFManifest:
             if predictions is not None
             else str(prediction_content_hash)
         )
+        if predictions is None:
+            if eligible_sample_id_hash is None or predicted_sample_id_hash is None:
+                raise ValueError("sample-id hashes are required without predictions")
+            bound_eligible_sample_id_hash = eligible_sample_id_hash
+            bound_predicted_sample_id_hash = predicted_sample_id_hash
+        else:
+            bound_predicted_sample_id_hash = sample_ids_hash(row.sample_id for row in predictions)
+            bound_eligible_sample_id_hash = bound_predicted_sample_id_hash
         base = cls(
             classification=classification,
             dataset_seal_hash=dataset_seal_hash,
@@ -308,6 +325,7 @@ class OOFManifest:
             target_hash=target_hash,
             split_hash=split_hash,
             calendar_hash=calendar_hash,
+            calendar_evidence_hash=calendar_evidence_hash,
             config_hash=config_hash,
             git_hash=git_hash,
             feature_schema_hash=feature_schema_hash,
@@ -315,6 +333,8 @@ class OOFManifest:
             folds=folds,
             coverage=coverage,
             prediction_content_hash=bound_prediction_hash,
+            eligible_sample_id_hash=bound_eligible_sample_id_hash,
+            predicted_sample_id_hash=bound_predicted_sample_id_hash,
         )
         return cls(**base.without_fingerprint(), manifest_fingerprint=_fingerprint(base.without_fingerprint()))
 
@@ -328,6 +348,7 @@ class OOFManifest:
             "target_hash": self.target_hash,
             "split_hash": self.split_hash,
             "calendar_hash": self.calendar_hash,
+            "calendar_evidence_hash": self.calendar_evidence_hash,
             "config_hash": self.config_hash,
             "git_hash": self.git_hash,
             "feature_schema_hash": self.feature_schema_hash,
@@ -335,6 +356,8 @@ class OOFManifest:
             "folds": self.folds,
             "coverage": dict(self.coverage),
             "prediction_content_hash": self.prediction_content_hash,
+            "eligible_sample_id_hash": self.eligible_sample_id_hash,
+            "predicted_sample_id_hash": self.predicted_sample_id_hash,
         }
 
     def as_dict(self) -> dict[str, Any]:
@@ -354,6 +377,7 @@ class OOFManifest:
             target_hash=str(payload["target_hash"]),
             split_hash=str(payload["split_hash"]),
             calendar_hash=str(payload["calendar_hash"]),
+            calendar_evidence_hash=str(payload["calendar_evidence_hash"]),
             config_hash=str(payload["config_hash"]),
             git_hash=str(payload["git_hash"]),
             feature_schema_hash=str(payload["feature_schema_hash"]),
@@ -361,6 +385,8 @@ class OOFManifest:
             folds=tuple(FoldEvidence.from_dict(item) for item in payload["folds"]),
             coverage={str(k): int(v) for k, v in dict(payload["coverage"]).items()},
             prediction_content_hash=str(payload["prediction_content_hash"]),
+            eligible_sample_id_hash=str(payload["eligible_sample_id_hash"]),
+            predicted_sample_id_hash=str(payload["predicted_sample_id_hash"]),
             manifest_fingerprint=str(payload["manifest_fingerprint"]),
         )
 
@@ -393,6 +419,11 @@ def validate_oof_artifacts(*, manifest_path: Path, prediction_path: Path) -> OOF
         raise ValueError("coverage eligible_count mismatch")
     if int(manifest.coverage["fold_count"]) != len(manifest.folds):
         raise ValueError("coverage fold_count mismatch")
+    actual_sample_hash = sample_ids_hash(row.sample_id for row in prediction_rows)
+    if manifest.eligible_sample_id_hash != manifest.predicted_sample_id_hash:
+        raise ValueError("eligible/predicted sample-id hash mismatch")
+    if manifest.predicted_sample_id_hash != actual_sample_hash:
+        raise ValueError("top-level prediction sample-id hash mismatch")
     fold_ids = [fold.fold_id for fold in manifest.folds]
     if len(fold_ids) != len(set(fold_ids)):
         raise ValueError("duplicate fold evidence")
@@ -407,14 +438,21 @@ def validate_oof_artifacts(*, manifest_path: Path, prediction_path: Path) -> OOF
     if expected_by_fold != actual_by_fold:
         raise ValueError("fold prediction content hash mismatch")
     for fold in manifest.folds:
-        count = sum(1 for row in prediction_rows if row.fold_id == fold.fold_id)
+        fold_rows = tuple(row for row in prediction_rows if row.fold_id == fold.fold_id)
+        count = len(fold_rows)
         if count != fold.prediction_count:
             raise ValueError("fold prediction count mismatch")
+        if fold.prediction_sample_id_hash != sample_ids_hash(row.sample_id for row in fold_rows):
+            raise ValueError("fold prediction sample-id hash mismatch")
     return manifest
 
 
 def prediction_rows_hash(rows: tuple[OOFPredictionRow, ...]) -> str:
     return _fingerprint([row.as_dict() for row in rows])
+
+
+def sample_ids_hash(sample_ids: Any) -> str:
+    return _fingerprint(tuple(sorted(str(sample_id) for sample_id in sample_ids)))
 
 
 def stable_hash(value: Any) -> str:

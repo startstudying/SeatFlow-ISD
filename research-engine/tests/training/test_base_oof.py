@@ -603,6 +603,7 @@ def test_manifest_sensitivity_to_every_bound_hash() -> None:
         target_hash=SHA_E,
         split_hash=SHA_F,
         calendar_hash=SHA_A,
+        calendar_evidence_hash=SHA_D,
         config_hash=SHA_B,
         git_hash=SHA_C,
         feature_schema_hash="sha256:" + SHA_D,
@@ -619,6 +620,7 @@ def test_manifest_sensitivity_to_every_bound_hash() -> None:
         "target_hash",
         "split_hash",
         "calendar_hash",
+        "calendar_evidence_hash",
         "config_hash",
         "git_hash",
         "seed_hash",
@@ -627,6 +629,15 @@ def test_manifest_sensitivity_to_every_bound_hash() -> None:
         payload[field_name] = SHA_F if getattr(base, field_name) != SHA_F else SHA_A
         changed = OOFManifest.create(**payload)
         assert changed.manifest_fingerprint != base.manifest_fingerprint
+
+    with pytest.raises(ValueError, match="SYNTHETIC_NON_FORMAL"):
+        OOFManifest.create(
+            **{
+                **base.without_fingerprint(),
+                "classification": "FORMAL",
+                "prediction_content_hash": base.prediction_content_hash,
+            }
+        )
 
 
 def test_validator_rejects_y_true_extra_schema_swapped_fold_hash_and_bad_coverage(
@@ -718,3 +729,26 @@ def test_validator_rejects_y_true_extra_schema_swapped_fold_hash_and_bad_coverag
     bad_coverage_path.write_text(json.dumps(bad_coverage.as_dict(), sort_keys=True), encoding="utf-8")
     with pytest.raises(ValueError, match="coverage"):
         validate_oof_artifacts(manifest_path=bad_coverage_path, prediction_path=prediction_path)
+
+    bad_sample_hash = OOFManifest.create(
+        **{
+            **manifest.without_fingerprint(),
+            "predicted_sample_id_hash": SHA_F,
+            "prediction_content_hash": manifest.prediction_content_hash,
+        }
+    )
+    bad_sample_hash_path = tmp_path / "bad_sample_hash_manifest.json"
+    bad_sample_hash_path.write_text(
+        json.dumps(bad_sample_hash.as_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="sample-id hash"):
+        validate_oof_artifacts(manifest_path=bad_sample_hash_path, prediction_path=prediction_path)
+
+    formal_payload = manifest.as_dict()
+    formal_payload["classification"] = "FORMAL"
+    formal_payload["manifest_fingerprint"] = "0" * 64
+    formal_path = tmp_path / "formal_manifest.json"
+    formal_path.write_text(json.dumps(formal_payload, sort_keys=True), encoding="utf-8")
+    with pytest.raises(ValueError, match="SYNTHETIC_NON_FORMAL"):
+        validate_oof_artifacts(manifest_path=formal_path, prediction_path=prediction_path)
