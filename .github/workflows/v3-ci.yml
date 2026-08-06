@@ -85,7 +85,10 @@ jobs:
       - name: Validate Compose config
         run: |
           if command -v docker &> /dev/null; then
-            docker compose -f infra/compose/docker-compose.yml config > /dev/null
+            docker compose \
+              --env-file infra/compose/.env.example \
+              -f infra/compose/docker-compose.yml \
+              config > /dev/null
           fi
       - name: Run infra tests
         run: python -m pytest infra/tests -v

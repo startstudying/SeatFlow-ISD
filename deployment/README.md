@@ -1,66 +1,76 @@
-# SeatFlow Docker deployment
+# SeatFlow V3 Docker deployment
 
-This deployment is intentionally evidence-gated:
+`deployment/docker-compose.yml` is a thin operational entrypoint to the
+canonical stack in `infra/compose/docker-compose.yml`. Both commands resolve
+to the same Compose project (`seatflow`), network, service names, build
+contexts, and health checks.
 
-- `data/`, `checkpoints/`, `artifacts/`, MLflow state and database state are mounted as volumes.
-- Real secrets and checkpoints are never baked into images.
-- With the default `.env.example` values the stack is a degraded engineering smoke stack. It can boot, but prediction requests must fail closed until a valid real checkpoint, lineage, graph snapshot and prediction artifact are mounted.
-- MySQL stores business metadata only. Versioned parquet/json snapshots and manifests remain the training fact source. Neo4j is an optional rebuildable graph projection. Redis is optional cache/task infrastructure.
+The stack is fail-closed. A healthy Research Engine container proves that the
+HTTP process is responding; it does not prove that a research pipeline,
+dataset, checkpoint, prediction, or backtest is valid. Until a verified
+pipeline adapter and artifact lineage are available, research capability and
+affected Control Center operations remain `DEGRADED` or `BLOCKED`.
 
 ## Services
 
-| Service | Default port | Purpose |
+| Service | Default host port | Purpose |
 | --- | ---: | --- |
-| `fastapi` | `8000` | Read-only SeatFlow snapshot/inference contract API |
-| `backend-java` | `8080` | Spring Boot orchestration API |
-| `frontend` | `3000` | Next.js UI |
-| `mysql` | `3306` | Business metadata |
-| `mlflow` | `5000` | Experiment tracking service |
-| `redis` | `6379` | Task progress/cache infrastructure |
-| `neo4j` | `7474/7687` | Optional graph projection profile: `graph` |
+| `research-engine` | `8000` | Canonical `/research/v1` research API |
+| `control-center` | `8080` | Spring Boot governance and control API |
+| `research-console` | `3000` | Next.js research console |
+| `postgres` | `5432` | Control Center metadata database |
+| `redis` | `6379` | Task queue and cache infrastructure |
+| `minio` | `9000` / `9001` | Versioned object and artifact storage |
+| `mlflow` | `5000` | Experiment tracking |
+| `prometheus` | `9090` | Metrics collection |
+| `grafana` | `3001` | Metrics dashboards |
 
-## Quick start
+## Configure
+
+Copy the example file before starting the stack:
 
 ```powershell
 Copy-Item deployment/.env.example deployment/.env
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml config
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml up --build -d
-.\scripts\e2e_smoke.ps1 -EnvFile deployment/.env
 ```
 
-Optional graph projection:
+The values in `.env.example` are local-development placeholders only. Replace
+at least these values with environment-specific secrets before any shared or
+non-local deployment:
+
+- `POSTGRES_PASSWORD`
+- `MINIO_ROOT_USER`
+- `MINIO_ROOT_PASSWORD`
+- `GRAFANA_ADMIN_PASSWORD`
+- `SEATFLOW_SECURITY_JWT_SECRET`
+
+The Compose model uses required interpolation for every value above and
+refuses to render when any one is missing.
+
+## Start
 
 ```powershell
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml --profile graph up --build -d
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml config
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml up --build -d
 ```
 
-## Health and readiness
+## Process health smoke
 
-- FastAPI: `GET http://localhost:8000/health`
-- Java readiness: `GET http://localhost:8080/ready`
-- Java upstream check: `GET http://localhost:8080/api/v1/upstream/fastapi/health`
-- Frontend: `GET http://localhost:3000/`
-- MLflow: `GET http://localhost:5000/health`
+```powershell
+Invoke-RestMethod http://localhost:8000/research/v1/health
+Invoke-RestMethod http://localhost:8080/actuator/health
+Invoke-WebRequest http://localhost:3000/
+```
 
-## Real artifacts
+- `GET http://localhost:8000/research/v1/health` checks Research Engine process
+  availability. A `DEGRADED` response with research capability `BLOCKED` is a
+  truthful running state, not a successful model-readiness claim.
+- `GET http://localhost:8080/actuator/health` checks the Control Center process
+  and its configured infrastructure health contributors.
+- `GET http://localhost:3000/` checks the Research Console HTTP process.
 
-Mount real evidence without changing images:
-
-- `data/` -> `/workspace/data:ro`
-- `checkpoints/` -> `/workspace/checkpoints:ro`
-- `artifacts/` -> `/workspace/artifacts:ro`
-- MLflow server state -> `mlflow_data` named volume
-
-Only treat prediction as real when the mounted artifacts satisfy the inference contract:
-
-1. model metadata exists under `checkpoints/<model_id>/metadata.json` or `checkpoints/<model_id>.json`;
-2. referenced checkpoint file exists;
-3. `model_validity_status=valid`;
-4. `data_scope=real`;
-5. lineage JSON exists under `artifacts/lineage/<lineage_hash>.json`;
-6. graph snapshot and prediction artifact exist and are also real/valid.
-
-Otherwise the API should return 404/409 fail-closed payloads with `risk_flags`.
+Do not promote a deployment based only on these process probes. Research
+readiness additionally requires verified pipeline execution, artifact lineage,
+sealed evaluation evidence, and the release gates defined by the project.
 
 ## Shutdown
 
@@ -68,4 +78,4 @@ Otherwise the API should return 404/409 fail-closed payloads with `risk_flags`.
 docker compose --env-file deployment/.env -f deployment/docker-compose.yml down
 ```
 
-Add `-v` only when intentionally deleting local Docker volumes.
+Add `-v` only when intentionally deleting the named local data volumes.

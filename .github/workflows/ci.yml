@@ -92,4 +92,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate compose
-        run: docker compose -f deployment/docker-compose.yml config --quiet
+        run: >-
+          docker compose
+          --env-file deployment/.env.example
+          -f deployment/docker-compose.yml
+          config --quiet

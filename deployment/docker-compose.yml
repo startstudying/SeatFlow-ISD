@@ -1,2 +1,4 @@
+name: seatflow
+
 include:
   - path: ../infra/compose/docker-compose.yml
