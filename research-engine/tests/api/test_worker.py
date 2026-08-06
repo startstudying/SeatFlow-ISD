@@ -111,6 +111,30 @@ class TestTaskStoreTransitions:
         with pytest.raises(InvalidStateTransitionError):
             store.transition(s.task_id, TaskStatus.RUNNING)
 
+    @pytest.mark.parametrize(
+        "target",
+        [TaskStatus.QUEUED, TaskStatus.RUNNING, TaskStatus.CANCELLED],
+    )
+    def test_blocked_task_cannot_transition(self, target):
+        store = InMemoryTaskStore()
+        s = store.create(kind="x", spec={})
+        store.transition(s.task_id, TaskStatus.RUNNING)
+        store.transition(s.task_id, TaskStatus.BLOCKED)
+
+        with pytest.raises(InvalidStateTransitionError):
+            store.transition(s.task_id, target)
+
+    def test_blocked_task_cannot_be_cancelled_or_report_progress(self):
+        store = InMemoryTaskStore()
+        s = store.create(kind="x", spec={})
+        store.transition(s.task_id, TaskStatus.RUNNING)
+        store.transition(s.task_id, TaskStatus.BLOCKED)
+
+        with pytest.raises(InvalidStateTransitionError):
+            store.cancel(s.task_id)
+        with pytest.raises(InvalidStateTransitionError):
+            store.progress(s.task_id, 0.5)
+
     def test_invalid_transition_raises(self):
         store = InMemoryTaskStore()
         s = store.create(kind="x", spec={})
@@ -159,8 +183,14 @@ class TestTaskStoreTransitions:
         assert store.is_terminal(TaskStatus.COMPLETED)
         assert store.is_terminal(TaskStatus.CANCELLED)
         assert store.is_terminal(TaskStatus.FAILED)
+        assert store.is_terminal(TaskStatus.BLOCKED)
         assert not store.is_terminal(TaskStatus.REQUESTED)
         assert not store.is_terminal(TaskStatus.RUNNING)
+
+
+class _ReadyAdapter:
+    def readiness(self):
+        return {"ready": True}
 
 
 # ── Task runner ─────────────────────────────────────────────────────────
@@ -240,7 +270,7 @@ class TestTaskRunner:
             await runner.stop()
 
     async def test_pipeline_adapter_result_preserves_artifact_lineage(self):
-        class RecordingAdapter:
+        class RecordingAdapter(_ReadyAdapter):
             async def execute(self, *, task_kind, spec, report_progress):
                 report_progress(0.5, "adapter running")
                 return {
@@ -266,8 +296,43 @@ class TestTaskRunner:
             "metrics": {"aupr": 0.321},
         }
 
+    @pytest.mark.parametrize(
+        ("kind", "lineage"),
+        [
+            (
+                "backtest",
+                {
+                    "dataset_manifest_sha256": "a" * 64,
+                    "model_artifact_sha256": "b" * 64,
+                    "backtest_artifact_sha256": "c" * 64,
+                },
+            ),
+            (
+                "prediction",
+                {
+                    "feature_manifest_sha256": "a" * 64,
+                    "model_artifact_sha256": "b" * 64,
+                    "prediction_artifact_sha256": "c" * 64,
+                },
+            ),
+        ],
+    )
+    async def test_task_specific_artifact_lineage_allows_completion(self, kind, lineage):
+        class ValidLineageAdapter(_ReadyAdapter):
+            async def execute(self, *, task_kind, spec, report_progress):
+                return {"artifact_lineage": lineage}
+
+        store = InMemoryTaskStore()
+        runner = TaskRunner(store, pipeline_adapter=ValidLineageAdapter())
+        await runner.submit(kind=kind, spec={})
+
+        final = await runner.run_once()
+
+        assert final.status == TaskStatus.COMPLETED
+        assert final.error is None
+
     async def test_pipeline_result_without_artifact_lineage_is_blocked(self):
-        class MissingLineageAdapter:
+        class MissingLineageAdapter(_ReadyAdapter):
             async def execute(self, *, task_kind, spec, report_progress):
                 return {"metrics": {"aupr": 0.321}}
 
@@ -284,11 +349,92 @@ class TestTaskRunner:
             "Persist immutable input and output artifact identifiers before completion."
         )
 
+    @pytest.mark.parametrize(
+        ("kind", "lineage"),
+        [
+            ("experiment_run", {"x": "y"}),
+            (
+                "backtest",
+                {
+                    "dataset_manifest_sha256": "not-a-hash",
+                    "model_artifact_sha256": "b" * 64,
+                    "backtest_artifact_sha256": "c" * 64,
+                },
+            ),
+            (
+                "prediction",
+                {
+                    "dataset_manifest_sha256": "a" * 64,
+                    "model_artifact_sha256": "b" * 64,
+                },
+            ),
+        ],
+    )
+    async def test_invalid_task_specific_artifact_lineage_is_blocked(self, kind, lineage):
+        class InvalidLineageAdapter(_ReadyAdapter):
+            async def execute(self, *, task_kind, spec, report_progress):
+                return {"artifact_lineage": lineage, "metrics": {"formal": 1.0}}
+
+        store = InMemoryTaskStore()
+        runner = TaskRunner(store, pipeline_adapter=InvalidLineageAdapter())
+        await runner.submit(kind=kind, spec={})
+
+        final = await runner.run_once()
+
+        assert final.status == TaskStatus.BLOCKED
+        assert final.result is None
+        assert final.error.code == "ARTIFACT_LINEAGE_INVALID"
+        assert final.error.details["task_kind"] == kind
+        assert final.error.remediation == (
+            "Return every required immutable artifact SHA-256 for this task kind."
+        )
+
+    async def test_unready_pipeline_adapter_blocks_execution(self):
+        class UnreadyAdapter:
+            def readiness(self):
+                return {
+                    "ready": False,
+                    "code": "MODEL_REGISTRY_UNAVAILABLE",
+                    "remediation": "Configure the immutable model registry.",
+                }
+
+            async def execute(self, *, task_kind, spec, report_progress):
+                return {
+                    "artifact_lineage": {
+                        "dataset_manifest_sha256": "a" * 64,
+                        "model_artifact_sha256": "b" * 64,
+                    }
+                }
+
+        store = InMemoryTaskStore()
+        runner = TaskRunner(store, pipeline_adapter=UnreadyAdapter())
+        await runner.submit(kind="experiment_run", spec={})
+
+        final = await runner.run_once()
+
+        assert final.status == TaskStatus.BLOCKED
+        assert final.error.code == "MODEL_REGISTRY_UNAVAILABLE"
+        assert final.error.remediation == "Configure the immutable model registry."
+
+    async def test_miswired_pipeline_adapter_blocks_execution(self):
+        class MiswiredAdapter:
+            def readiness(self):
+                return {"ready": True}
+
+        store = InMemoryTaskStore()
+        runner = TaskRunner(store, pipeline_adapter=MiswiredAdapter())
+        await runner.submit(kind="prediction", spec={})
+
+        final = await runner.run_once()
+
+        assert final.status == TaskStatus.BLOCKED
+        assert final.error.code == "PIPELINE_ADAPTER_INVALID"
+
     async def test_adapter_can_report_missing_artifact_as_machine_readable_block(self):
         blocked_error_type = getattr(worker, "TaskBlockedError", None)
         assert blocked_error_type is not None
 
-        class MissingArtifactAdapter:
+        class MissingArtifactAdapter(_ReadyAdapter):
             async def execute(self, *, task_kind, spec, report_progress):
                 raise blocked_error_type(
                     code="MODEL_ARTIFACT_MISSING",
@@ -309,20 +455,28 @@ class TestTaskRunner:
         assert final.error.details == {"model_id": "model-404"}
         assert final.error.remediation == "Build and register the model artifact, then retry."
 
-    async def test_handler_exception_marks_task_failed(self):
+    async def test_handler_exception_marks_task_failed_without_public_exception_leakage(
+        self, caplog
+    ):
         store = InMemoryTaskStore()
         runner = TaskRunner(store)
 
         async def bad_handler(spec, runner_):
-            raise RuntimeError("boom")
+            raise RuntimeError("provider token secret-handler-value")
 
         runner.register_handler("bad", bad_handler)
         await runner.submit(kind="bad", spec={})
-        final = await runner.run_once()
+        with caplog.at_level("ERROR", logger="seatflow.worker.task_runner"):
+            final = await runner.run_once()
         assert final.status == TaskStatus.FAILED
         assert final.error is not None
         assert final.error.code == "TASK_FAILED"
-        assert "boom" in final.error.message
+        assert final.error.message == "Research task failed"
+        assert final.error.details == {"task_kind": "bad"}
+        assert final.error.trace_id
+        assert final.error.remediation == "Contact the service operator with the traceId."
+        assert "secret-handler-value" not in final.model_dump_json()
+        assert any(final.error.trace_id in record.getMessage() for record in caplog.records)
 
     async def test_handler_missing_marks_task_failed(self):
         store = InMemoryTaskStore()
@@ -378,6 +532,28 @@ class TestSSEEndpoint:
         assert "TASK_COMPLETED" in body
         # Each event is serialised as a JSON object on a ``data:`` line.
         assert "data: {" in body
+
+    async def test_sse_blocked_replay_terminates(self):
+        store = InMemoryTaskStore()
+        state = store.create(kind="experiment_run", spec={})
+        store.transition(state.task_id, TaskStatus.RUNNING)
+        store.transition(state.task_id, TaskStatus.BLOCKED)
+        router = make_tasks_router(store)
+        stream_route = next(
+            route for route in router.routes if route.name == "stream_task_events"
+        )
+
+        class ConnectedRequest:
+            async def is_disconnected(self):
+                return False
+
+        response = await stream_route.endpoint(state.task_id, ConnectedRequest())
+
+        async def collect_replay():
+            return [chunk async for chunk in response.body_iterator]
+
+        chunks = await asyncio.wait_for(collect_replay(), timeout=0.2)
+        assert any("TASK_BLOCKED" in chunk for chunk in chunks)
 
     async def test_sse_unknown_task_returns_404(self):
         store = InMemoryTaskStore()

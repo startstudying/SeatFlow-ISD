@@ -22,7 +22,10 @@ Supported task kinds:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
+import re
+import uuid
 from typing import Any, Awaitable, Callable, Optional, Protocol
 
 from seatflow.api.models import ErrorResponse, TaskState, TaskStatus
@@ -104,6 +107,9 @@ class ResearchPipelineAdapter(Protocol):
     ) -> HandlerResult:
         """Execute one research task and return a lineage-bearing result."""
 
+    def readiness(self) -> dict[str, Any]:
+        """Return an explicit synchronous readiness report."""
+
 
 def pipeline_capability(
     pipeline_adapter: Optional[ResearchPipelineAdapter],
@@ -117,9 +123,91 @@ def pipeline_capability(
                 "Configure a real ResearchPipelineAdapter before running research tasks."
             ),
         }
+    execute = getattr(pipeline_adapter, "execute", None)
+    if not callable(execute) or not inspect.iscoroutinefunction(execute):
+        return {
+            "status": "BLOCKED",
+            "code": "PIPELINE_ADAPTER_INVALID",
+            "remediation": "Configure an adapter with an async execute() method.",
+        }
+
+    readiness = getattr(pipeline_adapter, "readiness", None)
+    if not callable(readiness) or inspect.iscoroutinefunction(readiness):
+        return {
+            "status": "BLOCKED",
+            "code": "PIPELINE_READINESS_UNVERIFIED",
+            "remediation": (
+                "Implement a synchronous readiness() check on the pipeline adapter."
+            ),
+        }
+
+    try:
+        report = readiness()
+    except Exception:  # noqa: BLE001
+        logger.exception("Pipeline adapter readiness check failed")
+        return {
+            "status": "BLOCKED",
+            "code": "PIPELINE_READINESS_CHECK_FAILED",
+            "remediation": "Repair the adapter readiness check before serving research tasks.",
+        }
+
+    if not isinstance(report, dict) or not isinstance(report.get("ready"), bool):
+        return {
+            "status": "BLOCKED",
+            "code": "PIPELINE_READINESS_INVALID",
+            "remediation": "Return a readiness report containing a boolean ready field.",
+        }
+    if report["ready"] is not True:
+        code = report.get("code")
+        remediation = report.get("remediation")
+        return {
+            "status": "BLOCKED",
+            "code": code if isinstance(code, str) and code else "PIPELINE_NOT_READY",
+            "remediation": (
+                remediation
+                if isinstance(remediation, str) and remediation
+                else "Resolve the adapter readiness blocker before serving research tasks."
+            ),
+        }
+    return {"status": "UP", "adapter": type(pipeline_adapter).__name__}
+
+
+_SHA256_PATTERN = re.compile(r"^[0-9a-fA-F]{64}$")
+_REQUIRED_LINEAGE_FIELDS: dict[str, frozenset[str]] = {
+    "experiment_run": frozenset(
+        {"dataset_manifest_sha256", "model_artifact_sha256"}
+    ),
+    "backtest": frozenset(
+        {
+            "dataset_manifest_sha256",
+            "model_artifact_sha256",
+            "backtest_artifact_sha256",
+        }
+    ),
+    "prediction": frozenset(
+        {
+            "feature_manifest_sha256",
+            "model_artifact_sha256",
+            "prediction_artifact_sha256",
+        }
+    ),
+}
+
+
+def _invalid_lineage_fields(task_kind: str, lineage: dict[str, Any]) -> dict[str, Any]:
+    required = _REQUIRED_LINEAGE_FIELDS[task_kind]
+    missing = sorted(required.difference(lineage))
+    malformed = sorted(
+        field
+        for field in required.intersection(lineage)
+        if not isinstance(lineage[field], str)
+        or _SHA256_PATTERN.fullmatch(lineage[field]) is None
+    )
     return {
-        "status": "UP",
-        "adapter": type(pipeline_adapter).__name__,
+        "task_kind": task_kind,
+        "required_fields": sorted(required),
+        "missing_fields": missing,
+        "invalid_fields": malformed,
     }
 
 
@@ -129,14 +217,20 @@ async def _pipeline_handler(
     runner: "TaskRunner",
 ) -> HandlerResult:
     adapter = runner.pipeline_adapter
-    if adapter is None:
-        capability = pipeline_capability(adapter)
+    capability = pipeline_capability(adapter)
+    if capability["status"] != "UP":
+        code = capability["code"]
         raise TaskBlockedError(
-            code=capability["code"],
-            message="Research pipeline adapter is not configured",
+            code=code,
+            message=(
+                "Research pipeline adapter is not configured"
+                if code == "PIPELINE_ADAPTER_UNAVAILABLE"
+                else "Research pipeline adapter is not ready"
+            ),
             remediation=capability["remediation"],
             details={"task_kind": task_kind},
         )
+    assert adapter is not None
 
     def report_progress(progress: float, message: Optional[str] = None) -> None:
         runner.store.progress(runner.current_task_id, progress, message=message)
@@ -155,6 +249,16 @@ async def _pipeline_handler(
                 "Persist immutable input and output artifact identifiers before completion."
             ),
             details={"task_kind": task_kind},
+        )
+    invalid = _invalid_lineage_fields(task_kind, lineage)
+    if invalid["missing_fields"] or invalid["invalid_fields"]:
+        raise TaskBlockedError(
+            code="ARTIFACT_LINEAGE_INVALID",
+            message="Pipeline result has invalid task-specific artifact lineage",
+            remediation=(
+                "Return every required immutable artifact SHA-256 for this task kind."
+            ),
+            details=invalid,
         )
     return result
 
@@ -354,11 +458,21 @@ class TaskRunner:
                 error=err,
                 message=err.message,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
+            trace_id = uuid.uuid4().hex
+            logger.exception(
+                "Task handler failed trace_id=%s task_id=%s kind=%s",
+                trace_id,
+                task_id,
+                kind,
+            )
             err = ErrorResponse.build(
                 code="TASK_FAILED",
-                message=str(exc),
+                message="Research task failed",
+                details={"task_kind": kind},
+                trace_id=trace_id,
                 retryable=False,
+                remediation="Contact the service operator with the traceId.",
             )
             return self.store.transition(
                 task_id, TaskStatus.FAILED, error=err, message=err.message

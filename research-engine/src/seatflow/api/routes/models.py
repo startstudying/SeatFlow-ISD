@@ -11,13 +11,14 @@ from seatflow.api.models import (
     PaginationParams,
 )
 from seatflow.api.routes._common import paginate
-from seatflow.api.routes.state import store
+from seatflow.api.routes.state import StoreDependency
 
 router = APIRouter(prefix="/research/v1/models", tags=["models"])
 
 
 @router.get("", response_model=PaginatedResponse[ModelInfo], name="list_models")
 def list_models(
+    store: StoreDependency,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     kind: str | None = Query(None, description="Filter by model kind"),
@@ -37,7 +38,7 @@ def list_models(
 
 
 @router.get("/{model_id}", response_model=ModelInfo, name="get_model")
-def get_model(model_id: str) -> ModelInfo:
+def get_model(model_id: str, store: StoreDependency) -> ModelInfo:
     """Retrieve a single model by id."""
     model = store.models.get(model_id)
     if model is None:

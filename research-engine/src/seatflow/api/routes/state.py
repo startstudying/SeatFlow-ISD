@@ -13,6 +13,9 @@ from __future__ import annotations
 
 import uuid
 from collections import OrderedDict
+from typing import Annotated, cast
+
+from fastapi import Depends, Request
 
 from seatflow.api.models import (
     Backtest,
@@ -221,5 +224,9 @@ class _Store:
             self.backtests = _seed_backtests()
 
 
-# Module-level singleton — imported by route modules.
-store = _Store()
+def get_store(request: Request) -> _Store:
+    """Return the research state owned by the current FastAPI application."""
+    return cast(_Store, request.app.state.research_store)
+
+
+StoreDependency = Annotated[_Store, Depends(get_store)]

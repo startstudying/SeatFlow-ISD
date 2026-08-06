@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from seatflow.api.models import PaginatedResponse, PaginationParams, Prediction
 from seatflow.api.routes._common import paginate
-from seatflow.api.routes.state import store
+from seatflow.api.routes.state import StoreDependency
 
 router = APIRouter(prefix="/research/v1/predictions", tags=["predictions"])
 
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/research/v1/predictions", tags=["predictions"])
     "", response_model=PaginatedResponse[Prediction], name="list_predictions"
 )
 def list_predictions(
+    store: StoreDependency,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     model_id: str | None = Query(None, description="Filter by model id"),
@@ -33,7 +34,7 @@ def list_predictions(
 @router.get(
     "/{prediction_id}", response_model=Prediction, name="get_prediction"
 )
-def get_prediction(prediction_id: str) -> Prediction:
+def get_prediction(prediction_id: str, store: StoreDependency) -> Prediction:
     """Retrieve a single prediction by id."""
     pred = store.predictions.get(prediction_id)
     if pred is None:

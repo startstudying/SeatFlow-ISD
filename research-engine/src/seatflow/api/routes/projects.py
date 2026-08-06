@@ -12,7 +12,7 @@ from seatflow.api.models import (
     ProjectStatus,
 )
 from seatflow.api.routes._common import paginate
-from seatflow.api.routes.state import _gen_id, store
+from seatflow.api.routes.state import StoreDependency, _gen_id
 from seatflow.domain.time import utc_now
 
 router = APIRouter(prefix="/research/v1/projects", tags=["projects"])
@@ -20,6 +20,7 @@ router = APIRouter(prefix="/research/v1/projects", tags=["projects"])
 
 @router.get("", response_model=PaginatedResponse[Project], name="list_projects")
 def list_projects(
+    store: StoreDependency,
     page: int = Query(1, ge=1, description="1-indexed page number"),
     page_size: int = Query(50, ge=1, le=500, description="Items per page"),
     status: str | None = Query(None, description="Filter by project status"),
@@ -47,7 +48,7 @@ def list_projects(
     status_code=status.HTTP_201_CREATED,
     name="create_project",
 )
-def create_project(body: ProjectCreate) -> Project:
+def create_project(body: ProjectCreate, store: StoreDependency) -> Project:
     """Create a new project."""
     now = utc_now()
     project = Project(
@@ -65,7 +66,7 @@ def create_project(body: ProjectCreate) -> Project:
 
 
 @router.get("/{project_id}", response_model=Project, name="get_project")
-def get_project(project_id: str) -> Project:
+def get_project(project_id: str, store: StoreDependency) -> Project:
     """Retrieve a single project by id."""
     project = store.projects.get(project_id)
     if project is None:

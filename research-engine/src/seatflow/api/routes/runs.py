@@ -12,7 +12,7 @@ from seatflow.api.models import (
     RunStatus,
 )
 from seatflow.api.routes._common import paginate
-from seatflow.api.routes.state import _gen_id, store
+from seatflow.api.routes.state import StoreDependency, _gen_id
 from seatflow.domain.time import utc_now
 
 router = APIRouter(prefix="/research/v1/runs", tags=["runs"])
@@ -20,6 +20,7 @@ router = APIRouter(prefix="/research/v1/runs", tags=["runs"])
 
 @router.get("", response_model=PaginatedResponse[Run], name="list_runs")
 def list_runs(
+    store: StoreDependency,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     status: str | None = Query(None, description="Filter by run status"),
@@ -44,7 +45,7 @@ def list_runs(
     status_code=status.HTTP_201_CREATED,
     name="create_run",
 )
-def create_run(body: RunCreate) -> Run:
+def create_run(body: RunCreate, store: StoreDependency) -> Run:
     """Create a new run for an experiment.
 
     Returns 404 if the referenced experiment does not exist.
@@ -71,7 +72,7 @@ def create_run(body: RunCreate) -> Run:
 
 
 @router.get("/{run_id}", response_model=Run, name="get_run")
-def get_run(run_id: str) -> Run:
+def get_run(run_id: str, store: StoreDependency) -> Run:
     """Retrieve a single run by id."""
     run = store.runs.get(run_id)
     if run is None:

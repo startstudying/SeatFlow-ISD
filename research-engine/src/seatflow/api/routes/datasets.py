@@ -17,7 +17,7 @@ from seatflow.api.models import (
     PaginationParams,
 )
 from seatflow.api.routes._common import paginate
-from seatflow.api.routes.state import store
+from seatflow.api.routes.state import StoreDependency
 
 # ── Data sources ────────────────────────────────────────────────────────
 
@@ -30,6 +30,7 @@ data_sources_router = APIRouter(
     "", response_model=PaginatedResponse[DataSource], name="list_data_sources"
 )
 def list_data_sources(
+    store: StoreDependency,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     kind: str | None = Query(None, description="Filter by data source kind"),
@@ -51,7 +52,7 @@ def list_data_sources(
 @data_sources_router.get(
     "/{source_id}", response_model=DataSource, name="get_data_source"
 )
-def get_data_source(source_id: str) -> DataSource:
+def get_data_source(source_id: str, store: StoreDependency) -> DataSource:
     """Retrieve a single data source by id."""
     source = store.data_sources.get(source_id)
     if source is None:
@@ -74,6 +75,7 @@ datasets_router = APIRouter(prefix="/research/v1/datasets", tags=["datasets"])
     "", response_model=PaginatedResponse[Dataset], name="list_datasets"
 )
 def list_datasets(
+    store: StoreDependency,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     status: str | None = Query(None, description="Filter by dataset status"),
@@ -93,7 +95,7 @@ def list_datasets(
 
 
 @datasets_router.get("/{dataset_id}", response_model=Dataset, name="get_dataset")
-def get_dataset(dataset_id: str) -> Dataset:
+def get_dataset(dataset_id: str, store: StoreDependency) -> Dataset:
     """Retrieve a single dataset by id."""
     dataset = store.datasets.get(dataset_id)
     if dataset is None:

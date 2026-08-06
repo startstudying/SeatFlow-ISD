@@ -37,7 +37,8 @@ class TaskStatus(str, Enum):
     * ``RUNNING -> FAILED``
     * ``REQUESTED | QUEUED | RUNNING -> BLOCKED``
 
-    Terminal states (``COMPLETED``, ``CANCELLED``, ``FAILED``) do not transition.
+    Terminal states (``COMPLETED``, ``CANCELLED``, ``FAILED``, ``BLOCKED``)
+    do not transition.
     """
 
     REQUESTED = "REQUESTED"

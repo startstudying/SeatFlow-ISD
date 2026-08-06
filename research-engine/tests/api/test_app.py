@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import logging
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -34,20 +37,54 @@ class TestHealthCheck:
         }
         assert "timestamp" in body
 
-    def test_health_reports_research_up_when_adapter_is_configured(self):
-        class ConfiguredAdapter:
+    def test_health_stays_blocked_when_adapter_readiness_is_unverified(self):
+        class UnverifiedAdapter:
             async def execute(self, *, task_kind, spec, report_progress):
-                return {
-                    "artifact_lineage": {"manifest_sha256": "a" * 64},
-                }
+                return {}
 
-        app = create_app(reset_store=True, pipeline_adapter=ConfiguredAdapter())
+        app = create_app(reset_store=True, pipeline_adapter=UnverifiedAdapter())
+        with TestClient(app) as configured_client:
+            body = configured_client.get("/research/v1/health").json()
+
+        assert body["status"] == "DEGRADED"
+        assert body["components"]["process"] == {"status": "UP"}
+        assert body["components"]["researchCapability"] == {
+            "status": "BLOCKED",
+            "code": "PIPELINE_READINESS_UNVERIFIED",
+            "remediation": "Implement a synchronous readiness() check on the pipeline adapter.",
+        }
+
+    def test_health_reports_research_up_only_after_explicit_adapter_readiness(self):
+        class ReadyAdapter:
+            def readiness(self):
+                return {"ready": True}
+
+            async def execute(self, *, task_kind, spec, report_progress):
+                return {}
+
+        app = create_app(reset_store=True, pipeline_adapter=ReadyAdapter())
         with TestClient(app) as configured_client:
             body = configured_client.get("/research/v1/health").json()
 
         assert body["status"] == "UP"
-        assert body["components"]["process"] == {"status": "UP"}
         assert body["components"]["researchCapability"]["status"] == "UP"
+
+    def test_health_rejects_adapter_without_async_execute_interface(self):
+        class MiswiredAdapter:
+            def readiness(self):
+                return {"ready": True}
+
+        app = create_app(reset_store=True, pipeline_adapter=MiswiredAdapter())
+        with TestClient(app) as configured_client:
+            capability = configured_client.get("/research/v1/health").json()["components"][
+                "researchCapability"
+            ]
+
+        assert capability == {
+            "status": "BLOCKED",
+            "code": "PIPELINE_ADAPTER_INVALID",
+            "remediation": "Configure an adapter with an async execute() method.",
+        }
 
     def test_health_has_utc_timestamp(self, client):
         resp = client.get("/research/v1/health")
@@ -132,6 +169,33 @@ class TestDefaultState:
 
         assert totals == {endpoint: 0 for endpoint in endpoints}
 
+    def test_synthetic_and_default_apps_keep_isolated_state(self):
+        synthetic_app = create_app(fixture_mode=SYNTHETIC_NON_FORMAL)
+        default_app = create_app()
+
+        with (
+            TestClient(synthetic_app) as synthetic_client,
+            TestClient(default_app) as default_client,
+        ):
+            assert synthetic_client.get("/research/v1/projects").json()["meta"]["total"] == 3
+            assert default_client.get("/research/v1/projects").json()["meta"]["total"] == 0
+            assert (
+                synthetic_client.get("/research/v1/health").json()["components"]["store"]["mode"]
+                == SYNTHETIC_NON_FORMAL
+            )
+            assert (
+                default_client.get("/research/v1/health").json()["components"]["store"]["mode"]
+                == "EMPTY_FAIL_CLOSED"
+            )
+
+            created = default_client.post(
+                "/research/v1/projects",
+                json={"name": "Default app only"},
+            )
+            assert created.status_code == 201
+            assert default_client.get("/research/v1/projects").json()["meta"]["total"] == 1
+            assert synthetic_client.get("/research/v1/projects").json()["meta"]["total"] == 3
+
     def test_synthetic_fixture_marks_every_formal_looking_entity(self, client):
         entities = {
             "project": client.get("/research/v1/projects/proj-001").json(),
@@ -185,3 +249,29 @@ class TestErrorHandling:
     def test_docs_endpoint_available(self, client):
         resp = client.get("/docs")
         assert resp.status_code == 200
+
+    def test_unhandled_error_hides_exception_url_and_traceback(self, caplog):
+        app = create_app()
+
+        @app.get("/research/v1/internal/{artifact_id}")
+        def explode(artifact_id: str):
+            raise RuntimeError(f"provider token leaked for {artifact_id}")
+
+        with caplog.at_level(logging.ERROR, logger="seatflow.api.app"):
+            with TestClient(app, raise_server_exceptions=False) as safe_client:
+                response = safe_client.get(
+                    "/research/v1/internal/private-artifact?api_key=secret-query"
+                )
+
+        assert response.status_code == 500
+        body = response.json()
+        assert body["message"] == "Internal server error"
+        assert body["details"] == {"path": "/research/v1/internal/{artifact_id}"}
+        assert body["traceId"]
+        assert body["remediation"] == "Contact the service operator with the traceId."
+        public_payload = json.dumps(body)
+        assert "provider token" not in public_payload
+        assert "private-artifact" not in public_payload
+        assert "secret-query" not in public_payload
+        assert "traceback" not in public_payload.lower()
+        assert any(body["traceId"] in record.getMessage() for record in caplog.records)

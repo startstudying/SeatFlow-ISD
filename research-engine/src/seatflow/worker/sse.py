@@ -135,6 +135,7 @@ def _is_terminal_event(event_type: str) -> bool:
         "TASK_COMPLETED",
         "TASK_CANCELLED",
         "TASK_FAILED",
+        "TASK_BLOCKED",
     }
 
 

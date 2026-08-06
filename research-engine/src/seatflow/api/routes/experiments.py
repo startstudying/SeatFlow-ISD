@@ -12,7 +12,7 @@ from seatflow.api.models import (
     PaginationParams,
 )
 from seatflow.api.routes._common import paginate
-from seatflow.api.routes.state import _gen_id, store
+from seatflow.api.routes.state import StoreDependency, _gen_id
 from seatflow.domain.time import utc_now
 
 router = APIRouter(prefix="/research/v1/experiments", tags=["experiments"])
@@ -22,6 +22,7 @@ router = APIRouter(prefix="/research/v1/experiments", tags=["experiments"])
     "", response_model=PaginatedResponse[Experiment], name="list_experiments"
 )
 def list_experiments(
+    store: StoreDependency,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     status: str | None = Query(None, description="Filter by experiment status"),
@@ -46,7 +47,7 @@ def list_experiments(
     status_code=status.HTTP_201_CREATED,
     name="create_experiment",
 )
-def create_experiment(body: ExperimentCreate) -> Experiment:
+def create_experiment(body: ExperimentCreate, store: StoreDependency) -> Experiment:
     """Create a new experiment."""
     now = utc_now()
     experiment = Experiment(
@@ -66,7 +67,7 @@ def create_experiment(body: ExperimentCreate) -> Experiment:
 @router.get(
     "/{experiment_id}", response_model=Experiment, name="get_experiment"
 )
-def get_experiment(experiment_id: str) -> Experiment:
+def get_experiment(experiment_id: str, store: StoreDependency) -> Experiment:
     """Retrieve a single experiment by id."""
     experiment = store.experiments.get(experiment_id)
     if experiment is None:
