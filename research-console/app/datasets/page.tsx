@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api, { type Dataset } from "@/lib/api/client";
+import api, { type APIError, type Dataset } from "@/lib/api/client";
+import { asAPIError, ResearchErrorPanel } from "@/lib/api/research-error";
 
 export default function DatasetsPage() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [error, setError] = useState<APIError | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api
       .listDatasets(1, 50)
-      .then((res) => setDatasets(res.items))
-      .catch(() => setDatasets([]))
+      .then((res) => {
+        setDatasets(res.items);
+        setError(null);
+      })
+      .catch((caught: unknown) => setError(asAPIError(caught)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -20,6 +25,13 @@ export default function DatasetsPage() {
   return (
     <main className="container mx-auto px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">Datasets</h1>
+      {error ? (
+        <ResearchErrorPanel error={error} />
+      ) : datasets.length === 0 ? (
+        <p role="status" className="rounded-md bg-gray-50 p-4 text-sm text-gray-600">
+          No verified datasets returned.
+        </p>
+      ) : (
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -80,6 +92,7 @@ export default function DatasetsPage() {
           </tbody>
         </table>
       </div>
+      )}
     </main>
   );
 }

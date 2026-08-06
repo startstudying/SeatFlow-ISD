@@ -45,6 +45,10 @@ class ResearchArtifactBoundaryTest {
 
     @Test
     void predictionEndpointsDoNotInventNumericOutputsOrTaskHandles() throws Exception {
+        expectResearchArtifactUnavailable(mockMvc.perform(get("/api/v1/predictions")), "predictions.list");
+        expectResearchArtifactUnavailable(
+                mockMvc.perform(get("/api/v1/predictions/prediction-missing")),
+                "predictions.get");
         expectResearchArtifactUnavailable(
                 mockMvc.perform(post("/api/v1/predictions")
                         .contentType(MediaType.APPLICATION_JSON)

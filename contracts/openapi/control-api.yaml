@@ -293,14 +293,13 @@ paths:
       - datasets
       operationId: datasetsList
       summary: List datasets
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until verified dataset artifacts are available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '200':
-          description: Dataset list
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DatasetPage'
-        '500':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
     post:
       tags:
@@ -330,14 +329,13 @@ paths:
       - datasets
       operationId: datasetsGet
       summary: Get a dataset definition
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until the verified dataset artifact is available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '200':
-          description: Dataset
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Dataset'
-        '404':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /datasets/{datasetId}/build:
     parameters:
@@ -347,6 +345,11 @@ paths:
       - datasets
       operationId: datasetsBuild
       summary: Build a dataset version (long-running)
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED; no task is accepted without the verified research gateway.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       requestBody:
         required: true
         content:
@@ -354,17 +357,7 @@ paths:
             schema:
               $ref: '#/components/schemas/DatasetBuildRequest'
       responses:
-        '202':
-          description: Build task accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskHandle'
-        '400':
-          $ref: '#/components/responses/SeatFlowErrorResponse'
-        '404':
-          $ref: '#/components/responses/SeatFlowErrorResponse'
-        '409':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /datasets/{datasetId}/validate:
     parameters:
@@ -374,14 +367,13 @@ paths:
       - datasets
       operationId: datasetsValidate
       summary: Validate a dataset against quality gates
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED; no task is accepted without the verified research gateway.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '202':
-          description: Validation task accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskHandle'
-        '404':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /quality-gates:
     get:
@@ -478,6 +470,11 @@ paths:
       - experiments
       operationId: experimentsCompare
       summary: Compare runs within an experiment
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until verified run artifacts are available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       requestBody:
         required: true
         content:
@@ -485,13 +482,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ExperimentCompareRequest'
       responses:
-        '200':
-          description: Comparison report
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExperimentCompareReport'
-        '500':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /runs:
     get:
@@ -522,6 +513,11 @@ paths:
       - runs
       operationId: runsCreate
       summary: Submit a new run (long-running)
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED; no task is accepted without the verified research gateway.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       requestBody:
         required: true
         content:
@@ -529,13 +525,7 @@ paths:
             schema:
               $ref: '#/components/schemas/RunCreateRequest'
       responses:
-        '202':
-          description: Run accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskHandle'
-        '400':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /runs/{runId}:
     parameters:
@@ -562,16 +552,13 @@ paths:
       - runs
       operationId: runsCancel
       summary: Cancel a running run
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until the research task gateway can track cancellation.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '202':
-          description: Cancellation accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskHandle'
-        '404':
-          $ref: '#/components/responses/SeatFlowErrorResponse'
-        '409':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /runs/{runId}/artifacts:
     parameters:
@@ -581,14 +568,13 @@ paths:
       - runs
       operationId: runsListArtifacts
       summary: List artifacts produced by a run
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until verified run artifacts are available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '200':
-          description: Artifact list
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ArtifactPage'
-        '500':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /models:
     get:
@@ -650,6 +636,11 @@ paths:
       - models
       operationId: modelsPromote
       summary: Promote a model version to a stage
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until model artifact lineage is verified.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       requestBody:
         required: true
         content:
@@ -657,13 +648,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ModelPromoteRequest'
       responses:
-        '200':
-          description: Model promoted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Model'
-        '409':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /models/{modelId}/retire:
     parameters:
@@ -673,21 +658,38 @@ paths:
       - models
       operationId: modelsRetire
       summary: Retire a model version
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED; no task is accepted without the verified research gateway.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '202':
-          description: Retirement task accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskHandle'
-        '500':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /predictions:
+    get:
+      tags:
+      - predictions
+      operationId: predictionsList
+      summary: List prediction artifacts
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until verified prediction artifacts are available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
+      responses:
+        '503':
+          $ref: '#/components/responses/SeatFlowErrorResponse'
     post:
       tags:
       - predictions
       operationId: predictionsCreate
       summary: Generate predictions for a single inference request
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until a verified model artifact is available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       requestBody:
         required: true
         content:
@@ -695,14 +697,22 @@ paths:
             schema:
               $ref: '#/components/schemas/PredictionRequest'
       responses:
-        '200':
-          description: Predictions
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PredictionResponse'
-        '400':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
+  /predictions/{predictionId}:
+    parameters:
+    - $ref: '#/components/parameters/PredictionId'
+    get:
+      tags:
+      - predictions
+      operationId: predictionsGet
+      summary: Get a prediction artifact
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until the verified prediction artifact is available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
+      responses:
         '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /predictions/batch:
@@ -711,6 +721,11 @@ paths:
       - predictions
       operationId: predictionsCreateBatch
       summary: Submit a batch prediction job (long-running)
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED; no task is accepted without the verified research gateway.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       requestBody:
         required: true
         content:
@@ -718,13 +733,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PredictionBatchRequest'
       responses:
-        '202':
-          description: Batch job accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskHandle'
-        '400':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /backtests:
     get:
@@ -732,20 +741,24 @@ paths:
       - backtests
       operationId: backtestsList
       summary: List backtests
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until verified backtest artifacts are available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '200':
-          description: Backtest list
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BacktestPage'
-        '500':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
     post:
       tags:
       - backtests
       operationId: backtestsCreate
       summary: Create a backtest (long-running)
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED; no task is accepted without the verified research gateway.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       requestBody:
         required: true
         content:
@@ -753,13 +766,7 @@ paths:
             schema:
               $ref: '#/components/schemas/BacktestCreateRequest'
       responses:
-        '202':
-          description: Backtest accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TaskHandle'
-        '500':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /backtests/{backtestId}:
     parameters:
@@ -769,14 +776,13 @@ paths:
       - backtests
       operationId: backtestsGet
       summary: Get backtest detail
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until the verified backtest artifact is available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '200':
-          description: Backtest
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Backtest'
-        '404':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /backtests/{backtestId}/report:
     parameters:
@@ -786,14 +792,13 @@ paths:
       - backtests
       operationId: backtestsGetReport
       summary: Get backtest report
+      description: Currently fail-closed with RESEARCH_ARTIFACT_UNAVAILABLE and details.status BLOCKED until the verified report artifact is available.
+      x-seatflow-fail-closed:
+        code: RESEARCH_ARTIFACT_UNAVAILABLE
+        status: BLOCKED
+        retryable: true
       responses:
-        '200':
-          description: Report
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BacktestReport'
-        '404':
+        '503':
           $ref: '#/components/responses/SeatFlowErrorResponse'
   /paper-trading/sessions:
     get:
@@ -1062,6 +1067,12 @@ components:
     ModelId:
       in: path
       name: modelId
+      required: true
+      schema:
+        type: string
+    PredictionId:
+      in: path
+      name: predictionId
       required: true
       schema:
         type: string

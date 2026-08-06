@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api, { type Prediction } from "@/lib/api/client";
+import api, { type APIError, type Prediction } from "@/lib/api/client";
+import { asAPIError, ResearchErrorPanel } from "@/lib/api/research-error";
 import { formatPredictionLabel } from "@/lib/config/truthfulness";
 
 export default function PredictionsPage() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [error, setError] = useState<APIError | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api
       .listPredictions(1, 50)
-      .then((res) => setPredictions(res.items))
-      .catch(() => setPredictions([]))
+      .then((res) => {
+        setPredictions(res.items);
+        setError(null);
+      })
+      .catch((caught: unknown) => setError(asAPIError(caught)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -24,6 +29,13 @@ export default function PredictionsPage() {
       <div className="mb-4 rounded-md bg-blue-50 p-3 text-sm text-blue-700">
         All predictions are research / backtest only. No formal predictions.
       </div>
+      {error ? (
+        <ResearchErrorPanel error={error} />
+      ) : predictions.length === 0 ? (
+        <p role="status" className="rounded-md bg-gray-50 p-4 text-sm text-gray-600">
+          No verified predictions returned.
+        </p>
+      ) : (
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -82,6 +94,7 @@ export default function PredictionsPage() {
           </tbody>
         </table>
       </div>
+      )}
     </main>
   );
 }

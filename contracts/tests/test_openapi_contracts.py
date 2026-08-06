@@ -50,6 +50,33 @@ LONG_RUNNING_SUFFIXES = (
     "inference/daily",
 )
 
+FAIL_CLOSED_CONTROL_OPERATIONS = {
+    ("/datasets", "get"): "datasetsList",
+    ("/datasets/{datasetId}", "get"): "datasetsGet",
+    ("/datasets/{datasetId}/build", "post"): "datasetsBuild",
+    ("/datasets/{datasetId}/validate", "post"): "datasetsValidate",
+    ("/experiments/{experimentId}/compare", "post"): "experimentsCompare",
+    ("/runs", "post"): "runsCreate",
+    ("/runs/{runId}/cancel", "post"): "runsCancel",
+    ("/runs/{runId}/artifacts", "get"): "runsListArtifacts",
+    ("/models/{modelId}/promote", "post"): "modelsPromote",
+    ("/models/{modelId}/retire", "post"): "modelsRetire",
+    ("/predictions", "get"): "predictionsList",
+    ("/predictions/{predictionId}", "get"): "predictionsGet",
+    ("/predictions", "post"): "predictionsCreate",
+    ("/predictions/batch", "post"): "predictionsCreateBatch",
+    ("/backtests", "get"): "backtestsList",
+    ("/backtests", "post"): "backtestsCreate",
+    ("/backtests/{backtestId}", "get"): "backtestsGet",
+    ("/backtests/{backtestId}/report", "get"): "backtestsGetReport",
+}
+
+EXPECTED_FAIL_CLOSED_POLICY = {
+    "code": "RESEARCH_ARTIFACT_UNAVAILABLE",
+    "status": "BLOCKED",
+    "retryable": True,
+}
+
 
 # ---------------------------------------------------------------------------
 # Loaders
@@ -316,6 +343,28 @@ def test_seatflow_error_schema_defined(control_api: Dict[str, Any], research_api
         )
 
 
+def test_control_research_artifact_operations_only_advertise_blocked_503(
+    control_api: Dict[str, Any],
+) -> None:
+    for (path, method), operation_id in FAIL_CLOSED_CONTROL_OPERATIONS.items():
+        assert path in control_api["paths"], f"Missing fail-closed path: {path}"
+        operation = control_api["paths"][path].get(method)
+        assert isinstance(operation, dict), f"Missing fail-closed operation: {method.upper()} {path}"
+        assert operation.get("operationId") == operation_id
+        assert operation.get("x-seatflow-fail-closed") == EXPECTED_FAIL_CLOSED_POLICY
+        description = operation.get("description", "")
+        assert "RESEARCH_ARTIFACT_UNAVAILABLE" in description
+        assert "BLOCKED" in description
+        assert operation.get("responses") == {
+            "503": {"$ref": "#/components/responses/SeatFlowErrorResponse"}
+        }, f"{method.upper()} {path} must not advertise unavailable success responses"
+
+    prediction_parameters = control_api["paths"]["/predictions/{predictionId}"]["parameters"]
+    assert {parameter.get("$ref") for parameter in prediction_parameters} == {
+        "#/components/parameters/PredictionId"
+    }
+
+
 # ---------------------------------------------------------------------------
 # Long-running operations return taskId
 # ---------------------------------------------------------------------------
@@ -329,6 +378,10 @@ def test_long_running_operations_return_task_id(doc_path: Path) -> None:
     missing = []
     for path, method, _, operation in _iter_operations(doc):
         if not _is_long_running(path, method):
+            continue
+        if not any(str(code).startswith("2") for code in _response_statuses(operation)):
+            # An operation that is explicitly unavailable does not accept work
+            # and therefore must not manufacture a task handle.
             continue
         if not _operation_returns_task_id(operation, doc):
             missing.append(f"{method.upper()} {path}")

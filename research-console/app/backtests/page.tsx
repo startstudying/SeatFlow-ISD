@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api, { type Backtest } from "@/lib/api/client";
+import api, { type APIError, type Backtest } from "@/lib/api/client";
+import { asAPIError, ResearchErrorPanel } from "@/lib/api/research-error";
 
 export default function BacktestsPage() {
   const [backtests, setBacktests] = useState<Backtest[]>([]);
+  const [error, setError] = useState<APIError | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api
       .listBacktests(1, 50)
-      .then((res) => setBacktests(res.items))
-      .catch(() => setBacktests([]))
+      .then((res) => {
+        setBacktests(res.items);
+        setError(null);
+      })
+      .catch((caught: unknown) => setError(asAPIError(caught)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -23,6 +28,13 @@ export default function BacktestsPage() {
       <div className="mb-4 rounded-md bg-blue-50 p-3 text-sm text-blue-700">
         All backtest results include transaction costs. Research / backtest only.
       </div>
+      {error ? (
+        <ResearchErrorPanel error={error} />
+      ) : backtests.length === 0 ? (
+        <p role="status" className="rounded-md bg-gray-50 p-4 text-sm text-gray-600">
+          No verified backtests returned.
+        </p>
+      ) : (
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -84,6 +96,7 @@ export default function BacktestsPage() {
           </tbody>
         </table>
       </div>
+      )}
     </main>
   );
 }
