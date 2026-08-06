@@ -99,8 +99,7 @@ class PropagationCandidateFinder:
             if per_seat
         ]
 
-        links.sort(key=lambda link: (-link.candidate_score, link.target_stock_id))
-        return links[: self._top_k]
+        return _rank_with_tied_boundary(links, top_k=self._top_k)
 
     def find_theme_diffusion(
         self,
@@ -162,12 +161,35 @@ class PropagationCandidateFinder:
             for target_id, evidence in target_evidence.items()
         ]
 
-        links.sort(key=lambda link: (-link.candidate_score, link.target_stock_id))
-        return links[: self._top_k]
+        return _rank_with_tied_boundary(links, top_k=self._top_k)
 
     def enforce_max_hops(self, links: list[PropagationLink]) -> list[PropagationLink]:
         """Filter out links that exceed max_hops."""
         return [link for link in links if link.hop_count <= self._max_hops]
+
+
+def _semantic_rank_key(link: PropagationLink) -> tuple[float, int, str]:
+    available_time = link.available_time.isoformat() if link.available_time else "~"
+    return (-link.candidate_score, -len(link.path_evidence), available_time)
+
+
+def _rank_with_tied_boundary(
+    links: list[PropagationLink],
+    *,
+    top_k: int,
+) -> list[PropagationLink]:
+    ranked = sorted(links, key=_semantic_rank_key)
+    if len(ranked) <= top_k:
+        return ranked
+
+    boundary_key = _semantic_rank_key(ranked[top_k - 1])
+    boundary_end = top_k
+    while (
+        boundary_end < len(ranked)
+        and _semantic_rank_key(ranked[boundary_end]) == boundary_key
+    ):
+        boundary_end += 1
+    return ranked[:boundary_end]
 
 
 def _seat_evidence(

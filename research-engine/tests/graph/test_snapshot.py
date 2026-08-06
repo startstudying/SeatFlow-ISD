@@ -154,14 +154,37 @@ class TestPropagationCandidates:
             ("target", EdgeType.SAME_SEAT_RELAY)
         ]
 
-    def test_top_k_truncation(self):
+    def test_top_k_retains_complete_semantic_tie_boundary(self):
         parts = [_participation("seat-A", "source", "BUY", _SOURCE_TIME)]
-        targets = {f"stock-{index}" for index in range(10)}
+        targets = [f"stock-{index}" for index in range(10)]
         parts.extend(_participation("seat-A", target, "BUY", _TARGET_TIME) for target in targets)
         links = PropagationCandidateFinder(top_k=3).find_seat_relay(
             "source", parts, {"source", *targets}, cutoff_time=_CUTOFF
         )
-        assert len(links) == 3
+        assert {link.target_stock_id for link in links} == set(targets)
+
+    def test_equal_semantic_evidence_does_not_reorder_renamed_targets(self):
+        def ordered_targets(first_id: str, second_id: str) -> list[str]:
+            parts = [
+                _participation("seat-A", "source", "BUY", _SOURCE_TIME),
+                _participation("seat-A", first_id, "BUY", _TARGET_TIME),
+                _participation("seat-A", second_id, "BUY", _TARGET_TIME),
+            ]
+            return [
+                link.target_stock_id
+                for link in PropagationCandidateFinder(top_k=1).find_seat_relay(
+                    "source",
+                    parts,
+                    {"source", first_id, second_id},
+                    cutoff_time=_CUTOFF,
+                )
+            ]
+
+        assert ordered_targets("z-first", "a-second") == ["z-first", "a-second"]
+        assert ordered_targets("a-renamed-first", "z-renamed-second") == [
+            "a-renamed-first",
+            "z-renamed-second",
+        ]
 
     def test_max_hops_enforcement(self):
         links = [PropagationLink("source", "target", EdgeType.SAME_SEAT_RELAY, 3, 1.0)]
@@ -182,6 +205,22 @@ class TestPropagationCandidates:
             ("strong", 0.8),
             ("weak", 0.4),
         ]
+
+    def test_theme_top_k_retains_complete_semantic_tie_boundary(self):
+        memberships = {
+            "theme-tech": [
+                {"stock_id": "source", "available_time": _SOURCE_TIME, "membership_strength": 0.9},
+                {"stock_id": "target-b", "available_time": _TARGET_TIME, "membership_strength": 0.5},
+                {"stock_id": "target-a", "available_time": _TARGET_TIME, "membership_strength": 0.5},
+            ]
+        }
+        links = PropagationCandidateFinder(top_k=1).find_theme_diffusion(
+            "source",
+            memberships,
+            {"source", "target-a", "target-b"},
+            cutoff_time=_CUTOFF,
+        )
+        assert {link.target_stock_id for link in links} == {"target-a", "target-b"}
 
     def test_identity_renaming_does_not_change_candidate_scores(self):
         finder = PropagationCandidateFinder()

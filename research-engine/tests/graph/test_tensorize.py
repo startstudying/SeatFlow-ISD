@@ -30,6 +30,19 @@ def _stock_builder(*feature_rows: dict[str, object] | None) -> GraphSnapshotBuil
     return builder
 
 
+def _seat_buy_snapshot(edge_features: dict[str, object]):
+    builder = GraphSnapshotBuilder()
+    builder.add_seat_node("seat-1", _properties(seat_win_rate=0.6))
+    builder.add_event_node("event-1", _properties(event_net_amount=100.0))
+    builder.add_edge(
+        EdgeType.SEAT_BUY_EVENT,
+        "seat-1",
+        "event-1",
+        {"continuous_features": edge_features},
+    )
+    return builder.build(snapshot_id="snap-edge-schema", cutoff_time=_CUTOFF)
+
+
 class TestTensorize:
     def _make_snapshot(
         self,
@@ -146,17 +159,40 @@ class TestTensorize:
         with pytest.raises(ValueError, match=message):
             tensorize_snapshot(snapshot)
 
-    def test_feature_schema_drift_within_node_type_fails_closed(self):
-        builder = _stock_builder(
-            {"stock_volatility_5d": 0.1},
-            {"stock_volatility_20d": 0.2},
-        )
+    def test_unknown_first_row_feature_fails_versioned_schema(self):
+        builder = _stock_builder({"unknown_signal": 0.1})
         snapshot = builder.build(
-            snapshot_id="snap-schema-drift",
+            snapshot_id="snap-unknown-first-row",
             cutoff_time=_CUTOFF,
         )
 
-        with pytest.raises(ValueError, match="schema drift"):
+        with pytest.raises(ValueError, match="graph-continuous-v1"):
+            tensorize_snapshot(snapshot)
+
+    def test_extra_first_row_dimension_fails_versioned_schema(self):
+        builder = _stock_builder(
+            {"stock_volatility_5d": 0.1, "unexpected_extra": 0.2}
+        )
+        snapshot = builder.build(snapshot_id="snap-extra-first-row", cutoff_time=_CUTOFF)
+
+        with pytest.raises(ValueError, match="graph-continuous-v1"):
+            tensorize_snapshot(snapshot)
+
+    @pytest.mark.parametrize(
+        "proxy_name",
+        ["stock_code", "ticker_embedding", "identity_embedding"],
+    )
+    def test_identity_proxy_name_fails_versioned_schema(self, proxy_name: str):
+        builder = _stock_builder({proxy_name: 1.0})
+        snapshot = builder.build(snapshot_id="snap-identity-proxy", cutoff_time=_CUTOFF)
+
+        with pytest.raises(ValueError, match="graph-continuous-v1"):
+            tensorize_snapshot(snapshot)
+
+    def test_extra_edge_dimension_fails_versioned_schema(self):
+        snapshot = _seat_buy_snapshot({"buy_amount": 100.0, "unexpected_extra": 1.0})
+
+        with pytest.raises(ValueError, match="graph-continuous-v1"):
             tensorize_snapshot(snapshot)
 
     def test_dangling_edge_skipped(self):

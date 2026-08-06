@@ -14,9 +14,8 @@ Constraints:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 class NodeType(str, Enum):
@@ -59,6 +58,17 @@ class EdgeSchema:
     max_hops: int = 2
     top_k: int = 20
     directed: bool = True
+
+
+TENSOR_FEATURE_SCHEMA_VERSION = "graph-continuous-v1"
+
+
+@dataclass(frozen=True)
+class TensorFeatureSchema:
+    """Versioned whitelist and ordering for continuous tensor features."""
+
+    version: str
+    feature_names: tuple[str, ...]
 
 
 # ── Frozen schema definitions ──────────────────────────────────────────
@@ -161,12 +171,48 @@ EDGE_SCHEMAS: dict[EdgeType, EdgeSchema] = {
 }
 
 
+def _tensor_schema(*feature_names: str) -> TensorFeatureSchema:
+    return TensorFeatureSchema(
+        version=TENSOR_FEATURE_SCHEMA_VERSION,
+        feature_names=feature_names,
+    )
+
+
+NODE_TENSOR_FEATURE_SCHEMAS: dict[NodeType, TensorFeatureSchema] = {
+    NodeType.STOCK: _tensor_schema("stock_volatility_5d"),
+    NodeType.SEAT: _tensor_schema("seat_win_rate"),
+    NodeType.EVENT: _tensor_schema("event_net_amount"),
+    NodeType.THEME: _tensor_schema(),
+}
+
+EDGE_TENSOR_FEATURE_SCHEMAS: dict[EdgeType, TensorFeatureSchema] = {
+    EdgeType.SEAT_BUY_EVENT: _tensor_schema("buy_amount"),
+    EdgeType.SEAT_SELL_EVENT: _tensor_schema("sell_amount"),
+    EdgeType.EVENT_IMPACTS_STOCK: _tensor_schema("net_amount"),
+    EdgeType.STOCK_BELONGS_THEME: _tensor_schema(),
+    EdgeType.SAME_STOCK_REPEAT: _tensor_schema("days_gap"),
+    EdgeType.SAME_SEAT_RELAY: _tensor_schema("candidate_score"),
+    EdgeType.SAME_COALITION_RELAY: _tensor_schema("coalition_score"),
+    EdgeType.SAME_THEME_DIFFUSION: _tensor_schema("diffusion_score"),
+    EdgeType.CAPITAL_ROTATION: _tensor_schema("rotation_score"),
+    EdgeType.SPILLOVER_CANDIDATE: _tensor_schema("candidate_score"),
+}
+
+
 def get_node_schema(node_type: NodeType) -> NodeSchema:
     return NODE_SCHEMAS[node_type]
 
 
 def get_edge_schema(edge_type: EdgeType) -> EdgeSchema:
     return EDGE_SCHEMAS[edge_type]
+
+
+def get_node_tensor_feature_schema(node_type: NodeType) -> TensorFeatureSchema:
+    return NODE_TENSOR_FEATURE_SCHEMAS[node_type]
+
+
+def get_edge_tensor_feature_schema(edge_type: EdgeType) -> TensorFeatureSchema:
+    return EDGE_TENSOR_FEATURE_SCHEMAS[edge_type]
 
 
 def max_propagation_hops() -> int:

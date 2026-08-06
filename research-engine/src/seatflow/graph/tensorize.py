@@ -18,7 +18,12 @@ from numbers import Real
 from typing import Any, Optional
 
 from seatflow.graph.snapshot import GraphSnapshot
-from seatflow.graph.schema import EdgeType
+from seatflow.graph.schema import (
+    EdgeType,
+    TensorFeatureSchema,
+    get_edge_tensor_feature_schema,
+    get_node_tensor_feature_schema,
+)
 
 
 CONTINUOUS_FEATURES_KEY = "continuous_features"
@@ -60,7 +65,6 @@ def tensorize_snapshot(snapshot: GraphSnapshot) -> TensorizedGraph:
     # Build node ID maps
     node_id_maps: dict[str, dict[str, int]] = {}
     node_features: dict[str, list[list[float]]] = {}
-    node_feature_names: dict[str, tuple[str, ...]] = {}
 
     for node in snapshot.nodes:
         nt = node.node_type.value
@@ -70,21 +74,16 @@ def tensorize_snapshot(snapshot: GraphSnapshot) -> TensorizedGraph:
         idx = len(node_id_maps[nt])
         node_id_maps[nt][node.node_id] = idx
 
-        names, feat = _extract_continuous_features(
+        feat = _extract_continuous_features(
             owner=f"node {node.node_id!r}",
             properties=node.properties,
-        )
-        _validate_schema_consistency(
-            schema_by_type=node_feature_names,
-            owner_type=nt,
-            names=names,
+            schema=get_node_tensor_feature_schema(node.node_type),
         )
         node_features[nt].append(feat)
 
     # Build edge indices
     edge_indices: dict[str, list[tuple[int, int]]] = {}
     edge_features: dict[str, list[list[float]]] = {}
-    edge_feature_names: dict[str, tuple[str, ...]] = {}
 
     for edge in snapshot.edges:
         et = edge.edge_type.value
@@ -97,14 +96,10 @@ def tensorize_snapshot(snapshot: GraphSnapshot) -> TensorizedGraph:
             continue
         edge_indices[et].append((src_idx, tgt_idx))
 
-        names, feat = _extract_continuous_features(
+        feat = _extract_continuous_features(
             owner=f"edge {edge.edge_id!r}",
             properties=edge.properties,
-        )
-        _validate_schema_consistency(
-            schema_by_type=edge_feature_names,
-            owner_type=et,
-            names=names,
+            schema=get_edge_tensor_feature_schema(edge.edge_type),
         )
         edge_features[et].append(feat)
 
@@ -153,10 +148,11 @@ def _extract_continuous_features(
     *,
     owner: str,
     properties: Mapping[str, Any],
-) -> tuple[tuple[str, ...], list[float]]:
+    schema: TensorFeatureSchema,
+) -> list[float]:
     raw_features = properties.get(CONTINUOUS_FEATURES_KEY)
-    if not isinstance(raw_features, Mapping) or not raw_features:
-        raise ValueError(f"{owner} must provide a non-empty {CONTINUOUS_FEATURES_KEY!r} mapping")
+    if not isinstance(raw_features, Mapping):
+        raise ValueError(f"{owner} must provide a {CONTINUOUS_FEATURES_KEY!r} mapping")
 
     if not all(isinstance(name, str) and name for name in raw_features):
         raise ValueError(f"{owner} continuous feature names must be non-empty strings")
@@ -168,8 +164,15 @@ def _extract_continuous_features(
             f"{owner} contains forbidden identity continuous features: {identity_names}"
         )
 
+    expected_names = schema.feature_names
+    if set(names) != set(expected_names):
+        raise ValueError(
+            f"{owner} does not match tensor feature schema {schema.version!r}: "
+            f"expected {expected_names}, got {names}"
+        )
+
     values: list[float] = []
-    for name in names:
+    for name in expected_names:
         raw_value = raw_features[name]
         if isinstance(raw_value, bool) or not isinstance(raw_value, Real):
             raise ValueError(f"{owner} feature {name!r} must be a real number")
@@ -178,7 +181,7 @@ def _extract_continuous_features(
             raise ValueError(f"{owner} feature {name!r} must be finite")
         values.append(value)
 
-    return names, values
+    return values
 
 
 def _is_identity_feature(name: str) -> bool:
@@ -190,19 +193,6 @@ def _is_identity_feature(name: str) -> bool:
         or normalized.startswith("hash_")
         or normalized == "hash"
     )
-
-
-def _validate_schema_consistency(
-    *,
-    schema_by_type: dict[str, tuple[str, ...]],
-    owner_type: str,
-    names: tuple[str, ...],
-) -> None:
-    expected = schema_by_type.setdefault(owner_type, names)
-    if names != expected:
-        raise ValueError(
-            f"continuous feature schema drift for {owner_type}: expected {expected}, got {names}"
-        )
 
 
 def _infer_edge_type_tuple(edge_type_str: str) -> Optional[tuple[str, str, str]]:
