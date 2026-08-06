@@ -1,102 +1,158 @@
-"""Tests for Walk-Forward evaluation (Task 18)."""
+"""Compatibility tests for the canonical walk-forward contract."""
 
-from datetime import datetime, timezone, timedelta
+from __future__ import annotations
 
+from dataclasses import replace
+from datetime import datetime, timedelta, timezone
 
+import pytest
+
+from seatflow.dataset.cycle import CycleStatus, EventCycle
+from seatflow.dataset.splits import (
+    WalkForwardConfig as DatasetWalkForwardConfig,
+    WalkForwardFold as DatasetWalkForwardFold,
+    create_walk_forward_plan as dataset_create_walk_forward_plan,
+)
 from seatflow.evaluation.walk_forward import (
+    WalkForwardConfig,
     WalkForwardFold,
+    create_walk_forward_plan,
     create_walk_forward_splits,
-    verify_cycle_atomicity,
+    validate_walk_forward_plan,
 )
 
 
-def _utc(year, month, day):
+def _utc(year: int, month: int, day: int) -> datetime:
     return datetime(year, month, day, tzinfo=timezone.utc)
 
 
-class TestWalkForward:
-    def test_chronological_order(self):
-        """Train must end before validation starts, which must end before test starts."""
-        cycles = [
-            (f"c{i}", _utc(2024, 1, 1) + timedelta(days=i * 10),
-             _utc(2024, 1, 1) + timedelta(days=i * 10 + 5))
-            for i in range(30)
-        ]
-        folds = create_walk_forward_splits(cycles, embargo_days=5)
-        assert len(folds) >= 1
-        for fold in folds:
-            assert fold.train_end <= fold.validation_start
-            assert fold.validation_end <= fold.test_start
+def _calendar(days: int = 150) -> list[datetime]:
+    out: list[datetime] = []
+    cursor = _utc(2026, 1, 2)
+    while len(out) < days:
+        if cursor.weekday() < 5:
+            out.append(cursor)
+        cursor += timedelta(days=1)
+    return out
 
-    def test_embargo_at_least_5_days(self):
-        """Embargo between train/val/test must be at least 5 trading days."""
-        # Create a trading calendar with enough span
-        calendar = [
-            _utc(2024, 1, 1) + timedelta(days=i)
-            for i in range(500)
-            if (_utc(2024, 1, 1) + timedelta(days=i)).weekday() < 5  # weekdays
-        ]
-        # Create cycles spanning a long period with gaps
-        cycles = [
-            (f"c{i}", calendar[i * 5], calendar[i * 5 + 3])
-            for i in range(50)
-        ]
-        folds = create_walk_forward_splits(
-            cycles, embargo_days=5, validation_days=60, test_days=20
-        )
-        assert len(folds) >= 1
-        for fold in folds:
-            assert fold.embargo_days >= 5
 
-    def test_cycle_atomicity(self):
-        """Every cycle_id must belong to exactly one split."""
-        cycles = [
-            (f"c{i}", _utc(2024, 1, 1) + timedelta(days=i * 10),
-             _utc(2024, 1, 1) + timedelta(days=i * 10 + 5))
-            for i in range(30)
-        ]
-        folds = create_walk_forward_splits(cycles, embargo_days=5)
-        assert len(folds) >= 1
-        all_ids = {c[0] for c in cycles}
-        for fold in folds:
-            assert verify_cycle_atomicity(fold, all_ids)
+def _cycle(cycle_id: str, day: datetime) -> EventCycle:
+    return EventCycle(
+        cycle_id=cycle_id,
+        stock_id="000001.SZ",
+        cycle_start=day,
+        last_event_date=day,
+        cycle_end=day,
+        event_count=1,
+        status=CycleStatus.EXPIRED,
+    )
 
-    def test_no_cycle_in_multiple_splits(self):
-        """A cycle cannot be in both train and test."""
-        fold = WalkForwardFold(
-            fold_id=0,
-            train_cycle_ids=frozenset({"c1", "c2"}),
-            validation_cycle_ids=frozenset({"c3"}),
-            test_cycle_ids=frozenset({"c4"}),
-            embargo_days=5,
-            train_start=_utc(2024, 1, 1),
-            train_end=_utc(2024, 6, 1),
-            validation_end=_utc(2024, 8, 1),
-            test_end=_utc(2024, 9, 1),
-        )
-        assert verify_cycle_atomicity(fold, {"c1", "c2", "c3", "c4"})
 
-    def test_cycle_overlap_detected(self):
-        """Overlapping cycles should fail atomicity check."""
-        fold = WalkForwardFold(
-            fold_id=0,
-            train_cycle_ids=frozenset({"c1", "c2"}),
-            validation_cycle_ids=frozenset({"c2", "c3"}),  # c2 overlaps
-            test_cycle_ids=frozenset({"c4"}),
-            embargo_days=5,
-            train_start=_utc(2024, 1, 1),
-            train_end=_utc(2024, 6, 1),
-            validation_end=_utc(2024, 8, 1),
-            test_end=_utc(2024, 9, 1),
-        )
-        assert not verify_cycle_atomicity(fold, {"c1", "c2", "c3", "c4"})
+def _cycles(calendar: list[datetime], count: int = 110) -> list[EventCycle]:
+    return [_cycle(f"cyc-{i:03d}", calendar[i]) for i in range(count)]
 
-    def test_empty_input(self):
-        folds = create_walk_forward_splits([], embargo_days=5)
-        assert folds == []
 
-    def test_insufficient_data(self):
-        """Too few cycles should produce no folds."""
-        cycles = [("c0", _utc(2024, 1, 1), _utc(2024, 1, 5))]
-        folds = create_walk_forward_splits(cycles, embargo_days=5)
-        assert folds == []
+def _config() -> WalkForwardConfig:
+    return WalkForwardConfig(
+        min_train_trading_days=30,
+        validation_trading_days=8,
+        test_trading_days=5,
+        label_horizon_trading_days=5,
+        purge_trading_days=5,
+        embargo_trading_days=5,
+        blind_trading_days=20,
+    )
+
+
+def test_evaluation_imports_are_same_canonical_symbols_as_dataset() -> None:
+    assert WalkForwardConfig is DatasetWalkForwardConfig
+    assert WalkForwardFold is DatasetWalkForwardFold
+    assert create_walk_forward_plan is dataset_create_walk_forward_plan
+
+
+def test_legacy_tuple_api_requires_explicit_trading_calendar() -> None:
+    calendar = _calendar()
+    cycles = [(f"cyc-{i:03d}", calendar[i], calendar[i]) for i in range(60)]
+
+    with pytest.raises(ValueError, match="trading_calendar"):
+        create_walk_forward_splits(cycles, config=_config())
+
+
+def test_legacy_tuple_api_uses_canonical_multi_fold_logic_when_calendar_is_explicit() -> None:
+    calendar = _calendar()
+    tuple_cycles = [(f"cyc-{i:03d}", calendar[i], calendar[i]) for i in range(110)]
+
+    folds = create_walk_forward_splits(
+        tuple_cycles,
+        trading_calendar=calendar,
+        config=_config(),
+        calendar_evidence_fingerprint="calendar-source-a",
+    )
+
+    assert len(folds) >= 3
+    assert all(isinstance(fold, DatasetWalkForwardFold) for fold in folds)
+
+
+def test_validator_rejects_train_prediction_overlap_and_oof_duplicates() -> None:
+    calendar = _calendar()
+    cycles = _cycles(calendar)
+    plan = create_walk_forward_plan(
+        cycles,
+        trading_calendar=calendar,
+        config=_config(),
+        calendar_evidence_fingerprint="calendar-source-a",
+    )
+
+    first = plan.folds[0]
+    bad_fold = replace(
+        first,
+        train_cycle_ids=frozenset([*first.train_cycle_ids, next(iter(first.test_cycle_ids))]),
+    )
+    bad_plan = replace(
+        plan,
+        folds=(bad_fold, *plan.folds[1:]),
+    )
+    with pytest.raises(ValueError, match="training.*prediction"):
+        validate_walk_forward_plan(bad_plan, cycles=cycles, trading_calendar=calendar)
+
+    if len(plan.folds) < 2:
+        pytest.fail("fixture must produce at least two folds")
+    second = plan.folds[1]
+    duplicated_first = replace(
+        first,
+        validation_cycle_ids=frozenset(
+            [*first.validation_cycle_ids, next(iter(second.validation_cycle_ids))]
+        ),
+    )
+    duplicate_plan = replace(
+        plan,
+        folds=(duplicated_first, *plan.folds[1:]),
+    )
+    with pytest.raises(ValueError, match="OOF"):
+        validate_walk_forward_plan(duplicate_plan, cycles=cycles, trading_calendar=calendar)
+
+
+def test_validator_rejects_calendar_tamper_and_embargo_shortfall() -> None:
+    calendar = _calendar()
+    cycles = _cycles(calendar)
+    plan = create_walk_forward_plan(
+        cycles,
+        trading_calendar=calendar,
+        config=_config(),
+        calendar_evidence_fingerprint="calendar-source-a",
+    )
+
+    with pytest.raises(ValueError, match="calendar fingerprint"):
+        validate_walk_forward_plan(plan, cycles=cycles, trading_calendar=calendar[:-1])
+
+    first = plan.folds[0]
+    bad_fold = replace(
+        first,
+        validation_start=calendar[calendar.index(first.train_end) + 2],
+    )
+    bad_plan = replace(
+        plan,
+        folds=(bad_fold, *plan.folds[1:]),
+    )
+    with pytest.raises(ValueError, match="embargo"):
+        validate_walk_forward_plan(bad_plan, cycles=cycles, trading_calendar=calendar)
