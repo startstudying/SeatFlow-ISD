@@ -1,29 +1,79 @@
 """Tests for graph tensorization (Task 14)."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 
-from seatflow.graph.schema import EdgeType, NodeType
+from seatflow.graph.schema import EdgeType
 from seatflow.graph.snapshot import GraphSnapshotBuilder
-from seatflow.graph.tensorize import tensorize_snapshot, TensorizedGraph
+from seatflow.graph.tensorize import tensorize_snapshot
 
 
 def _utc(s: str) -> datetime:
     return datetime.fromisoformat(s)
 
 
+_CUTOFF = _utc("2025-01-01T00:00:00+00:00")
+
+
+def _properties(**features: object) -> dict[str, object]:
+    return {"continuous_features": features}
+
+
+def _stock_builder(*feature_rows: dict[str, object] | None) -> GraphSnapshotBuilder:
+    builder = GraphSnapshotBuilder()
+    for index, features in enumerate(feature_rows, start=1):
+        builder.add_stock_node(
+            f"stock-{index}",
+            {} if features is None else _properties(**features),
+        )
+    return builder
+
+
 class TestTensorize:
-    def _make_snapshot(self):
+    def _make_snapshot(
+        self,
+        *,
+        stock_ids: tuple[str, str] = ("stock-1", "stock-2"),
+        seat_id: str = "seat-1",
+        event_id: str = "event-1",
+    ):
         builder = GraphSnapshotBuilder()
-        builder.add_stock_node("stock-1")
-        builder.add_stock_node("stock-2")
-        builder.add_seat_node("seat-1")
-        builder.add_event_node("event-1")
-        builder.add_edge(EdgeType.SEAT_BUY_EVENT, "seat-1", "event-1", {"buy_amount": 100.0})
-        builder.add_edge(EdgeType.EVENT_IMPACTS_STOCK, "event-1", "stock-1")
-        builder.add_edge(EdgeType.SAME_SEAT_RELAY, "stock-1", "stock-2", {"candidate_score": 0.8})
-        return builder.build(snapshot_id="snap-t", cutoff_time=_utc("2025-01-01T00:00:00+00:00"))
+        builder.add_stock_node(
+            stock_ids[0],
+            _properties(stock_volatility_5d=0.1),
+        )
+        builder.add_stock_node(
+            stock_ids[1],
+            _properties(stock_volatility_5d=0.2),
+        )
+        builder.add_seat_node(
+            seat_id,
+            _properties(seat_win_rate=0.6),
+        )
+        builder.add_event_node(
+            event_id,
+            _properties(event_net_amount=100.0),
+        )
+        builder.add_edge(
+            EdgeType.SEAT_BUY_EVENT,
+            seat_id,
+            event_id,
+            _properties(buy_amount=100.0),
+        )
+        builder.add_edge(
+            EdgeType.EVENT_IMPACTS_STOCK,
+            event_id,
+            stock_ids[0],
+            _properties(net_amount=100.0),
+        )
+        builder.add_edge(
+            EdgeType.SAME_SEAT_RELAY,
+            stock_ids[0],
+            stock_ids[1],
+            _properties(candidate_score=0.8),
+        )
+        return builder.build(snapshot_id="snap-t", cutoff_time=_CUTOFF)
 
     def test_node_id_map_built(self):
         snap = self._make_snapshot()
@@ -48,25 +98,71 @@ class TestTensorize:
         tg = tensorize_snapshot(snap)
         assert tg.snapshot_hash == snap.snapshot_hash
 
-    def test_node_features_dim(self):
-        snap = self._make_snapshot()
-        tg = tensorize_snapshot(snap, feature_dim=16)
-        for nt, feats in tg.node_features.items():
-            for row in feats:
-                assert len(row) == 16
+    def test_explicit_semantic_features_are_tensorized(self):
+        tg = tensorize_snapshot(self._make_snapshot())
+        assert tg.node_features["Stock"] == [[0.1], [0.2]]
+        assert tg.edge_features["seat_buy_event"] == [[100.0]]
 
-    def test_edge_features_built(self):
-        snap = self._make_snapshot()
-        tg = tensorize_snapshot(snap)
-        assert "seat_buy_event" in tg.edge_features
-        # buy_amount=100.0 should be in the first edge feature
-        assert 100.0 in tg.edge_features["seat_buy_event"][0]
+    def test_renaming_identity_ids_preserves_all_continuous_features(self):
+        """Reintroducing an ID-derived value would change one of these matrices."""
+        original = tensorize_snapshot(self._make_snapshot())
+        renamed = tensorize_snapshot(
+            self._make_snapshot(
+                stock_ids=("renamed-stock-a", "renamed-stock-b"),
+                seat_id="renamed-seat",
+                event_id="renamed-event",
+            )
+        )
+
+        assert renamed.node_features == original.node_features
+        assert renamed.edge_features == original.edge_features
+        assert renamed.edge_indices == original.edge_indices
+
+    @pytest.mark.parametrize("identity_name", ["stock_id", "node_id", "id_hash"])
+    def test_identity_field_rejected_as_node_continuous_feature(self, identity_name: str):
+        builder = _stock_builder({identity_name: 1.0})
+        snapshot = builder.build(
+            snapshot_id="snap-identity-node",
+            cutoff_time=_CUTOFF,
+        )
+
+        with pytest.raises(ValueError, match="identity"):
+            tensorize_snapshot(snapshot)
+
+    @pytest.mark.parametrize(
+        ("features", "message"),
+        [
+            pytest.param(None, "continuous_features", id="missing"),
+            pytest.param({"stock_volatility_5d": float("nan")}, "finite", id="nan"),
+        ],
+    )
+    def test_invalid_continuous_features_fail_closed(self, features, message):
+        builder = _stock_builder(features)
+        snapshot = builder.build(
+            snapshot_id="snap-invalid-features",
+            cutoff_time=_CUTOFF,
+        )
+
+        with pytest.raises(ValueError, match=message):
+            tensorize_snapshot(snapshot)
+
+    def test_feature_schema_drift_within_node_type_fails_closed(self):
+        builder = _stock_builder(
+            {"stock_volatility_5d": 0.1},
+            {"stock_volatility_20d": 0.2},
+        )
+        snapshot = builder.build(
+            snapshot_id="snap-schema-drift",
+            cutoff_time=_CUTOFF,
+        )
+
+        with pytest.raises(ValueError, match="schema drift"):
+            tensorize_snapshot(snapshot)
 
     def test_dangling_edge_skipped(self):
         """Edges referencing non-existent nodes are skipped."""
-        builder = GraphSnapshotBuilder()
-        builder.add_stock_node("stock-1")
+        builder = _stock_builder({"stock_volatility_5d": 0.1})
         builder.add_edge(EdgeType.SAME_SEAT_RELAY, "stock-1", "nonexistent")
-        snap = builder.build(snapshot_id="snap-d", cutoff_time=_utc("2025-01-01T00:00:00+00:00"))
+        snap = builder.build(snapshot_id="snap-d", cutoff_time=_CUTOFF)
         tg = tensorize_snapshot(snap)
         assert len(tg.edge_indices.get("same_seat_relay", [])) == 0

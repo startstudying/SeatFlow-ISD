@@ -1,13 +1,18 @@
 """Tests for graph snapshot and state store (Task 14)."""
 
-from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+from datetime import datetime
 
 import pytest
 
-from seatflow.graph.schema import EdgeType, NodeType
+from seatflow.graph.schema import EdgeType
 from seatflow.graph.snapshot import GraphSnapshotBuilder, GraphSnapshot
 from seatflow.graph.state_store import GraphStateStore
-from seatflow.graph.candidates import PropagationCandidateFinder
+from seatflow.graph.candidates import PropagationCandidateFinder, PropagationLink
 
 
 def _utc(s: str) -> datetime:
@@ -33,6 +38,7 @@ class TestGraphSnapshot:
             b.add_event_node("event-1")
             b.add_edge(EdgeType.EVENT_IMPACTS_STOCK, "event-1", "stock-1")
             return b.build(snapshot_id="snap-x", cutoff_time=_utc("2025-01-01T00:00:00+00:00"))
+
         s1 = make()
         s2 = make()
         assert s1.snapshot_hash == s2.snapshot_hash
@@ -109,47 +115,122 @@ class TestGraphStateStore:
         assert early.snapshot_id == "snap-1"
 
 
+_CUTOFF = _utc("2025-01-03T00:00:00+00:00")
+_SOURCE_TIME = _utc("2025-01-01T00:00:00+00:00")
+_TARGET_TIME = _utc("2025-01-02T00:00:00+00:00")
+
+
+def _participation(seat: str, stock: str, side: str, at: datetime | None) -> dict[str, object]:
+    return {"seat_id": seat, "stock_id": stock, "side": side, "available_time": at}
+
+
+def _semantic_relay_case(
+    prefix: str = "",
+) -> tuple[str, list[dict[str, object]], set[str]]:
+    source = f"{prefix}source"
+    strong, medium, weak = (f"{prefix}{name}" for name in ("z-strong", "m-medium", "a-weak"))
+    seat_a, seat_b = f"{prefix}seat-A", f"{prefix}seat-B"
+    parts = [
+        _participation(seat_a, source, "BUY", _SOURCE_TIME),
+        _participation(seat_b, source, "BUY", _SOURCE_TIME),
+        _participation(seat_a, strong, "BUY", _TARGET_TIME),
+        _participation(seat_b, strong, "BUY", _TARGET_TIME),
+        _participation(seat_a, medium, "BUY", _TARGET_TIME),
+        _participation(seat_a, weak, "SELL", _TARGET_TIME),
+    ]
+    return source, parts, {source, strong, medium, weak}
+
+
 class TestPropagationCandidates:
     def test_seat_relay_finds_shared_seat(self):
-        finder = PropagationCandidateFinder()
-        participations = [
-            {"seat_id": "seat-A", "stock_id": "stock-src", "side": "BUY", "available_time": _utc("2025-01-01T00:00:00+00:00")},
-            {"seat_id": "seat-A", "stock_id": "stock-tgt-1", "side": "BUY", "available_time": _utc("2025-01-02T00:00:00+00:00")},
+        parts = [
+            _participation("seat-A", "source", "BUY", _SOURCE_TIME),
+            _participation("seat-A", "target", "BUY", _TARGET_TIME),
         ]
-        links = finder.find_seat_relay("stock-src", participations, {"stock-src", "stock-tgt-1"})
-        assert len(links) == 1
-        assert links[0].target_stock_id == "stock-tgt-1"
-        assert links[0].relation_type == EdgeType.SAME_SEAT_RELAY
+        links = PropagationCandidateFinder().find_seat_relay(
+            "source", parts, {"source", "target"}, cutoff_time=_CUTOFF
+        )
+        assert [(link.target_stock_id, link.relation_type) for link in links] == [
+            ("target", EdgeType.SAME_SEAT_RELAY)
+        ]
 
     def test_top_k_truncation(self):
-        finder = PropagationCandidateFinder(top_k=3)
-        participations = []
-        for i in range(10):
-            participations.extend([
-                {"seat_id": "seat-A", "stock_id": "stock-src", "side": "BUY", "available_time": _utc("2025-01-01T00:00:00+00:00")},
-                {"seat_id": "seat-A", "stock_id": f"stock-{i}", "side": "BUY", "available_time": _utc("2025-01-02T00:00:00+00:00")},
-            ])
-        links = finder.find_seat_relay("stock-src", participations, {"stock-src", *[f"stock-{i}" for i in range(10)]})
+        parts = [_participation("seat-A", "source", "BUY", _SOURCE_TIME)]
+        targets = {f"stock-{index}" for index in range(10)}
+        parts.extend(_participation("seat-A", target, "BUY", _TARGET_TIME) for target in targets)
+        links = PropagationCandidateFinder(top_k=3).find_seat_relay(
+            "source", parts, {"source", *targets}, cutoff_time=_CUTOFF
+        )
         assert len(links) == 3
 
     def test_max_hops_enforcement(self):
-        finder = PropagationCandidateFinder(max_hops=2)
-        participations = [
-            {"seat_id": "seat-A", "stock_id": "stock-src", "side": "BUY", "available_time": _utc("2025-01-01T00:00:00+00:00")},
-            {"seat_id": "seat-A", "stock_id": "stock-tgt", "side": "BUY", "available_time": _utc("2025-01-02T00:00:00+00:00")},
-        ]
-        links = finder.find_seat_relay("stock-src", participations, {"stock-src", "stock-tgt"})
-        filtered = finder.enforce_max_hops(links)
-        assert all(l.hop_count <= 2 for l in filtered)
+        links = [PropagationLink("source", "target", EdgeType.SAME_SEAT_RELAY, 3, 1.0)]
+        assert PropagationCandidateFinder(max_hops=2).enforce_max_hops(links) == []
 
-    def test_theme_diffusion(self):
-        finder = PropagationCandidateFinder()
+    def test_theme_diffusion_uses_pit_membership_strength(self):
         memberships = {
-            "theme-tech": ["stock-src", "stock-tech-1", "stock-tech-2"],
-            "theme-energy": ["stock-other"],
+            "theme-tech": [
+                {"stock_id": "source", "available_time": _SOURCE_TIME, "membership_strength": 0.9},
+                {"stock_id": "strong", "available_time": _TARGET_TIME, "membership_strength": 0.8},
+                {"stock_id": "weak", "available_time": _TARGET_TIME, "membership_strength": 0.4},
+            ]
         }
-        links = finder.find_theme_diffusion("stock-src", memberships)
-        target_ids = {l.target_stock_id for l in links}
-        assert "stock-tech-1" in target_ids
-        assert "stock-tech-2" in target_ids
-        assert "stock-other" not in target_ids
+        links = PropagationCandidateFinder().find_theme_diffusion(
+            "source", memberships, {"source", "strong", "weak"}, cutoff_time=_CUTOFF
+        )
+        assert [(link.target_stock_id, link.candidate_score) for link in links] == [
+            ("strong", 0.8),
+            ("weak", 0.4),
+        ]
+
+    def test_identity_renaming_does_not_change_candidate_scores(self):
+        finder = PropagationCandidateFinder()
+
+        def scores(prefix: str) -> list[float]:
+            source, parts, universe = _semantic_relay_case(prefix)
+            return [
+                link.candidate_score
+                for link in finder.find_seat_relay(source, parts, universe, cutoff_time=_CUTOFF)
+            ]
+
+        assert scores("") == scores("renamed-") == [1.0, 0.5, 0.25]
+
+    def test_candidate_order_is_stable_across_python_hash_seeds(self):
+        script = """
+import json
+from tests.graph.test_snapshot import _CUTOFF, _semantic_relay_case
+from seatflow.graph.candidates import PropagationCandidateFinder
+source, parts, universe = _semantic_relay_case()
+links = PropagationCandidateFinder().find_seat_relay(
+    source, parts, universe, cutoff_time=_CUTOFF
+)
+print(json.dumps([(link.target_stock_id, link.candidate_score) for link in links]))
+"""
+        project_root = Path(__file__).resolve().parents[2]
+        outputs = []
+        for seed in ("1", "999"):
+            env = {**os.environ, "PYTHONHASHSEED": seed, "PYTHONPATH": str(project_root / "src")}
+            completed = subprocess.run(
+                [sys.executable, "-c", script],
+                cwd=project_root,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            assert completed.returncode == 0, completed.stderr
+            outputs.append(json.loads(completed.stdout))
+
+        expected = [["z-strong", 1.0], ["m-medium", 0.5], ["a-weak", 0.25]]
+        assert outputs == [expected, expected]
+
+    @pytest.mark.parametrize("unavailable_time", [None, _utc("2025-01-04T00:00:00+00:00")])
+    def test_unavailable_candidate_evidence_is_rejected(self, unavailable_time):
+        parts = [
+            _participation("seat-A", "source", "BUY", _SOURCE_TIME),
+            _participation("seat-A", "target", "BUY", unavailable_time),
+        ]
+        links = PropagationCandidateFinder().find_seat_relay(
+            "source", parts, {"source", "target"}, cutoff_time=_CUTOFF
+        )
+        assert links == []
