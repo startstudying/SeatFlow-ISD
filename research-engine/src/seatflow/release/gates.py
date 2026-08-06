@@ -7,7 +7,6 @@ No formal model claims are allowed. All checks are fail-closed.
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -47,7 +46,12 @@ def check_no_formal_claims(repo_root: Path) -> GateResult:
         "real money",
     ]
     violations: list[str] = []
+    scanner_path = (
+        repo_root / "research-engine" / "src" / "seatflow" / "release" / "gates.py"
+    ).resolve()
     for py_file in (repo_root / "research-engine" / "src").rglob("*.py"):
+        if py_file.resolve() == scanner_path:
+            continue
         content = py_file.read_text(encoding="utf-8", errors="ignore")
         lower = content.lower()
         for term in forbidden_terms:
@@ -154,7 +158,7 @@ def run_release_gates(repo_root: Optional[Path] = None) -> ReleaseReport:
     from datetime import datetime, timezone
 
     if repo_root is None:
-        repo_root = Path(__file__).parent.parent
+        repo_root = Path(__file__).resolve().parents[4]
 
     gates: list[GateResult] = [
         check_no_formal_claims(repo_root),

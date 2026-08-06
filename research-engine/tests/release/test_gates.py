@@ -1,7 +1,6 @@
 """Tests for release gate checks (Task 32)."""
 
 import json
-import pytest
 from pathlib import Path
 
 from seatflow.release.gates import (
@@ -22,8 +21,7 @@ class TestNoFormalClaims:
     def test_gate_passes_on_clean_repo(self):
         """The current repo should pass the no-formal-claims gate."""
         result = check_no_formal_claims(REPO_ROOT)
-        # May pass or fail depending on current state, but should run
-        assert isinstance(result, GateResult)
+        assert result.passed, result.details
         assert result.name == "no_formal_claims"
 
     def test_gate_fails_with_forbidden_term(self, tmp_path):
@@ -78,6 +76,15 @@ class TestContractsExist:
 
 
 class TestReleaseReport:
+    def test_default_root_matches_explicit_repo_root(self):
+        """The CLI default must evaluate the checkout, not the package directory."""
+        default_report = run_release_gates()
+        explicit_report = run_release_gates(REPO_ROOT)
+
+        assert [(gate.name, gate.passed) for gate in default_report.gates] == [
+            (gate.name, gate.passed) for gate in explicit_report.gates
+        ]
+
     def test_run_all_gates(self):
         """Running all gates produces a complete report."""
         report = run_release_gates(REPO_ROOT)

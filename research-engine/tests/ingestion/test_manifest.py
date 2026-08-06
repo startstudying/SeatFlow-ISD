@@ -1,13 +1,10 @@
 """Tests for IngestionManifest and manifest hashing."""
 
-from datetime import datetime, timezone
-
-import pytest
+from datetime import datetime
 
 from seatflow.ingestion.manifest import build_manifest
 from seatflow.ingestion.models import (
     BronzeRecord,
-    IngestionManifest,
     SourceConfidence,
     compute_payload_hash,
 )
@@ -34,20 +31,27 @@ def _make_bronze(record_id: str = "rec-001", payload: dict | None = None) -> Bro
 
 
 class TestManifestDeterministicHash:
-    def test_same_records_same_hash(self):
+    def test_operational_metadata_does_not_change_content_hash(self):
         records = [_make_bronze("r1"), _make_bronze("r2")]
         m1 = build_manifest(
             records,
             ingestion_run_id="run-001",
             source="tushare",
             source_version="v1",
+            started_at=_utc("2026-08-06T01:00:00+00:00"),
         )
         m2 = build_manifest(
             records,
-            ingestion_run_id="run-001",
+            ingestion_run_id="run-002",
             source="tushare",
             source_version="v1",
+            started_at=_utc("2026-08-06T02:00:00+00:00"),
         )
+
+        assert m1.started_at != m2.started_at
+        assert m1.ingestion_run_id != m2.ingestion_run_id
+        assert m1.completed_at is not None
+        assert m2.completed_at is not None
         assert m1.manifest_hash == m2.manifest_hash
 
     def test_different_records_different_hash(self):

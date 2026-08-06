@@ -100,12 +100,14 @@ class IngestionManifest(BaseModel):
     model_config = {"frozen": False}
 
     def compute_manifest_hash(self) -> str:
-        """Compute deterministic SHA-256 over canonical JSON of the manifest."""
+        """Compute a deterministic content hash for the ingested records.
+
+        Run identifiers and timestamps remain on the manifest for auditability,
+        but they are operational metadata rather than part of content identity.
+        """
         payload = {
-            "ingestion_run_id": self.ingestion_run_id,
             "source": self.source,
             "source_version": self.source_version,
-            "started_at": self.started_at.isoformat(),
             "record_count": self.record_count,
             "record_hashes": sorted(self.record_hashes),
             "schema_version": self.schema_version,
