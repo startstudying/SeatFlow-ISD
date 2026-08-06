@@ -8,7 +8,6 @@ system could first observe it) is the core anti-leakage mechanism.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
 
 
 def utc_now() -> datetime:

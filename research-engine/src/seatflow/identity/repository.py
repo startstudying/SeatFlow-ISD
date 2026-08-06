@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from seatflow.identity.stock_identity import StockIdentity, StockIdentityRegistry
 from seatflow.identity.seat_identity import SeatIdentity, SeatIdentityRegistry

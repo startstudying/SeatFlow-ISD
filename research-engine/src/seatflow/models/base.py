@@ -7,8 +7,7 @@ This serves as the baseline for the FDG architecture.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Optional
+from dataclasses import dataclass
 
 import torch
 import torch.nn as nn

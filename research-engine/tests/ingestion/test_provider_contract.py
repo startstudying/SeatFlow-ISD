@@ -1,11 +1,10 @@
 """Tests for data provider contracts (Task 6)."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
-import pytest
 
-from seatflow.ingestion.models import BronzeRecord, SourceConfidence, compute_payload_hash
+from seatflow.ingestion.models import SourceConfidence
 from seatflow.ingestion.providers.file_provider import FileProvider
 from seatflow.ingestion.providers.tushare import TushareProvider
 from seatflow.ingestion.providers.akshare import AkshareProvider

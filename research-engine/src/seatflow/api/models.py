@@ -19,7 +19,7 @@ from typing import Any, Generic, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from seatflow.domain.time import assert_aware, utc_now
+from seatflow.domain.time import utc_now
 
 T = TypeVar("T")
 

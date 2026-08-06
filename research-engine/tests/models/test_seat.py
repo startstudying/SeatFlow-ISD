@@ -1,7 +1,6 @@
 """Tests for Seat and Direct models (Task 16)."""
 
 import torch
-import pytest
 
 from seatflow.models.seat import SeatEncoder, EventEncoder, DirectEffectModel
 

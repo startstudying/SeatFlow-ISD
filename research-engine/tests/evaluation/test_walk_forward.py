@@ -2,12 +2,10 @@
 
 from datetime import datetime, timezone, timedelta
 
-import pytest
 
 from seatflow.evaluation.walk_forward import (
     WalkForwardFold,
     create_walk_forward_splits,
-    verify_embargo,
     verify_cycle_atomicity,
 )
 

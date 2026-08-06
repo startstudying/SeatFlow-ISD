@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable
 
 import pyarrow as pa
 import pyarrow.parquet as pq

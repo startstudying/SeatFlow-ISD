@@ -8,7 +8,6 @@ significant performance drop if the model truly uses the structure.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 

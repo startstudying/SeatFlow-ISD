@@ -1,7 +1,6 @@
 """Tests for placebo tests (Task 18)."""
 
 import numpy as np
-import pytest
 
 from seatflow.evaluation.placebo import (
     shuffle_seat_assignments,

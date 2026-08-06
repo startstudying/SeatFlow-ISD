@@ -13,8 +13,6 @@ from __future__ import annotations
 
 import uuid
 from collections import OrderedDict
-from datetime import datetime
-from typing import Any
 
 from seatflow.api.models import (
     Backtest,

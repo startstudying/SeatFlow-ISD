@@ -1,9 +1,8 @@
 """Tests for FDG full model (Task 17)."""
 
 import torch
-import pytest
 
-from seatflow.models.fdg import SeatFlowFDG, SeatFlowLoss, FDGPredictionBatch
+from seatflow.models.fdg import SeatFlowFDG, SeatFlowLoss
 
 
 class TestFDGAdditiveDecomposition:

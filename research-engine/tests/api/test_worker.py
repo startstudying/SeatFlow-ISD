@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import json
 
 import pytest
 from fastapi.testclient import TestClient
 
-from seatflow.api.models import ErrorResponse, TaskStatus
+from seatflow.api.models import TaskStatus
 from seatflow.worker.sse import make_tasks_router
 from seatflow.worker.task_runner import TaskRunner
 from seatflow.worker.task_store import (
@@ -40,8 +39,8 @@ class TestTaskStoreCRUD:
         store = InMemoryTaskStore()
         a = store.create(kind="experiment_run", spec={})
         store.transition(a.task_id, TaskStatus.QUEUED)
-        b = store.create(kind="backtest", spec={})
-        # b stays REQUESTED.
+        store.create(kind="backtest", spec={})
+        # The second task stays REQUESTED.
         queued = store.list(status=TaskStatus.QUEUED)
         assert len(queued) == 1
         assert queued[0].task_id == a.task_id
@@ -230,7 +229,7 @@ class TestTaskRunner:
             raise RuntimeError("boom")
 
         runner.register_handler("bad", bad_handler)
-        state = await runner.submit(kind="bad", spec={})
+        await runner.submit(kind="bad", spec={})
         final = await runner.run_once()
         assert final.status == TaskStatus.FAILED
         assert final.error is not None
@@ -256,7 +255,7 @@ class TestTaskRunner:
             return {"custom": True}
 
         runner.register_handler("experiment_run", custom)
-        state = await runner.submit(kind="experiment_run", spec={})
+        await runner.submit(kind="experiment_run", spec={})
         final = await runner.run_once()
         assert final.result == {"custom": True}
 

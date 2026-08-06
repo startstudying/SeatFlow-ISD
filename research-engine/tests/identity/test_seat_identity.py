@@ -1,6 +1,6 @@
 """Tests for PIT seat identity resolution (Task 7)."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

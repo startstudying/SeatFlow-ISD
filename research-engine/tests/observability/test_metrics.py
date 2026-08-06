@@ -1,7 +1,6 @@
 """Tests for observability (Task 29)."""
 
 import json
-import time
 import pytest
 
 from seatflow.observability.metrics import (

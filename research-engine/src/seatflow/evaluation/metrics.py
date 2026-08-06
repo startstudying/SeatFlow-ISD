@@ -12,10 +12,8 @@ Implements:
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import numpy as np
-import torch
 
 
 def mae(y_true: np.ndarray, y_pred: np.ndarray) -> float:

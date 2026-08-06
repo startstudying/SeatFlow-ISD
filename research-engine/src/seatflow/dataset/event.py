@@ -19,9 +19,9 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from seatflow.domain.time import assert_aware
 from seatflow.identity.seat_identity import SeatIdentityRegistry, SeatIdentityResolution

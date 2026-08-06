@@ -7,11 +7,10 @@ import pytest
 from seatflow.ingestion.models import (
     AvailabilityPolicy,
     BronzeRecord,
-    IngestionManifest,
     SourceConfidence,
     compute_payload_hash,
 )
-from seatflow.domain.time import assert_aware, validate_available_after_event
+from seatflow.domain.time import validate_available_after_event
 
 
 # ── Helpers ────────────────────────────────────────────────────────────

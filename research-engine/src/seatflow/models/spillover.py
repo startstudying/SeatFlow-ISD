@@ -12,8 +12,6 @@ Relation State Gate: a learnable per-edge gate that controls
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
 
 import torch
 import torch.nn as nn

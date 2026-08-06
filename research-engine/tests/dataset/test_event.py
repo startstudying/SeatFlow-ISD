@@ -18,7 +18,6 @@ import pytest
 
 from seatflow.dataset.event import (
     LHBEvent,
-    SeatParticipation,
     SeatSide,
     extract_events_from_bronze,
     extract_participations_from_bronze,

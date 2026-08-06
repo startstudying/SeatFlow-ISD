@@ -1,7 +1,6 @@
 """Tests for Spillover model and Relation State Gate (Task 17)."""
 
 import torch
-import pytest
 
 from seatflow.models.spillover import (
     RelationStateGate,

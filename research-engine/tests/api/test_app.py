@@ -6,7 +6,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from seatflow.api.app import create_app
-from seatflow.api.routes.state import store
 
 
 @pytest.fixture()
