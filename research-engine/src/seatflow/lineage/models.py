@@ -26,6 +26,7 @@ class DataClassification(str, Enum):
 
     SYNTHETIC_NON_FORMAL = "SYNTHETIC_NON_FORMAL"
     REAL_UNVERIFIED = "REAL_UNVERIFIED"
+    REAL_VERIFIED = "REAL_VERIFIED"
 
 
 class LineageValidationError(ValueError):

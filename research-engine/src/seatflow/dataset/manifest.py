@@ -58,6 +58,8 @@ class DatasetManifest:
         Deterministic hash of the immutable materialized rows and evidence.
     gate_evidence_fingerprint:
         Deterministic hash of the computed hard-gate findings.
+    formal:
+        True only when formal dataset evidence has been bound from lineage DTOs.
     """
 
     dataset_version: str
@@ -76,6 +78,14 @@ class DatasetManifest:
     artifact_uris: list[str]
     materialization_fingerprint: str = ""
     gate_evidence_fingerprint: str = ""
+    formal: bool = False
+    data_classification: str = ""
+    lineage_fingerprint: str = ""
+    source_manifest_uri: str = ""
+    source_manifest_schema_version: str = ""
+    calendar_content_hash: str = ""
+    calendar_source_record_ids: list[str] | None = None
+    formal_evidence_fingerprint: str = ""
 
 
 def compute_manifest_hash(manifest: DatasetManifest) -> str:
