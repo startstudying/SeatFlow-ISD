@@ -60,21 +60,45 @@ class SeatIdentityRegistry:
         self._identities: list[SeatIdentity] = []
 
     def register(self, identity: SeatIdentity) -> None:
+        self._validate_identity(identity)
         self._validate_no_overlap(identity)
         self._identities.append(identity)
 
+    @property
+    def identities(self) -> tuple[SeatIdentity, ...]:
+        """Return an immutable view used by snapshot persistence."""
+        return tuple(self._identities)
+
+    @staticmethod
+    def _validate_identity(identity: SeatIdentity) -> None:
+        for label, value in (("valid_from", identity.valid_from), ("valid_to", identity.valid_to)):
+            if value is not None and value.tzinfo is None:
+                raise ValueError(f"{label} must be timezone-aware")
+        if (
+            identity.valid_from is not None
+            and identity.valid_to is not None
+            and identity.valid_from >= identity.valid_to
+        ):
+            raise ValueError("valid_from must be earlier than valid_to")
+        if not 0.0 <= identity.identity_confidence <= 1.0:
+            raise ValueError("identity_confidence must be in [0, 1]")
+
     def _validate_no_overlap(self, new: SeatIdentity) -> None:
+        new_keys = {_normalize_name(name) for name in (new.canonical_name, *new.aliases)}
+        new_keys.add(new.seat_id)
         for existing in self._identities:
-            if existing.seat_id == new.seat_id:
-                continue
-            shared = set(existing.aliases) & set(new.aliases)
-            shared |= {existing.canonical_name, new.canonical_name} & set(existing.aliases) | {existing.canonical_name, new.canonical_name} & set(new.aliases)
+            existing_keys = {
+                _normalize_name(name)
+                for name in (existing.canonical_name, *existing.aliases)
+            }
+            existing_keys.add(existing.seat_id)
+            shared = existing_keys & new_keys
             if not shared:
                 continue
             if self._intervals_overlap(existing, new):
                 raise ValueError(
-                    f"Overlapping validity intervals for aliases {shared} "
-                    f"resolving to different seats: {existing.seat_id} vs {new.seat_id}"
+                    f"Overlapping validity intervals for seat lookup keys {shared}: "
+                    f"{existing.seat_id} vs {new.seat_id}"
                 )
 
     @staticmethod
@@ -98,14 +122,16 @@ class SeatIdentityRegistry:
         name_known = False
         matches: list[SeatIdentity] = []
         for identity in self._identities:
-            if normalized not in {identity.canonical_name, *identity.aliases}:
-                # Also check unnormalized match
-                if raw_name not in {identity.canonical_name, *identity.aliases}:
-                    continue
+            identity_names = {
+                _normalize_name(name)
+                for name in (identity.canonical_name, *identity.aliases)
+            }
+            if normalized not in identity_names and raw_name != identity.seat_id:
+                continue
             name_known = True
             if identity.valid_from and at_time < identity.valid_from:
                 continue
-            if identity.valid_to and at_time > identity.valid_to:
+            if identity.valid_to and at_time >= identity.valid_to:
                 continue
             matches.append(identity)
 

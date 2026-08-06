@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pyarrow as pa
-import pyarrow.parquet as pq
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
 
 from seatflow.ingestion.models import BronzeRecord
 

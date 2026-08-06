@@ -17,11 +17,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 from seatflow.domain.time import assert_aware
 
@@ -54,15 +55,77 @@ class BronzeRecord(BaseModel):
 
     @field_validator("event_time", "available_time", "ingested_at")
     @classmethod
-    def _must_be_aware(cls, v: datetime, info) -> datetime:
-        assert_aware(v, info.field_name)
+    def _must_be_aware(cls, v: datetime, info: ValidationInfo) -> datetime:
+        assert_aware(v, info.field_name or "timestamp")
         return v
 
 
+def _json_default(value: Any) -> str:
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
+    raise TypeError(f"Unsupported canonical JSON value: {type(value).__name__}")
+
+
+def _canonical_json(payload: Any) -> str:
+    return json.dumps(
+        payload,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        default=_json_default,
+    )
+
+
 def compute_payload_hash(payload: dict[str, Any]) -> str:
-    """Compute SHA-256 over canonical JSON (sorted keys, no whitespace)."""
-    canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    """Compute SHA-256 over canonical UTF-8 JSON."""
+    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def source_identity_material(
+    provider_namespace: str,
+    source_dataset: str,
+    payload: dict[str, Any],
+    *,
+    stable_key_fields: Iterable[str] = (),
+) -> str:
+    """Return canonical material used for a provider-scoped source identity."""
+    provider = provider_namespace.strip().lower()
+    dataset = source_dataset.strip().lower()
+    if not provider or not dataset:
+        raise ValueError("provider_namespace and source_dataset must be non-empty")
+    stable_keys = {
+        field: payload[field]
+        for field in stable_key_fields
+        if field in payload and payload[field] not in (None, "")
+    }
+    return _canonical_json(
+        {
+            "provider_namespace": provider,
+            "source_dataset": dataset,
+            "stable_source_keys": stable_keys,
+            "raw_payload_hash": compute_payload_hash(payload),
+        }
+    )
+
+
+def compute_source_record_id(
+    provider_namespace: str,
+    source_dataset: str,
+    payload: dict[str, Any],
+    *,
+    stable_key_fields: Iterable[str] = (),
+) -> str:
+    """Build a process-stable source ID without Python runtime hashing."""
+    material = source_identity_material(
+        provider_namespace,
+        source_dataset,
+        payload,
+        stable_key_fields=stable_key_fields,
+    )
+    digest = hashlib.sha256(material.encode("utf-8")).hexdigest()
+    return f"{provider_namespace.strip().lower()}:{source_dataset.strip().lower()}:{digest}"
 
 
 class AvailabilityPolicy(BaseModel):
@@ -70,7 +133,7 @@ class AvailabilityPolicy(BaseModel):
 
     allow_pre_announced: bool = False
 
-    def validate(
+    def validate(  # type: ignore[override]
         self,
         event_time: datetime,
         available_time: datetime,

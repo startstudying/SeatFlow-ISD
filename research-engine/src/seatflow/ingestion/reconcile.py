@@ -9,7 +9,7 @@ evidence.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from seatflow.ingestion.models import BronzeRecord, SourceConfidence
 
@@ -71,7 +71,7 @@ def reconcile_field(
     field_name: str,
     bronze_records: list[BronzeRecord],
     *,
-    field_extractor: callable,
+    field_extractor: Callable[[dict[str, Any]], Any],
     rule_version: str = RULE_VERSION,
 ) -> tuple[Any, ConflictReport | None]:
     """Reconcile a single field across multiple Bronze records.
@@ -118,7 +118,7 @@ def reconcile_field(
 def reconcile_records(
     records_by_key: dict[str, list[BronzeRecord]],
     *,
-    field_specs: dict[str, callable],
+    field_specs: dict[str, Callable[[dict[str, Any]], Any]],
 ) -> dict[str, ReconciledRecord]:
     """Reconcile multiple fields for a set of records keyed by business key.
 

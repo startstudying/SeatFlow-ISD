@@ -43,24 +43,47 @@ class StockIdentityRegistry:
 
     def register(self, identity: StockIdentity) -> None:
         """Register a stock identity with a validity interval."""
+        self._validate_identity(identity)
         self._validate_no_overlap(identity)
         self._identities.append(identity)
+
+    @property
+    def identities(self) -> tuple[StockIdentity, ...]:
+        """Return an immutable view used by snapshot persistence."""
+        return tuple(self._identities)
+
+    @staticmethod
+    def _validate_identity(identity: StockIdentity) -> None:
+        for label, value in (
+            ("listing_date", identity.listing_date),
+            ("delisting_date", identity.delisting_date),
+            ("valid_from", identity.valid_from),
+            ("valid_to", identity.valid_to),
+        ):
+            if value is not None and value.tzinfo is None:
+                raise ValueError(f"{label} must be timezone-aware")
+        if (
+            identity.valid_from is not None
+            and identity.valid_to is not None
+            and identity.valid_from >= identity.valid_to
+        ):
+            raise ValueError("valid_from must be earlier than valid_to")
+        if not 0.0 <= identity.identity_confidence <= 1.0:
+            raise ValueError("identity_confidence must be in [0, 1]")
 
     def _validate_no_overlap(self, new: StockIdentity) -> None:
         """Reject overlapping validity intervals for the same alias
         that resolve to different canonical stocks."""
+        new_keys = {new.stock_id, new.ts_code, *new.aliases}
         for existing in self._identities:
-            if existing.stock_id == new.stock_id:
-                continue
-            # Check if aliases overlap
-            shared = set(existing.aliases) & set(new.aliases)
+            existing_keys = {existing.stock_id, existing.ts_code, *existing.aliases}
+            shared = existing_keys & new_keys
             if not shared:
                 continue
-            # Check if validity intervals overlap
             if self._intervals_overlap(existing, new):
                 raise ValueError(
-                    f"Overlapping validity intervals for aliases {shared} "
-                    f"resolving to different stocks: {existing.stock_id} vs {new.stock_id}"
+                    f"Overlapping validity intervals for stock lookup keys {shared}: "
+                    f"{existing.stock_id} vs {new.stock_id}"
                 )
 
     @staticmethod
@@ -81,7 +104,7 @@ class StockIdentityRegistry:
             # Check validity interval
             if identity.valid_from and at_time < identity.valid_from:
                 continue
-            if identity.valid_to and at_time > identity.valid_to:
+            if identity.valid_to and at_time >= identity.valid_to:
                 continue
             matches.append(identity)
 
