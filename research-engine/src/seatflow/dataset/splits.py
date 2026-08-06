@@ -7,7 +7,8 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Sequence
+from types import MappingProxyType
+from typing import Mapping, Sequence
 
 from seatflow.dataset.cycle import CycleStatus, EventCycle
 from seatflow.domain.time import assert_aware
@@ -21,6 +22,7 @@ class CycleDisposition(str, Enum):
     TEST = "test"
     BLIND = "blind"
     PURGED = "purged"
+    IMMATURE_OUTSIDE = "immature_outside"
     OUTSIDE = "outside"
 
 
@@ -129,8 +131,15 @@ class WalkForwardPlan:
     calendar_fingerprint: str
     calendar_evidence_fingerprint: str
     blind_cycle_ids: frozenset[str]
-    classification_by_fold: dict[int, dict[str, CycleDisposition]]
+    classification_by_fold: Mapping[int, Mapping[str, CycleDisposition]]
     fingerprint: str
+
+    def __post_init__(self) -> None:
+        immutable = {
+            fold_id: MappingProxyType(dict(mapping))
+            for fold_id, mapping in self.classification_by_fold.items()
+        }
+        object.__setattr__(self, "classification_by_fold", MappingProxyType(immutable))
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -139,10 +148,7 @@ class WalkForwardPlan:
             "calendar_fingerprint": self.calendar_fingerprint,
             "calendar_evidence_fingerprint": self.calendar_evidence_fingerprint,
             "blind_cycle_ids": sorted(self.blind_cycle_ids),
-            "classification_by_fold": {
-                str(fid): {cid: disp.value for cid, disp in sorted(mapping.items())}
-                for fid, mapping in sorted(self.classification_by_fold.items())
-            },
+            "classification_by_fold": _classification_payload(self.classification_by_fold),
             "fingerprint": self.fingerprint,
         }
 
@@ -153,7 +159,8 @@ class _CycleRecord:
     stock_id: str
     cycle_start: datetime
     cycle_end: datetime
-    label_maturity: datetime
+    label_maturity: datetime | None
+    label_maturity_index: int | None
     status: str
 
 
@@ -173,59 +180,19 @@ def create_walk_forward_plan(
     timezone-aware trading calendar. The sealed blind tail is excluded before
     fold generation.
     """
-    if not calendar_evidence_fingerprint:
-        raise ValueError("calendar_evidence_fingerprint is required")
+    _validate_sha256_hex(calendar_evidence_fingerprint, "calendar_evidence_fingerprint")
     cfg = config or WalkForwardConfig()
     calendar = _canonical_calendar(trading_calendar)
     calendar_index = {day: idx for idx, day in enumerate(calendar)}
     records = _canonical_cycles(cycles, calendar, calendar_index, cfg)
     calendar_fingerprint = _fingerprint({"trading_calendar": [_dt(day) for day in calendar]})
-
-    if not records:
-        return _build_plan(
-            config=cfg,
-            folds=(),
-            calendar_fingerprint=calendar_fingerprint,
-            calendar_evidence_fingerprint=calendar_evidence_fingerprint,
-            blind_cycle_ids=frozenset(),
-            classification_by_fold={},
-            cycle_records=records,
-        )
-
-    blind_start_idx = max(0, len(calendar) - cfg.blind_trading_days)
-    blind_start = calendar[blind_start_idx] if cfg.blind_trading_days else None
-    blind_cycle_ids = frozenset(
-        record.cycle_id
-        for record in records
-        if blind_start is not None and record.cycle_start >= blind_start
-    )
-
-    fold_boundaries = _fold_boundaries(calendar, cfg, blind_start_idx)
-    folds: list[WalkForwardFold] = []
-    classifications: dict[int, dict[str, CycleDisposition]] = {}
-    for fold_id, boundary in enumerate(fold_boundaries):
-        fold, classification = _build_fold(
-            fold_id,
-            records,
-            calendar_index,
-            calendar,
-            cfg,
-            boundary,
-            blind_cycle_ids,
-        )
-        if not fold.validation_cycle_ids or not fold.test_cycle_ids or not fold.train_cycle_ids:
-            continue
-        folds.append(fold)
-        classifications[fold_id] = classification
-
-    plan = _build_plan(
+    plan = _generate_plan(
         config=cfg,
-        folds=tuple(folds),
+        records=records,
+        calendar=calendar,
+        calendar_index=calendar_index,
         calendar_fingerprint=calendar_fingerprint,
         calendar_evidence_fingerprint=calendar_evidence_fingerprint,
-        blind_cycle_ids=blind_cycle_ids,
-        classification_by_fold=classifications,
-        cycle_records=records,
     )
     validate_walk_forward_plan(plan, cycles=cycles, trading_calendar=calendar)
     return plan
@@ -236,7 +203,7 @@ def create_walk_forward_splits(
     *,
     trading_calendar: Sequence[datetime] | None = None,
     config: WalkForwardConfig | None = None,
-    calendar_evidence_fingerprint: str = "legacy-explicit-calendar",
+    calendar_evidence_fingerprint: str = "0" * 64,
     embargo_days: int | None = None,
     validation_days: int | None = None,
     test_days: int | None = None,
@@ -252,12 +219,22 @@ def create_walk_forward_splits(
     base_config = WalkForwardConfig()
     cfg = config or WalkForwardConfig(
         min_train_trading_days=base_config.min_train_trading_days,
-        validation_trading_days=validation_days or base_config.validation_trading_days,
-        test_trading_days=test_days or base_config.test_trading_days,
+        validation_trading_days=(
+            validation_days
+            if validation_days is not None
+            else base_config.validation_trading_days
+        ),
+        test_trading_days=test_days if test_days is not None else base_config.test_trading_days,
         label_horizon_trading_days=base_config.label_horizon_trading_days,
-        blind_trading_days=blind_days or base_config.blind_trading_days,
-        embargo_trading_days=embargo_days or base_config.embargo_trading_days,
-        purge_trading_days=embargo_days or base_config.purge_trading_days,
+        blind_trading_days=(
+            blind_days if blind_days is not None else base_config.blind_trading_days
+        ),
+        embargo_trading_days=(
+            embargo_days if embargo_days is not None else base_config.embargo_trading_days
+        ),
+        purge_trading_days=(
+            embargo_days if embargo_days is not None else base_config.purge_trading_days
+        ),
     )
     return list(
         create_walk_forward_plan(
@@ -269,6 +246,60 @@ def create_walk_forward_splits(
     )
 
 
+def _generate_plan(
+    *,
+    config: WalkForwardConfig,
+    records: tuple[_CycleRecord, ...],
+    calendar: tuple[datetime, ...],
+    calendar_index: dict[datetime, int],
+    calendar_fingerprint: str,
+    calendar_evidence_fingerprint: str,
+) -> WalkForwardPlan:
+    if not records:
+        return _build_plan(
+            config=config,
+            folds=(),
+            calendar_fingerprint=calendar_fingerprint,
+            calendar_evidence_fingerprint=calendar_evidence_fingerprint,
+            blind_cycle_ids=frozenset(),
+            classification_by_fold={},
+            cycle_records=records,
+        )
+
+    blind_start_idx = len(calendar) if config.blind_trading_days == 0 else max(
+        0, len(calendar) - config.blind_trading_days
+    )
+    blind_cycle_ids = _blind_cycle_ids(records, calendar_index, blind_start_idx)
+
+    fold_boundaries = _fold_boundaries(calendar, config, blind_start_idx)
+    folds: list[WalkForwardFold] = []
+    classifications: dict[int, dict[str, CycleDisposition]] = {}
+    for fold_id, boundary in enumerate(fold_boundaries):
+        fold, classification = _build_fold(
+            fold_id,
+            records,
+            calendar_index,
+            calendar,
+            config,
+            boundary,
+            blind_cycle_ids,
+        )
+        if not fold.validation_cycle_ids or not fold.test_cycle_ids or not fold.train_cycle_ids:
+            continue
+        folds.append(fold)
+        classifications[fold_id] = classification
+
+    return _build_plan(
+        config=config,
+        folds=tuple(folds),
+        calendar_fingerprint=calendar_fingerprint,
+        calendar_evidence_fingerprint=calendar_evidence_fingerprint,
+        blind_cycle_ids=blind_cycle_ids,
+        classification_by_fold=classifications,
+        cycle_records=records,
+    )
+
+
 def validate_walk_forward_plan(
     plan: WalkForwardPlan,
     *,
@@ -276,6 +307,7 @@ def validate_walk_forward_plan(
     trading_calendar: Sequence[datetime],
 ) -> None:
     """Fail closed on leakage, overlap, calendar tamper, or OOF duplication."""
+    _validate_sha256_hex(plan.calendar_evidence_fingerprint, "calendar_evidence_fingerprint")
     calendar = _canonical_calendar(trading_calendar)
     calendar_index = {day: idx for idx, day in enumerate(calendar)}
     expected_calendar_fingerprint = _fingerprint({"trading_calendar": [_dt(day) for day in calendar]})
@@ -284,14 +316,55 @@ def validate_walk_forward_plan(
 
     records = _canonical_cycles(cycles, calendar, calendar_index, plan.config)
     all_ids = {record.cycle_id for record in records}
+    expected = _generate_plan(
+        config=plan.config,
+        records=records,
+        calendar=calendar,
+        calendar_index=calendar_index,
+        calendar_fingerprint=plan.calendar_fingerprint,
+        calendar_evidence_fingerprint=plan.calendar_evidence_fingerprint,
+    )
+    if plan.blind_cycle_ids != expected.blind_cycle_ids:
+        raise ValueError("blind cycle ids mismatch")
+    classification_matches_expected = _classification_payload(
+        plan.classification_by_fold
+    ) == _classification_payload(expected.classification_by_fold)
+
+    prediction_counts: dict[str, int] = {}
+    for fold in plan.folds:
+        for cycle_id in fold.prediction_cycle_ids:
+            prediction_counts[cycle_id] = prediction_counts.get(cycle_id, 0) + 1
+    duplicated_predictions = sorted(
+        cycle_id for cycle_id, count in prediction_counts.items() if count > 1
+    )
+    if duplicated_predictions:
+        raise ValueError(f"OOF prediction cycle duplicated: {duplicated_predictions}")
+
     seen_oof: set[str] = set()
+    previous_train_size = -1
+    previous_validation_start: datetime | None = None
+    previous_test_start: datetime | None = None
     for fold in plan.folds:
         train = set(fold.train_cycle_ids)
         val = set(fold.validation_cycle_ids)
         test = set(fold.test_cycle_ids)
         blind = set(fold.blind_cycle_ids)
         purged = set(fold.purged_cycle_ids)
+        classification = plan.classification_by_fold.get(fold.fold_id)
+        if classification is None:
+            raise ValueError("classification missing for fold")
+        if set(classification) != all_ids:
+            raise ValueError("classification does not exactly account for all cycles")
         prediction = val | test
+        if previous_train_size > len(train):
+            raise ValueError("train set is not monotonic expanding")
+        if previous_validation_start is not None and fold.validation_start <= previous_validation_start:
+            raise ValueError("validation boundaries do not move forward")
+        if previous_test_start is not None and fold.test_start <= previous_test_start:
+            raise ValueError("test boundaries do not move forward")
+        previous_train_size = len(train)
+        previous_validation_start = fold.validation_start
+        previous_test_start = fold.test_start
         if train & prediction:
             raise ValueError("training set contains prediction cycle")
         if val & test:
@@ -305,19 +378,20 @@ def validate_walk_forward_plan(
         duplicate_oof = seen_oof & prediction
         if duplicate_oof:
             raise ValueError(f"OOF prediction cycle duplicated: {sorted(duplicate_oof)}")
+        if not verify_cycle_atomicity(fold, all_ids, classification):
+            if not classification_matches_expected:
+                raise ValueError("classification differs from canonical regeneration")
+            raise ValueError("cycle atomicity/accounting violation")
         seen_oof.update(prediction)
         _validate_embargo(fold, calendar_index, plan.config)
 
-    rebuilt = _build_plan(
-        config=plan.config,
-        folds=plan.folds,
-        calendar_fingerprint=plan.calendar_fingerprint,
-        calendar_evidence_fingerprint=plan.calendar_evidence_fingerprint,
-        blind_cycle_ids=plan.blind_cycle_ids,
-        classification_by_fold=plan.classification_by_fold,
-        cycle_records=records,
-    )
-    if rebuilt.fingerprint != plan.fingerprint:
+    if not classification_matches_expected:
+        raise ValueError("classification differs from canonical regeneration")
+    if tuple(_fold_payload(fold) for fold in plan.folds) != tuple(
+        _fold_payload(fold) for fold in expected.folds
+    ):
+        raise ValueError("fold boundaries or assignments differ from canonical regeneration")
+    if expected.fingerprint != plan.fingerprint:
         raise ValueError("split fingerprint mismatch")
 
 
@@ -340,19 +414,36 @@ def verify_embargo(fold: WalkForwardFold, trading_calendar: Sequence[datetime]) 
     return True
 
 
-def verify_cycle_atomicity(fold: WalkForwardFold, all_cycle_ids: set[str]) -> bool:
+def verify_cycle_atomicity(
+    fold: WalkForwardFold,
+    all_cycle_ids: set[str],
+    classification: Mapping[str, CycleDisposition] | None = None,
+) -> bool:
     """Legacy boolean cycle-overlap verifier."""
     train = set(fold.train_cycle_ids)
     val = set(fold.validation_cycle_ids)
     test = set(fold.test_cycle_ids)
     blind = set(fold.blind_cycle_ids)
     purged = set(fold.purged_cycle_ids)
-    segments = [train, val, test, blind, purged]
+    immature = (
+        {cid for cid, disp in classification.items() if disp is CycleDisposition.IMMATURE_OUTSIDE}
+        if classification is not None
+        else set()
+    )
+    outside = (
+        {cid for cid, disp in classification.items() if disp is CycleDisposition.OUTSIDE}
+        if classification is not None
+        else set()
+    )
+    segments = [train, val, test, blind, purged, immature, outside]
     for left_idx, left in enumerate(segments):
         for right in segments[left_idx + 1 :]:
             if left & right:
                 return False
-    return set().union(*segments).issubset(all_cycle_ids)
+    accounted = set().union(*segments)
+    if classification is not None and set(classification) != all_cycle_ids:
+        return False
+    return accounted == all_cycle_ids
 
 
 def _canonical_calendar(trading_calendar: Sequence[datetime]) -> tuple[datetime, ...]:
@@ -364,6 +455,11 @@ def _canonical_calendar(trading_calendar: Sequence[datetime]) -> tuple[datetime,
     if len(unique) != len(trading_calendar):
         raise ValueError("trading_calendar contains duplicate dates")
     return tuple(sorted(trading_calendar))
+
+
+def _validate_sha256_hex(value: str, name: str) -> None:
+    if len(value) != 64 or any(char not in "0123456789abcdef" for char in value.lower()):
+        raise ValueError(f"{name} must be a 64-character sha256 hex fingerprint")
 
 
 def _canonical_cycles(
@@ -392,8 +488,10 @@ def _coerce_cycle(
     else:
         cycle_id = cycle.cycle_id
         stock_id = cycle.stock_id
+        if cycle.status is CycleStatus.ACTIVE or cycle.cycle_end is None:
+            raise ValueError(f"open cycle cannot be split: {cycle_id}")
         start = cycle.cycle_start
-        end = cycle.cycle_end or cycle.last_event_date
+        end = cycle.cycle_end
         status = cycle.status.value if isinstance(cycle.status, CycleStatus) else str(cycle.status)
     assert_aware(start, "cycle_start")
     assert_aware(end, "cycle_end")
@@ -405,17 +503,39 @@ def _coerce_cycle(
         raise ValueError(f"cycle_end precedes cycle_start for {cycle_id}")
     maturity_index = calendar_index[end] + config.label_horizon_trading_days
     if maturity_index >= len(calendar):
-        maturity = calendar[-1]
+        maturity = None
+        maturity_record_index = None
     else:
         maturity = calendar[maturity_index]
+        maturity_record_index = maturity_index
     return _CycleRecord(
         cycle_id=cycle_id,
         stock_id=stock_id,
         cycle_start=start,
         cycle_end=end,
         label_maturity=maturity,
+        label_maturity_index=maturity_record_index,
         status=status,
     )
+
+
+def _blind_cycle_ids(
+    records: tuple[_CycleRecord, ...],
+    calendar_index: dict[datetime, int],
+    blind_start_idx: int,
+) -> frozenset[str]:
+    ids: set[str] = set()
+    for record in records:
+        start_idx = calendar_index[record.cycle_start]
+        end_idx = calendar_index[record.cycle_end]
+        if start_idx >= blind_start_idx or end_idx >= blind_start_idx:
+            ids.add(record.cycle_id)
+        elif record.label_maturity_index is None:
+            if end_idx + 1 >= blind_start_idx:
+                ids.add(record.cycle_id)
+        elif record.label_maturity_index >= blind_start_idx:
+            ids.add(record.cycle_id)
+    return frozenset(sorted(ids))
 
 
 def _fold_boundaries(
@@ -474,9 +594,11 @@ def _build_fold(
     for record in records:
         start_idx = calendar_index[record.cycle_start]
         end_idx = calendar_index[record.cycle_end]
-        maturity_idx = calendar_index[record.label_maturity]
+        maturity_idx = record.label_maturity_index
         if record.cycle_id in blind_cycle_ids:
             classification[record.cycle_id] = CycleDisposition.BLIND
+        elif maturity_idx is None:
+            classification[record.cycle_id] = CycleDisposition.IMMATURE_OUTSIDE
         elif start_idx >= train_start_idx and maturity_idx <= train_end_idx:
             train_ids.add(record.cycle_id)
             classification[record.cycle_id] = CycleDisposition.TRAIN
@@ -577,17 +699,17 @@ def _build_plan(
                 "stock_id": record.stock_id,
                 "cycle_start": _dt(record.cycle_start),
                 "cycle_end": _dt(record.cycle_end),
-                "label_maturity": _dt(record.label_maturity),
+                "label_maturity": _dt(record.label_maturity)
+                if record.label_maturity is not None
+                else None,
+                "label_maturity_index": record.label_maturity_index,
                 "status": record.status,
             }
             for record in cycle_records
         ],
         "folds": [_fold_payload(fold) for fold in folds],
         "blind_cycle_ids": sorted(blind_cycle_ids),
-        "classification_by_fold": {
-            str(fid): {cid: disp.value for cid, disp in sorted(mapping.items())}
-            for fid, mapping in sorted(classification_by_fold.items())
-        },
+        "classification_by_fold": _classification_payload(classification_by_fold),
     }
     return WalkForwardPlan(
         config=config,
@@ -617,6 +739,15 @@ def _fold_payload(fold: WalkForwardFold) -> dict[str, object]:
         "purge_trading_days": fold.purge_trading_days,
         "embargo_trading_days": fold.embargo_trading_days,
         "label_horizon_trading_days": fold.label_horizon_trading_days,
+    }
+
+
+def _classification_payload(
+    classification_by_fold: Mapping[int, Mapping[str, CycleDisposition]],
+) -> dict[str, dict[str, str]]:
+    return {
+        str(fid): {cid: disp.value for cid, disp in sorted(mapping.items())}
+        for fid, mapping in sorted(classification_by_fold.items())
     }
 
 

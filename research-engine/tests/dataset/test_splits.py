@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from typing import MutableMapping, cast
 
 import pytest
 
@@ -10,10 +12,15 @@ from seatflow.dataset.cycle import CycleStatus, EventCycle
 from seatflow.dataset.splits import (
     CycleDisposition,
     WalkForwardConfig,
+    WalkForwardPlan,
     create_walk_forward_plan,
     create_walk_forward_splits,
     validate_walk_forward_plan,
+    verify_cycle_atomicity,
 )
+
+HASH_A = "a" * 64
+HASH_B = "b" * 64
 
 
 def _utc(year: int, month: int, day: int) -> datetime:
@@ -71,7 +78,7 @@ def test_expanding_plan_has_three_or_more_monotonic_folds_and_unique_oof_segment
         cycles,
         trading_calendar=calendar,
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
 
     assert len(plan.folds) >= 3
@@ -100,7 +107,7 @@ def test_exact_classification_keeps_cycles_atomic_and_blind_isolated() -> None:
         cycles,
         trading_calendar=calendar,
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
 
     first = plan.folds[0]
@@ -131,7 +138,7 @@ def test_embargo_uses_trading_days_across_weekend_and_holiday() -> None:
         cycles,
         trading_calendar=calendar,
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
 
     saw_holiday_boundary = False
@@ -158,7 +165,7 @@ def test_long_cycle_or_label_maturity_overlap_is_purged_from_prediction_segment(
         list(reversed(cycles)),
         trading_calendar=list(reversed(calendar)),
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
 
     first = plan.folds[0]
@@ -178,13 +185,13 @@ def test_input_order_fingerprint_determinism_and_tamper_sensitivity() -> None:
         cycles,
         trading_calendar=calendar,
         config=config,
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
     plan_b = create_walk_forward_plan(
         list(reversed(cycles)),
         trading_calendar=calendar,
         config=config,
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
     assert plan_a.fingerprint == plan_b.fingerprint
 
@@ -193,7 +200,7 @@ def test_input_order_fingerprint_determinism_and_tamper_sensitivity() -> None:
             cycles,
             trading_calendar=calendar,
             config=config,
-            calendar_evidence_fingerprint="calendar-source-b",
+            calendar_evidence_fingerprint=HASH_B,
         ).fingerprint
         != plan_a.fingerprint
     )
@@ -203,7 +210,7 @@ def test_input_order_fingerprint_determinism_and_tamper_sensitivity() -> None:
             cycles,
             trading_calendar=calendar,
             config=changed_config,
-            calendar_evidence_fingerprint="calendar-source-a",
+            calendar_evidence_fingerprint=HASH_A,
         ).fingerprint
         != plan_a.fingerprint
     )
@@ -213,7 +220,7 @@ def test_input_order_fingerprint_determinism_and_tamper_sensitivity() -> None:
             tampered,
             trading_calendar=calendar,
             config=config,
-            calendar_evidence_fingerprint="calendar-source-a",
+            calendar_evidence_fingerprint=HASH_A,
         ).fingerprint
         != plan_a.fingerprint
     )
@@ -229,7 +236,7 @@ def test_calendar_validation_is_fail_closed_for_naive_missing_and_duplicate_date
             cycles,
             trading_calendar=[d.replace(tzinfo=None) for d in calendar],
             config=config,
-            calendar_evidence_fingerprint="calendar-source-a",
+            calendar_evidence_fingerprint=HASH_A,
         )
 
     with pytest.raises(ValueError, match="duplicate"):
@@ -237,7 +244,7 @@ def test_calendar_validation_is_fail_closed_for_naive_missing_and_duplicate_date
             cycles,
             trading_calendar=[*calendar, calendar[0]],
             config=config,
-            calendar_evidence_fingerprint="calendar-source-a",
+            calendar_evidence_fingerprint=HASH_A,
         )
 
     with pytest.raises(ValueError, match="missing"):
@@ -245,7 +252,7 @@ def test_calendar_validation_is_fail_closed_for_naive_missing_and_duplicate_date
             cycles,
             trading_calendar=[d for d in calendar if d != cycles[10].cycle_start],
             config=config,
-            calendar_evidence_fingerprint="calendar-source-a",
+            calendar_evidence_fingerprint=HASH_A,
         )
 
 
@@ -256,13 +263,13 @@ def test_unsorted_calendar_canonicalizes_to_same_fingerprint() -> None:
         cycles,
         trading_calendar=calendar,
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
     plan_b = create_walk_forward_plan(
         cycles,
         trading_calendar=list(reversed(calendar)),
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
     assert plan_a.calendar_fingerprint == plan_b.calendar_fingerprint
     assert plan_a.fingerprint == plan_b.fingerprint
@@ -274,7 +281,7 @@ def test_insufficient_data_returns_empty_plan_and_invalid_config_fails() -> None
         _cycles(calendar, stop_index=10),
         trading_calendar=calendar,
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
     assert empty.folds == ()
 
@@ -290,12 +297,178 @@ def test_legacy_splits_wrapper_uses_canonical_plan() -> None:
         cycles,
         trading_calendar=calendar,
         config=config,
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
 
     assert create_walk_forward_splits(
         cycles,
         trading_calendar=calendar,
         config=config,
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     ) == list(plan.folds)
+
+
+def test_label_maturity_beyond_calendar_is_immature_outside_not_clamped() -> None:
+    calendar = _trading_calendar(days=80)
+    cycles = [*_cycles(calendar, stop_index=70), _cycle("tail-cycle", calendar[-3])]
+    config = WalkForwardConfig(
+        min_train_trading_days=10,
+        validation_trading_days=5,
+        test_trading_days=5,
+        label_horizon_trading_days=5,
+        purge_trading_days=5,
+        embargo_trading_days=5,
+        blind_trading_days=0,
+    )
+
+    plan = create_walk_forward_plan(
+        cycles,
+        trading_calendar=calendar,
+        config=config,
+        calendar_evidence_fingerprint=HASH_A,
+    )
+
+    assert plan.classification_by_fold[0]["tail-cycle"] == CycleDisposition.IMMATURE_OUTSIDE
+    assert "tail-cycle" not in plan.folds[0].blind_cycle_ids
+
+
+def test_blind_covers_cycle_start_end_or_label_maturity_touching_blind_tail() -> None:
+    calendar = _trading_calendar(days=100)
+    config = _config()
+    blind_start = calendar[-config.blind_trading_days]
+    cycles = [
+        _cycle("start-blind", blind_start),
+        _cycle("end-blind", calendar[-config.blind_trading_days - 2], span=7),
+        _cycle("maturity-blind", calendar[-config.blind_trading_days - 4]),
+        *_cycles(calendar, stop_index=70),
+    ]
+
+    plan = create_walk_forward_plan(
+        cycles,
+        trading_calendar=calendar,
+        config=config,
+        calendar_evidence_fingerprint=HASH_A,
+    )
+
+    assert {"start-blind", "end-blind", "maturity-blind"}.issubset(plan.blind_cycle_ids)
+    for fold in plan.folds:
+        assert {"start-blind", "end-blind", "maturity-blind"}.issubset(fold.blind_cycle_ids)
+        assert fold.blind_cycle_ids.isdisjoint(fold.train_cycle_ids)
+        assert fold.blind_cycle_ids.isdisjoint(fold.prediction_cycle_ids)
+
+
+def test_calendar_evidence_fingerprint_must_be_sha256_hex() -> None:
+    calendar = _trading_calendar(days=80)
+    with pytest.raises(ValueError, match="calendar_evidence_fingerprint"):
+        create_walk_forward_plan(
+            _cycles(calendar, stop_index=50),
+            trading_calendar=calendar,
+            config=_config(),
+            calendar_evidence_fingerprint="calendar-source-a",
+        )
+
+
+def test_plan_is_deeply_immutable_and_validator_regenerates_boundaries() -> None:
+    calendar = _trading_calendar(days=140)
+    cycles = _cycles(calendar, stop_index=110)
+    plan = create_walk_forward_plan(
+        cycles,
+        trading_calendar=calendar,
+        config=_config(),
+        calendar_evidence_fingerprint=HASH_A,
+    )
+
+    mutable_classification = cast(
+        MutableMapping[str, CycleDisposition],
+        plan.classification_by_fold[plan.folds[0].fold_id],
+    )
+    with pytest.raises(TypeError):
+        mutable_classification["cyc-000"] = CycleDisposition.TEST
+
+    mutated_classification = {
+        fid: dict(mapping) for fid, mapping in plan.classification_by_fold.items()
+    }
+    mutated_classification[plan.folds[0].fold_id]["cyc-000"] = CycleDisposition.OUTSIDE
+    bad_plan = WalkForwardPlan(
+        config=plan.config,
+        folds=plan.folds,
+        calendar_fingerprint=plan.calendar_fingerprint,
+        calendar_evidence_fingerprint=plan.calendar_evidence_fingerprint,
+        blind_cycle_ids=plan.blind_cycle_ids,
+        classification_by_fold=mutated_classification,
+        fingerprint=plan.fingerprint,
+    )
+    with pytest.raises(ValueError, match="classification"):
+        validate_walk_forward_plan(bad_plan, cycles=cycles, trading_calendar=calendar)
+
+    moved_fold = replace(plan.folds[0], validation_start=calendar[40])
+    bad_boundary_plan = WalkForwardPlan(
+        config=plan.config,
+        folds=(moved_fold, *plan.folds[1:]),
+        calendar_fingerprint=plan.calendar_fingerprint,
+        calendar_evidence_fingerprint=plan.calendar_evidence_fingerprint,
+        blind_cycle_ids=plan.blind_cycle_ids,
+        classification_by_fold=plan.classification_by_fold,
+        fingerprint=plan.fingerprint,
+    )
+    with pytest.raises(ValueError, match="boundaries"):
+        validate_walk_forward_plan(bad_boundary_plan, cycles=cycles, trading_calendar=calendar)
+
+
+def test_verify_cycle_atomicity_requires_exact_accounting_with_outside_classification() -> None:
+    calendar = _trading_calendar(days=100)
+    plan = create_walk_forward_plan(
+        _cycles(calendar, stop_index=80),
+        trading_calendar=calendar,
+        config=_config(),
+        calendar_evidence_fingerprint=HASH_A,
+    )
+    fold = plan.folds[0]
+    all_ids = set(plan.classification_by_fold[fold.fold_id])
+
+    assert verify_cycle_atomicity(fold, all_ids, plan.classification_by_fold[fold.fold_id])
+    assert not verify_cycle_atomicity(fold, all_ids | {"unknown"}, plan.classification_by_fold[fold.fold_id])
+
+
+def test_legacy_wrapper_preserves_explicit_zero_blind_days() -> None:
+    calendar = _trading_calendar(days=500)
+    cycles = _cycles(calendar, stop_index=450)
+
+    folds = create_walk_forward_splits(
+        cycles,
+        trading_calendar=calendar,
+        blind_days=0,
+        calendar_evidence_fingerprint=HASH_A,
+    )
+
+    assert folds
+    assert all(not fold.blind_cycle_ids for fold in folds)
+
+
+def test_open_cycle_and_intraday_boundary_fail_closed() -> None:
+    calendar = _trading_calendar(days=80)
+    open_cycle = EventCycle(
+        cycle_id="open-cycle",
+        stock_id="000001.SZ",
+        cycle_start=calendar[10],
+        last_event_date=calendar[10],
+        cycle_end=None,
+        event_count=1,
+        status=CycleStatus.ACTIVE,
+    )
+    with pytest.raises(ValueError, match="open cycle"):
+        create_walk_forward_plan(
+            [open_cycle],
+            trading_calendar=calendar,
+            config=_config(),
+            calendar_evidence_fingerprint=HASH_A,
+        )
+
+    intraday = _cycle("intraday", calendar[10].replace(hour=10))
+    with pytest.raises(ValueError, match="calendar missing cycle_start"):
+        create_walk_forward_plan(
+            [intraday],
+            trading_calendar=calendar,
+            config=_config(),
+            calendar_evidence_fingerprint=HASH_A,
+        )

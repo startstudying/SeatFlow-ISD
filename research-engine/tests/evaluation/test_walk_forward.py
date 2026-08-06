@@ -21,6 +21,8 @@ from seatflow.evaluation.walk_forward import (
     validate_walk_forward_plan,
 )
 
+HASH_A = "a" * 64
+
 
 def _utc(year: int, month: int, day: int) -> datetime:
     return datetime(year, month, day, tzinfo=timezone.utc)
@@ -86,7 +88,7 @@ def test_legacy_tuple_api_uses_canonical_multi_fold_logic_when_calendar_is_expli
         tuple_cycles,
         trading_calendar=calendar,
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
 
     assert len(folds) >= 3
@@ -100,7 +102,7 @@ def test_validator_rejects_train_prediction_overlap_and_oof_duplicates() -> None
         cycles,
         trading_calendar=calendar,
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
 
     first = plan.folds[0]
@@ -139,7 +141,7 @@ def test_validator_rejects_calendar_tamper_and_embargo_shortfall() -> None:
         cycles,
         trading_calendar=calendar,
         config=_config(),
-        calendar_evidence_fingerprint="calendar-source-a",
+        calendar_evidence_fingerprint=HASH_A,
     )
 
     with pytest.raises(ValueError, match="calendar fingerprint"):
@@ -156,3 +158,12 @@ def test_validator_rejects_calendar_tamper_and_embargo_shortfall() -> None:
     )
     with pytest.raises(ValueError, match="embargo"):
         validate_walk_forward_plan(bad_plan, cycles=cycles, trading_calendar=calendar)
+
+
+def test_legacy_wrapper_default_calendar_evidence_is_valid_sha256() -> None:
+    calendar = _calendar(days=500)
+    tuple_cycles = [(f"cyc-{i:03d}", calendar[i], calendar[i]) for i in range(450)]
+
+    folds = create_walk_forward_splits(tuple_cycles, trading_calendar=calendar)
+
+    assert folds
