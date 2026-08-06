@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from seatflow.features.registry import FeatureRegistry, FeatureSpec, PREDEFINED_SPECS
+from seatflow.features.registry import (
+    FeatureRegistry,
+    FeatureScope,
+    FeatureSpec,
+    PREDEFINED_SPECS,
+    SourceKind,
+)
 
 
 # --- FeatureSpec ------------------------------------------------------
@@ -65,6 +71,33 @@ class TestFeatureSpec:
             pit_required=False,
         )
         assert spec.pit_required is False
+
+    def test_spec_requires_explicit_scope_and_source(self):
+        spec = FeatureSpec(
+            name="stock_volatility_5d",
+            version="1.0",
+            horizons=[5],
+            dependencies=[],
+            description="desc",
+            scope=FeatureScope.STOCK_PIT,
+            source=SourceKind.STOCK_PIT,
+        )
+        assert spec.scope is FeatureScope.STOCK_PIT
+        assert spec.source is SourceKind.STOCK_PIT
+        assert spec.is_current_event is False
+
+    def test_current_event_feature_is_explicit_metadata_not_name_substring(self):
+        spec = FeatureSpec(
+            name="same_day_turnover",
+            version="1.0",
+            horizons=[1],
+            dependencies=[],
+            description="desc",
+            scope=FeatureScope.EVENT_CURRENT,
+            source=SourceKind.EVENT_CURRENT,
+            is_current_event=True,
+        )
+        assert spec.is_current_event is True
 
 
 # --- FeatureRegistry --------------------------------------------------
@@ -204,3 +237,32 @@ class TestPredefinedSpecs:
     def test_predefined_specs_pit_required(self):
         for name, spec in PREDEFINED_SPECS.items():
             assert spec.pit_required is True, f"{name} should require PIT"
+
+    def test_predefined_specs_have_explicit_scope_and_source(self):
+        expected_scopes = {
+            "seat_buy_amount_5d": FeatureScope.SEAT,
+            "seat_sell_amount_5d": FeatureScope.SEAT,
+            "seat_net_amount_5d": FeatureScope.SEAT,
+            "seat_lhb_count_5d": FeatureScope.SEAT,
+            "seat_mature_return_mean": FeatureScope.SEAT,
+            "seat_win_rate": FeatureScope.SEAT,
+            "event_turnover_rate": FeatureScope.EVENT_CURRENT,
+            "event_net_amount": FeatureScope.EVENT_CURRENT,
+            "stock_volatility_5d": FeatureScope.STOCK_PIT,
+            "stock_volatility_20d": FeatureScope.STOCK_PIT,
+            "market_excess_return_1d": FeatureScope.MARKET_PIT,
+            "market_excess_return_3d": FeatureScope.MARKET_PIT,
+            "market_excess_return_5d": FeatureScope.MARKET_PIT,
+            "relay_in_count": FeatureScope.GRAPH_RELATION,
+            "relay_out_count": FeatureScope.GRAPH_RELATION,
+            "coalition_score": FeatureScope.GRAPH_RELATION,
+            "conflict_score": FeatureScope.GRAPH_RELATION,
+        }
+        for name, scope in expected_scopes.items():
+            spec = PREDEFINED_SPECS[name]
+            assert spec.scope is scope
+            assert spec.source.value == scope.value
+
+    def test_event_specs_mark_current_event(self):
+        assert PREDEFINED_SPECS["event_turnover_rate"].is_current_event is True
+        assert PREDEFINED_SPECS["event_net_amount"].is_current_event is True

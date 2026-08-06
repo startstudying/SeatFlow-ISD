@@ -8,7 +8,7 @@ the direct seat-to-stock effect on LHB-listed stocks.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, cast
 
 import torch
 import torch.nn as nn
@@ -68,7 +68,7 @@ class SeatEncoder(nn.Module):
         )
         # Pool: mean over seats
         pooled = attn_out.mean(dim=1)  # [B, hidden]
-        return self.output_proj(pooled)
+        return cast(torch.Tensor, self.output_proj(pooled))
 
 
 class EventEncoder(nn.Module):
@@ -105,7 +105,7 @@ class EventEncoder(nn.Module):
         Returns:
             Event embedding [batch, output_dim]
         """
-        return self.net(event_features)
+        return cast(torch.Tensor, self.net(event_features))
 
 
 class DirectEffectModel(nn.Module):
@@ -184,7 +184,7 @@ class DirectEffectModel(nn.Module):
         market_emb = self.market_proj(market_features)
 
         combined = torch.cat([seat_emb, event_emb, market_emb], dim=-1)
-        return self.direct_head(combined)
+        return cast(torch.Tensor, self.direct_head(combined))
 
     @property
     def output_dim(self) -> int:

@@ -33,6 +33,7 @@ class TestFDGAdditiveDecomposition:
             stock_emb, edge_feat, edge_index, age, regime,
         )
 
+        assert pred.base_daily_path.shape == (batch, 5)
         reconstructed = pred.base + pred.direct + pred.spillover
         assert torch.allclose(pred.final, reconstructed, atol=1e-5)
 
@@ -52,12 +53,41 @@ class TestFDGAdditiveDecomposition:
             market_feat, seat_feat, event_feat,
             stock_emb, edge_feat, edge_index, age, regime,
         )
+        assert pred.base_daily_path.shape == (batch, 5)
         assert pred.base.shape == (batch, 3)
         assert pred.direct.shape == (batch, 3)
         assert pred.spillover.shape == (batch, 3)
         assert pred.final.shape == (batch, 3)
         assert pred.direction.shape == (batch, 3)
         assert pred.uncertainty.shape == (batch, 3)
+
+    def test_legacy_fdg_base_is_cumulative_compatibility_not_formal_base_heads(self):
+        model = SeatFlowFDG(num_horizons=3)
+        batch = 2
+        market_feat = torch.randn(batch, 16)
+        seat_feat = torch.randn(batch, 5, 8)
+        event_feat = torch.randn(batch, 6)
+        stock_emb = torch.randn(4, 32)
+        edge_feat = torch.empty(0, 8)
+        edge_index = torch.empty(2, 0, dtype=torch.long)
+        age = torch.empty(0, 1)
+        regime = torch.empty(0, 4)
+
+        pred = model(
+            market_feat, seat_feat, event_feat,
+            stock_emb, edge_feat, edge_index, age, regime,
+        )
+
+        expected_legacy = torch.stack(
+            [
+                pred.base_daily_path[:, 0],
+                pred.base_daily_path[:, :3].sum(dim=1),
+                pred.base_daily_path[:, :5].sum(dim=1),
+            ],
+            dim=1,
+        )
+        assert torch.allclose(pred.base, expected_legacy)
+        assert pred.base_compatibility == "NON_FORMAL_FDG_LEGACY_CUMULATIVE_1_3_5"
 
 
 class TestFDGGradients:

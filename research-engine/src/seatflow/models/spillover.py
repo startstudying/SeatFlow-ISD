@@ -12,6 +12,7 @@ Relation State Gate: a learnable per-edge gate that controls
 
 from __future__ import annotations
 
+from typing import cast
 
 import torch
 import torch.nn as nn
@@ -102,6 +103,7 @@ class GatedMessagePassing(nn.Module):
         dropout: float = 0.1,
     ) -> None:
         super().__init__()
+        self.target_dim = target_dim
         self.gate = RelationStateGate(
             edge_feature_dim=edge_feature_dim,
             hidden_dim=hidden_dim,
@@ -138,7 +140,7 @@ class GatedMessagePassing(nn.Module):
             # No edges: return zeros matching number of source nodes
             return torch.zeros(
                 source_embeddings.shape[0],
-                self.message_mlp[-1].out_features,
+                self.target_dim,
                 device=source_embeddings.device,
             )
 
@@ -247,7 +249,7 @@ class SpilloverModel(nn.Module):
                 self.num_horizons,
                 device=stock_embeddings.device,
             )
-        return self.spillover_head(updated)
+        return cast(torch.Tensor, self.spillover_head(updated))
 
     @property
     def output_dim(self) -> int:

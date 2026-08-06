@@ -9,13 +9,14 @@ Combines Base + Direct + Spillover into a single model with:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, cast
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from seatflow.models.base import BaseMarketModel
+from seatflow.models.base import cumulative_from_daily_path
 from seatflow.models.seat import DirectEffectModel
 from seatflow.models.spillover import SpilloverModel
 
@@ -28,6 +29,7 @@ class FDGPredictionBatch:
     """
 
     base: torch.Tensor  # [batch, num_horizons]
+    base_daily_path: torch.Tensor  # [batch, 5]
     direct: torch.Tensor  # [batch, num_horizons]
     spillover: torch.Tensor  # [batch, num_horizons]
     final: torch.Tensor  # [batch, num_horizons]
@@ -36,6 +38,7 @@ class FDGPredictionBatch:
     direct_mask: Optional[torch.Tensor] = None  # [batch] bool
     spillover_mask: Optional[torch.Tensor] = None  # [batch] bool
     tradable_mask: Optional[torch.Tensor] = None  # [batch] bool
+    base_compatibility: str = "NON_FORMAL_FDG_LEGACY_CUMULATIVE_1_3_5"
 
 
 class SeatFlowFDG(nn.Module):
@@ -62,7 +65,6 @@ class SeatFlowFDG(nn.Module):
         self.base_model = BaseMarketModel(
             input_dim=market_input_dim,
             hidden_dim=hidden_dim,
-            num_horizons=num_horizons,
             dropout=dropout,
         )
         self.direct_model = DirectEffectModel(
@@ -133,8 +135,10 @@ class SeatFlowFDG(nn.Module):
         """
         batch_size = market_features.shape[0]
 
-        # Base prediction
-        base = self.base_model(market_features)  # [batch, num_horizons]
+        # Base is formally a five-day daily path. FDG is not yet refactored, so
+        # it uses a non-formal compatibility cumulative 1/3/5 view.
+        base_daily_path = self.base_model(market_features)  # [batch, 5]
+        base = cumulative_from_daily_path(base_daily_path)  # [batch, num_horizons]
 
         # Direct prediction (delta)
         direct_delta = self.direct_model(
@@ -172,6 +176,7 @@ class SeatFlowFDG(nn.Module):
 
         return FDGPredictionBatch(
             base=base,
+            base_daily_path=base_daily_path,
             direct=direct_delta,
             spillover=spillover_delta,
             final=final,
@@ -262,7 +267,7 @@ class SeatFlowLoss(nn.Module):
             + self.spillover_weight * spillover_loss
         )
 
-        return total
+        return cast(torch.Tensor, total)
 
     @staticmethod
     def _rank_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
