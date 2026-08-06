@@ -66,6 +66,7 @@ reports/*
 
 # PR-A: repository hygiene — ignore transient artifacts and model checkpoints.
 .tmp/
+.worktrees/
 .omc/
 .omx/
 catboost_info/
