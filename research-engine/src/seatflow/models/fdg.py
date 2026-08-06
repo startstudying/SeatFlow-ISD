@@ -15,8 +15,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from seatflow.models.base import BaseMarketModel
-from seatflow.models.base import cumulative_from_daily_path
+from seatflow.models.base import BaseMarketModel, cumulative_from_daily_path
 from seatflow.models.seat import DirectEffectModel
 from seatflow.models.spillover import SpilloverModel
 
@@ -60,9 +59,11 @@ class SeatFlowFDG(nn.Module):
         dropout: float = 0.1,
     ) -> None:
         super().__init__()
+        if num_horizons != 3:
+            raise ValueError("FDG legacy FDG compatibility requires num_horizons == 3")
         self.num_horizons = num_horizons
 
-        self.base_model = BaseMarketModel(
+        self.base_model = BaseMarketModel.for_nonformal_legacy(
             input_dim=market_input_dim,
             hidden_dim=hidden_dim,
             dropout=dropout,
@@ -137,7 +138,7 @@ class SeatFlowFDG(nn.Module):
 
         # Base is formally a five-day daily path. FDG is not yet refactored, so
         # it uses a non-formal compatibility cumulative 1/3/5 view.
-        base_daily_path = self.base_model(market_features)  # [batch, 5]
+        base_daily_path = self.base_model._forward_nonformal_legacy(market_features)  # [batch, 5]
         base = cumulative_from_daily_path(base_daily_path)  # [batch, num_horizons]
 
         # Direct prediction (delta)

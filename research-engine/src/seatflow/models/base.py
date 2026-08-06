@@ -10,13 +10,16 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Sequence, cast
 
 import torch
 import torch.nn as nn
 
 from seatflow.features.registry import FeatureScope, FeatureSpec, SourceKind
+from seatflow.features.registry import is_forbidden_identity_feature_name
 
 
 BASE_DAILY_PATH_DAYS = 5
@@ -25,6 +28,7 @@ BASE_FORMAL_CLASSIFICATION = "FORMAL_BASE_DAILY_PATH"
 BASE_PROVENANCE = "BASE_ONLY"
 _BASE_ALLOWED_SCOPES = frozenset({FeatureScope.STOCK_PIT, FeatureScope.MARKET_PIT})
 _BASE_ALLOWED_SOURCES = frozenset({SourceKind.STOCK_PIT, SourceKind.MARKET_PIT})
+_SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def _validate_daily_path_tensor(daily_path: torch.Tensor) -> None:
@@ -64,23 +68,23 @@ class BasePrediction:
     """
 
     stock_id: str
-    prediction_time: str
-    cutoff_time: str
+    prediction_time: datetime
+    cutoff_time: datetime
     daily_path: tuple[float, float, float, float, float]
     feature_schema_fingerprint: str
     cumulative: tuple[float, float, float] | None = None
-    classification: str = BASE_FORMAL_CLASSIFICATION
-    provenance: str = BASE_PROVENANCE
+    classification: str = field(default=BASE_FORMAL_CLASSIFICATION, init=False)
+    provenance: str = field(default=BASE_PROVENANCE, init=False)
 
     def __post_init__(self) -> None:
         if not self.stock_id:
             raise ValueError("BasePrediction.stock_id metadata must be non-empty")
-        if not self.prediction_time:
-            raise ValueError("BasePrediction.prediction_time must be non-empty")
-        if not self.cutoff_time:
-            raise ValueError("BasePrediction.cutoff_time must be non-empty")
-        if not self.feature_schema_fingerprint:
-            raise ValueError("BasePrediction.feature_schema_fingerprint must be non-empty")
+        _validate_aware_datetime(self.prediction_time, "prediction_time")
+        _validate_aware_datetime(self.cutoff_time, "cutoff_time")
+        if self.prediction_time <= self.cutoff_time:
+            raise ValueError("BasePrediction prediction_time must be after cutoff_time")
+        if not _SHA256_RE.fullmatch(self.feature_schema_fingerprint):
+            raise ValueError("BasePrediction feature_schema_fingerprint must be sha256:<64 hex>")
         if len(self.daily_path) != BASE_DAILY_PATH_DAYS:
             raise ValueError("BasePrediction daily path must contain five values")
         if not all(math.isfinite(v) for v in self.daily_path):
@@ -94,6 +98,36 @@ class BasePrediction:
             for a, b in zip(self.cumulative, derived)
         ):
             raise ValueError("BasePrediction cumulative values must match the daily path")
+
+
+def _validate_aware_datetime(value: datetime, field_name: str) -> None:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError(f"BasePrediction {field_name} must be timezone-aware")
+
+
+@dataclass(frozen=True)
+class BaseFeatureBatch:
+    """Frozen Base input batch already validated against a feature contract."""
+
+    features: torch.Tensor
+    stock_ids: tuple[str, ...]
+    feature_names: tuple[str, ...]
+    schema_fingerprint: str
+    _contract_fingerprint: str
+
+    def __post_init__(self) -> None:
+        if self.schema_fingerprint != self._contract_fingerprint:
+            raise ValueError("BaseFeatureBatch schema fingerprint does not match contract")
+        if not _SHA256_RE.fullmatch(self.schema_fingerprint):
+            raise ValueError("BaseFeatureBatch schema fingerprint must be sha256:<64 hex>")
+        if self.features.ndim != 2:
+            raise ValueError("BaseFeatureBatch features must have shape [batch, feature_dim]")
+        if self.features.shape[0] != len(self.stock_ids):
+            raise ValueError("BaseFeatureBatch stock metadata length must match feature batch size")
+        if self.features.shape[1] != len(self.feature_names):
+            raise ValueError("BaseFeatureBatch feature_names length must match feature dimension")
+        if not torch.isfinite(self.features).all():
+            raise ValueError("BaseFeatureBatch features must contain only finite values")
 
 
 class BaseFeatureContract:
@@ -145,8 +179,32 @@ class BaseFeatureContract:
 
         return features
 
+    def validate_batch(
+        self,
+        features: torch.Tensor,
+        stock_ids: Sequence[str],
+        *,
+        feature_names: Sequence[str],
+    ) -> BaseFeatureBatch:
+        validated = self.validate_tensor(
+            features,
+            stock_ids,
+            feature_names=feature_names,
+        )
+        return BaseFeatureBatch(
+            features=validated,
+            stock_ids=tuple(stock_ids),
+            feature_names=tuple(feature_names),
+            schema_fingerprint=self.schema_fingerprint,
+            _contract_fingerprint=self.schema_fingerprint,
+        )
+
     @staticmethod
     def _validate_spec(spec: FeatureSpec) -> None:
+        if is_forbidden_identity_feature_name(spec.name):
+            raise ValueError(
+                f"Identity leakage detected: identity feature name {spec.name!r}"
+            )
         if spec.scope is FeatureScope.IDENTITY or spec.source is SourceKind.IDENTITY:
             raise ValueError(f"Base feature {spec.name!r} is identity metadata, not continuous input")
         if spec.scope is FeatureScope.UNKNOWN or spec.source is SourceKind.UNKNOWN:
@@ -185,19 +243,30 @@ class BaseMarketModel(nn.Module):
 
     def __init__(
         self,
-        input_dim: int = 16,
+        contract: BaseFeatureContract | None = None,
+        input_dim: int | None = None,
         hidden_dim: int = 64,
         num_horizons: int | None = None,
         dropout: float = 0.1,
+        _allow_nonformal_legacy: bool = False,
     ) -> None:
         super().__init__()
         if num_horizons is not None and num_horizons != BASE_DAILY_PATH_DAYS:
             raise ValueError("BaseMarketModel output is fixed to five daily increments")
-        self.input_dim = input_dim
+        if contract is None and not _allow_nonformal_legacy:
+            raise ValueError("Formal BaseMarketModel construction requires a BaseFeatureContract")
+        if contract is not None and input_dim is not None:
+            raise ValueError("Base input_dim is derived from BaseFeatureContract")
+        if contract is None and input_dim is None:
+            raise ValueError("Non-formal legacy BaseMarketModel requires input_dim")
+
+        self.contract = contract
+        self.input_dim = contract.input_dim if contract is not None else cast(int, input_dim)
         self.hidden_dim = hidden_dim
+        self.is_formal = contract is not None
 
         self.net = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
+            nn.Linear(self.input_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, hidden_dim),
@@ -206,8 +275,39 @@ class BaseMarketModel(nn.Module):
             nn.Linear(hidden_dim, BASE_DAILY_PATH_DAYS),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Return daily path predictions with shape ``[batch, 5]``."""
+    @classmethod
+    def for_nonformal_legacy(
+        cls,
+        *,
+        input_dim: int,
+        hidden_dim: int = 64,
+        dropout: float = 0.1,
+    ) -> BaseMarketModel:
+        """Build a non-formal adapter for legacy FDG compatibility only."""
+        return cls(
+            input_dim=input_dim,
+            hidden_dim=hidden_dim,
+            dropout=dropout,
+            _allow_nonformal_legacy=True,
+        )
+
+    def forward(self, batch: BaseFeatureBatch) -> torch.Tensor:
+        """Return formal daily path predictions for a validated Base batch."""
+        if not isinstance(batch, BaseFeatureBatch):
+            raise TypeError("Formal Base forward requires a BaseFeatureBatch")
+        if self.contract is None:
+            raise ValueError("Non-formal legacy Base model cannot use formal forward")
+        if batch.schema_fingerprint != self.contract.schema_fingerprint:
+            raise ValueError("BaseFeatureBatch schema fingerprint does not match model contract")
+        return self._run_network(batch.features)
+
+    def _forward_nonformal_legacy(self, x: torch.Tensor) -> torch.Tensor:
+        """Run low-level Base network for explicitly non-formal legacy adapters."""
+        if self.is_formal:
+            raise ValueError("Formal Base model cannot use non-formal legacy forward")
+        return self._run_network(x)
+
+    def _run_network(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 2 or x.shape[1] != self.input_dim:
             raise ValueError(
                 f"Base input tensor must have shape [batch, {self.input_dim}]"
@@ -215,6 +315,28 @@ class BaseMarketModel(nn.Module):
         if not torch.isfinite(x).all():
             raise ValueError("Base input tensor must contain only finite values")
         return cast(torch.Tensor, self.net(x))
+
+    def predict(
+        self,
+        batch: BaseFeatureBatch,
+        *,
+        prediction_time: datetime,
+        cutoff_time: datetime,
+    ) -> tuple[BasePrediction, ...]:
+        daily_paths = self.forward(batch)
+        return tuple(
+            BasePrediction(
+                stock_id=stock_id,
+                prediction_time=prediction_time,
+                cutoff_time=cutoff_time,
+                daily_path=cast(
+                    tuple[float, float, float, float, float],
+                    tuple(float(v) for v in daily_paths[row].detach().cpu().tolist()),
+                ),
+                feature_schema_fingerprint=batch.schema_fingerprint,
+            )
+            for row, stock_id in enumerate(batch.stock_ids)
+        )
 
     @property
     def output_dim(self) -> int:

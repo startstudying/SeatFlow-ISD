@@ -32,6 +32,19 @@ FORBIDDEN_ID_FEATURES = frozenset(
 )
 
 
+def is_forbidden_identity_feature_name(name: str) -> bool:
+    """Return True when a feature name encodes identity/hash metadata."""
+    normalized = name.strip().lower()
+    if normalized in FORBIDDEN_ID_FEATURES:
+        return True
+    return (
+        normalized.endswith("_id")
+        or normalized.endswith("_hash")
+        or "_id_hash" in normalized
+        or "identity" in normalized
+    )
+
+
 class FeatureScope(str, Enum):
     """Semantic scope of a feature's source evidence."""
 
@@ -122,6 +135,7 @@ class FeatureRegistry:
         Raises ``ValueError`` if ``name`` is already registered or if the
         spec's name is a forbidden identity field.
         """
+        self.validate_no_id_leakage([name, spec.name])
         if name in self._specs:
             raise ValueError(f"Feature {name!r} is already registered")
         if name != spec.name:
@@ -141,7 +155,7 @@ class FeatureRegistry:
 
         Raises ``ValueError`` listing any forbidden names found.
         """
-        forbidden = [n for n in feature_names if n in FORBIDDEN_ID_FEATURES]
+        forbidden = [n for n in feature_names if is_forbidden_identity_feature_name(n)]
         if forbidden:
             raise ValueError(
                 f"Identity leakage detected: {forbidden} are forbidden as "

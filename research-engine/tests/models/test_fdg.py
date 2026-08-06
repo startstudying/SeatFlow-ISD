@@ -1,12 +1,17 @@
 """Tests for FDG full model (Task 17)."""
 
 import torch
+import pytest
 
 from seatflow.models.fdg import SeatFlowFDG, SeatFlowLoss
 
 
 class TestFDGAdditiveDecomposition:
     """final == base + direct + spillover"""
+
+    def test_legacy_fdg_rejects_non_three_horizon_compatibility(self):
+        with pytest.raises(ValueError, match="legacy FDG compatibility"):
+            SeatFlowFDG(num_horizons=5)
 
     def test_additive(self):
         model = SeatFlowFDG(

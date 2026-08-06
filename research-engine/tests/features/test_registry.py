@@ -8,6 +8,7 @@ from seatflow.features.registry import (
     FeatureRegistry,
     FeatureScope,
     FeatureSpec,
+    is_forbidden_identity_feature_name,
     PREDEFINED_SPECS,
     SourceKind,
 )
@@ -148,35 +149,51 @@ class TestFeatureRegistry:
 
 
 class TestIdLeakagePrevention:
+    @pytest.mark.parametrize(
+        "name",
+        ["stock_id", "stock_id_hash", "seat_hash", "event_id_hash", "identity_code"],
+    )
+    def test_shared_identity_name_predicate_rejects_hash_derivatives(self, name):
+        assert is_forbidden_identity_feature_name(name) is True
+
+    def test_registry_rejects_mislabeled_identity_hash_feature_on_register(self):
+        reg = FeatureRegistry()
+        spec = FeatureSpec(
+            name="stock_id_hash",
+            version="1.0",
+            horizons=[5],
+            dependencies=[],
+            description="mislabeled continuous fixture",
+            scope=FeatureScope.STOCK_PIT,
+            source=SourceKind.STOCK_PIT,
+        )
+        with pytest.raises(ValueError, match="Identity leakage"):
+            reg.register("stock_id_hash", spec)
+
     def test_stock_id_rejected_as_feature(self):
         reg = FeatureRegistry()
-        reg.register("stock_id", FeatureSpec("stock_id", "1.0", [5], [], "id"))
         with pytest.raises(Exception):
-            reg.validate_no_id_leakage(["stock_id"])
+            reg.register("stock_id", FeatureSpec("stock_id", "1.0", [5], [], "id"))
 
     def test_seat_id_rejected_as_feature(self):
         reg = FeatureRegistry()
-        reg.register("seat_id", FeatureSpec("seat_id", "1.0", [5], [], "id"))
         with pytest.raises(Exception):
-            reg.validate_no_id_leakage(["seat_id"])
+            reg.register("seat_id", FeatureSpec("seat_id", "1.0", [5], [], "id"))
 
     def test_event_id_rejected_as_feature(self):
         reg = FeatureRegistry()
-        reg.register("event_id", FeatureSpec("event_id", "1.0", [5], [], "id"))
         with pytest.raises(Exception):
-            reg.validate_no_id_leakage(["event_id"])
+            reg.register("event_id", FeatureSpec("event_id", "1.0", [5], [], "id"))
 
     def test_cycle_id_rejected_as_feature(self):
         reg = FeatureRegistry()
-        reg.register("cycle_id", FeatureSpec("cycle_id", "1.0", [5], [], "id"))
         with pytest.raises(Exception):
-            reg.validate_no_id_leakage(["cycle_id"])
+            reg.register("cycle_id", FeatureSpec("cycle_id", "1.0", [5], [], "id"))
 
     def test_id_hash_rejected_as_feature(self):
         reg = FeatureRegistry()
-        reg.register("id_hash", FeatureSpec("id_hash", "1.0", [5], [], "id"))
         with pytest.raises(Exception):
-            reg.validate_no_id_leakage(["id_hash"])
+            reg.register("id_hash", FeatureSpec("id_hash", "1.0", [5], [], "id"))
 
     def test_legitimate_feature_accepted(self):
         reg = FeatureRegistry()
