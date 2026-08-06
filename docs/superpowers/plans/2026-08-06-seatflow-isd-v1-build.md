@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a versioned SeatFlow-ISD V1.0 engineering dataset from the real 2023-01-03 through 2026-07-17 Tushare snapshots, with deterministic manifests and fail-closed formal validity.
+**Goal:** Refresh the real Tushare snapshots through 2026-08-06 inclusive, then build a versioned SeatFlow-ISD V1.0 engineering dataset with deterministic manifests and fail-closed formal validity.
 
 **Architecture:** Add a read-only legacy snapshot adapter and a focused ISD orchestration layer under `research-engine/src/seatflow/dataset/`. Reuse the existing event, cycle, sample, split, materializer, and seal types after correcting their trading-calendar and return-policy mismatches. Persist JSONL/JSON artifacts atomically and expose one CLI that builds or audits a version.
 
@@ -17,6 +17,26 @@
 - Missing concept, benchmark, company-action, or tradeability evidence must not be synthesized.
 - Any formal gate failure leaves `dataset_valid=false`; engineering output may still be written with blockers.
 - No new dependency and no mutation of source snapshots.
+- Recent-data refresh is append-only: existing dated snapshots are never overwritten, and the requested build upper bound is fixed at 2026-08-06; incomplete core sources on that date become explicit blockers.
+
+---
+
+### Task 0: Append-Only Recent Data Refresh
+
+**Files:**
+- Reuse: existing Tushare ingestion/backfill entry point discovered in the repository
+- Generate: missing dated snapshots under `D:/SeatFlow/data/historical_backfill/tushare_2023_2026_v2/`
+- Create: `reports/seatflow-isd-source-refresh-2026-08-06.md`
+
+**Interfaces:**
+- Consumes: existing Tushare credentials from local environment without logging their values.
+- Produces: append-only daily-bar, LHB summary, LHB seat-event, daily-basic, and applicable industry snapshots through 2026-08-06 inclusive.
+
+- [ ] **Step 1: Run a dry inventory to identify missing exchange dates after 2026-07-17 and confirm no existing dated file will be overwritten.**
+- [ ] **Step 2: Execute the existing ingestion path for each missing date and core dataset, retaining source version, available time, row count, and hash manifests.**
+- [ ] **Step 3: Re-read every new `data.json` and `manifest.json`, recompute hashes/row counts, and verify explicit coverage through 2026-08-06.**
+- [ ] **Step 4: Record per-source date coverage and any unavailable dates in the refresh report.**
+- [ ] **Step 5: Do not commit generated source data; commit only the report if it contains no credential or sensitive payload.**
 
 ---
 
@@ -132,7 +152,7 @@ def test_load_verified_rows_rejects_tampered_data(tmp_path: Path) -> None:
 - [ ] **Step 4: Run CLI tests and a fixture build through the installed module entry point.**
 - [ ] **Step 5: Commit with a Lore message including tested commands and known formal blockers.**
 
-### Task 6: Real 856-Day Build and Verification
+### Task 6: Real Refreshed-Window Build and Verification
 
 **Files:**
 - Generate: `datasets/seatflow_isd_v1/<dataset_version>/...` (gitignored data artifact)
@@ -142,7 +162,7 @@ def test_load_verified_rows_rejects_tampered_data(tmp_path: Path) -> None:
 - Consumes the source root `data/historical_backfill/tushare_2023_2026_v2`.
 - Produces one immutable dataset version and a concise evidence report.
 
-- [ ] **Step 1: Run source inventory audit and verify 856 daily-bar, LHB-summary, LHB-seat, and daily-basic snapshot dates from 2023-01-03 through 2026-07-17.**
+- [ ] **Step 1: Run source inventory audit and verify daily-bar, LHB-summary, LHB-seat, and daily-basic coverage from 2023-01-03 through 2026-08-06, recording any per-source gap as a blocker.**
 - [ ] **Step 2: Execute the real CLI build with a timestamped deterministic version name.**
 - [ ] **Step 3: Re-run `seatflow-isd audit` on the produced directory and recompute every file hash referenced by the manifest.**
 - [ ] **Step 4: Run targeted tests, full research-engine tests, Ruff, mypy, and compileall; record exact pass/fail evidence.**
