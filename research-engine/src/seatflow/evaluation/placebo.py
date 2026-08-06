@@ -7,9 +7,13 @@ significant performance drop if the model truly uses the structure.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any, cast
 
 import numpy as np
+
+NDArrayAny = np.ndarray[Any, Any]
 
 
 @dataclass(frozen=True)
@@ -29,11 +33,11 @@ def shuffle_seat_assignments(
     *,
     seed: int = 42,
 ) -> dict[str, str]:
-    """Shuffle seat-to-stock assignments deterministically.
+    """Shuffle unique seat assignments deterministically.
 
-    Preserves the count of seats per stock but reassigns which seat
-    participates in which stock. This breaks the semantic meaning of
-    seat identity while keeping the data shape identical.
+    This compatibility wrapper returns the legacy ``seat_id -> shuffled_seat_id``
+    mapping. New evaluation code should prefer :func:`shuffle_seat_rows`, which
+    is row-aligned and validates stock grouping.
 
     Args:
         seat_ids: Original seat IDs in order
@@ -43,46 +47,93 @@ def shuffle_seat_assignments(
     Returns:
         Mapping from original seat_id -> shuffled seat_id
     """
-    rng = np.random.default_rng(seed)
-    unique_seats = list(set(seat_ids))
-    shuffled = unique_seats.copy()
-    rng.shuffle(shuffled)
+    _validate_seed(seed)
+    _validate_seat_rows(seat_ids, stock_ids)
+    unique_seats = _stable_unique(seat_ids)
+    if len(unique_seats) < 2:
+        raise ValueError("seat_ids must contain at least two unique seats")
+    shuffled = _rotate(sorted(unique_seats), seed)
+    if all(original == placebo for original, placebo in zip(unique_seats, shuffled)):
+        shuffled = _rotate(sorted(unique_seats), seed + 1)
     return dict(zip(unique_seats, shuffled))
 
 
+def shuffle_seat_rows(
+    seat_ids: Sequence[str],
+    stock_ids: Sequence[str],
+    *,
+    seed: int = 42,
+) -> list[str]:
+    """Return a deterministic row-aligned seat placebo assignment.
+
+    The output has exactly one shuffled seat ID per input row. It preserves the
+    sample count, the global seat multiset, and the number of participating rows
+    for every stock. Stock IDs are validated and used to define deterministic
+    first-seen groups; no Python hash ordering participates in the shuffle.
+    """
+    _validate_seed(seed)
+    _validate_seat_rows(seat_ids, stock_ids)
+    grouped_row_indices: dict[str, list[int]] = {}
+    for index, stock_id in enumerate(stock_ids):
+        grouped_row_indices.setdefault(stock_id, []).append(index)
+
+    shuffled_multiset = _rotate(sorted(seat_ids), seed)
+    result = [""] * len(seat_ids)
+    cursor = 0
+    for row_indices in grouped_row_indices.values():
+        group_seats = shuffled_multiset[cursor : cursor + len(row_indices)]
+        cursor += len(row_indices)
+        for row_index, seat_id in zip(row_indices, group_seats):
+            result[row_index] = seat_id
+    if len(set(seat_ids)) >= 2 and result == list(seat_ids):
+        return shuffle_seat_rows(seat_ids, stock_ids, seed=seed + 1)
+    return result
+
+
 def shuffle_graph_edges(
-    edge_index: np.ndarray,
+    edge_index: NDArrayAny,
     *,
     seed: int = 42,
     preserve_degree: bool = True,
-) -> np.ndarray:
+    allow_self_loops: bool = False,
+) -> NDArrayAny:
     """Shuffle graph edges while optionally preserving degree distribution.
 
     Args:
         edge_index: [2, num_edges] array of (source, target) pairs
         seed: Random seed
         preserve_degree: If True, preserve in-degree and out-degree
+        allow_self_loops: If False, reject input self-loops and avoid creating
+            shuffled self-loops when a valid permutation exists.
 
     Returns:
         Shuffled edge_index [2, num_edges]
     """
+    _validate_seed(seed)
+    _validate_edge_index(edge_index, allow_self_loops=allow_self_loops)
     rng = np.random.default_rng(seed)
     num_edges = edge_index.shape[1]
     if num_edges == 0:
         return edge_index.copy()
 
     if preserve_degree:
-        # Preserve out-degree: shuffle targets only
         sources = edge_index[0].copy()
         targets = edge_index[1].copy()
-        rng.shuffle(targets)
-        return np.stack([sources, targets])
+        targets = _shuffle_targets_without_self_loops(
+            sources,
+            targets,
+            rng=rng,
+            allow_self_loops=allow_self_loops,
+        )
+        return cast(NDArrayAny, np.stack([sources, targets]))
     else:
-        # Full shuffle: randomly reassign both sources and targets
         all_nodes = np.unique(edge_index)
         new_sources = rng.choice(all_nodes, size=num_edges)
         new_targets = rng.choice(all_nodes, size=num_edges)
-        return np.stack([new_sources, new_targets])
+        shuffled = cast(NDArrayAny, np.stack([new_sources, new_targets]))
+        if not allow_self_loops and np.any(shuffled[0] == shuffled[1]):
+            raise ValueError("full graph shuffle created a self-loop; use allow_self_loops=True")
+        return shuffled
 
 
 def verify_placebo_reproducibility(
@@ -97,18 +148,87 @@ def verify_placebo_reproducibility(
 
 
 def verify_degree_preserved(
-    edge_index: np.ndarray,
-    shuffled: np.ndarray,
+    edge_index: NDArrayAny,
+    shuffled: NDArrayAny,
 ) -> bool:
     """Verify that degree distribution is preserved after shuffling."""
     if edge_index.shape[1] == 0:
         return True
-    orig_out_degree: dict[int, int] = {}
-    for s in edge_index[0]:
-        orig_out_degree[int(s)] = orig_out_degree.get(int(s), 0) + 1
+    return _degree_counts(edge_index[0]) == _degree_counts(shuffled[0]) and _degree_counts(
+        edge_index[1]
+    ) == _degree_counts(shuffled[1])
 
-    shuf_out_degree: dict[int, int] = {}
-    for s in shuffled[0]:
-        shuf_out_degree[int(s)] = shuf_out_degree.get(int(s), 0) + 1
 
-    return orig_out_degree == shuf_out_degree
+def _validate_seat_rows(seat_ids: Sequence[str], stock_ids: Sequence[str]) -> None:
+    if len(seat_ids) != len(stock_ids):
+        raise ValueError("seat_ids and stock_ids must have the same length")
+    if not seat_ids:
+        raise ValueError("seat_ids and stock_ids cannot be empty")
+    if any(not isinstance(seat_id, str) or not seat_id.strip() for seat_id in seat_ids):
+        raise ValueError("seat_ids must contain non-empty strings")
+    if any(not isinstance(stock_id, str) or not stock_id.strip() for stock_id in stock_ids):
+        raise ValueError("stock_ids must contain non-empty strings")
+    if len(seat_ids) < 2:
+        raise ValueError("seat placebo requires at least two rows")
+
+
+def _stable_unique(values: Sequence[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_values: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            unique_values.append(value)
+    return unique_values
+
+
+def _rotate(values: list[str], seed: int) -> list[str]:
+    _validate_seed(seed)
+    if not values:
+        return []
+    offset = seed % len(values)
+    return values[offset:] + values[:offset]
+
+
+def _validate_edge_index(edge_index: NDArrayAny, *, allow_self_loops: bool) -> None:
+    if edge_index.ndim != 2 or edge_index.shape[0] != 2:
+        raise ValueError("edge_index must have shape [2, num_edges]")
+    if not np.issubdtype(edge_index.dtype, np.integer):
+        raise ValueError("edge_index must use an integer dtype")
+    if np.any(edge_index < 0):
+        raise ValueError("edge_index node IDs must be non-negative")
+    if not allow_self_loops and np.any(edge_index[0] == edge_index[1]):
+        raise ValueError("edge_index contains a self-loop; use allow_self_loops=True")
+
+
+def _validate_seed(seed: int) -> None:
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("seed must be a non-negative integer")
+
+
+def _shuffle_targets_without_self_loops(
+    sources: NDArrayAny,
+    targets: NDArrayAny,
+    *,
+    rng: np.random.Generator,
+    allow_self_loops: bool,
+) -> NDArrayAny:
+    if allow_self_loops:
+        shuffled = targets.copy()
+        rng.shuffle(shuffled)
+        return shuffled
+
+    for _ in range(128):
+        shuffled = targets.copy()
+        rng.shuffle(shuffled)
+        if not np.any(sources == shuffled):
+            return shuffled
+    raise ValueError("cannot shuffle graph targets without creating a self-loop")
+
+
+def _degree_counts(nodes: NDArrayAny) -> dict[int, int]:
+    counts: dict[int, int] = {}
+    for node in nodes:
+        node_id = int(node)
+        counts[node_id] = counts.get(node_id, 0) + 1
+    return counts
