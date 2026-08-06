@@ -213,89 +213,54 @@ def _shuffle_targets_without_self_loops(
     rng: np.random.Generator,
     allow_self_loops: bool,
 ) -> NDArrayAny:
-    if allow_self_loops:
-        shuffled = targets.copy()
-        rng.shuffle(shuffled)
-        return shuffled
-
     for _ in range(128):
         shuffled = targets.copy()
         rng.shuffle(shuffled)
-        if _is_valid_semantic_graph_shuffle(sources, targets, shuffled):
+        if _is_valid_semantic_graph_shuffle(
+            sources,
+            targets,
+            shuffled,
+            allow_self_loops=allow_self_loops,
+        ):
             return shuffled
-    fallback = _find_deterministic_target_shuffle(sources, targets)
+    fallback = _find_deterministic_target_shuffle(
+        sources,
+        targets,
+        allow_self_loops=allow_self_loops,
+    )
     if fallback is not None:
         return fallback
-    raise ValueError("cannot create a semantic graph shuffle without creating a self-loop")
+    raise ValueError("cannot create a semantic graph shuffle under the requested self-loop policy")
 
 
 def _is_valid_semantic_graph_shuffle(
     sources: NDArrayAny,
     original_targets: NDArrayAny,
     candidate_targets: NDArrayAny,
+    *,
+    allow_self_loops: bool,
 ) -> bool:
-    if np.any(sources == candidate_targets):
+    if not allow_self_loops and np.any(sources == candidate_targets):
         return False
     return _edge_multiset(sources, candidate_targets) != _edge_multiset(sources, original_targets)
 
 
-def _find_deterministic_target_shuffle(sources: NDArrayAny, targets: NDArrayAny) -> NDArrayAny | None:
-    target_counts: dict[int, int] = _degree_counts(targets)
-    source_values = [int(source) for source in sources.tolist()]
-    remaining_edges = _edge_multiset(sources, targets)
-    assignment: list[int] = []
-    memo: set[
-        tuple[
-            int,
-            tuple[tuple[int, int], ...],
-            tuple[tuple[tuple[int, int], int], ...],
-        ]
-    ] = set()
-
-    def search(position: int) -> list[int] | None:
-        if position == len(source_values):
-            return assignment.copy() if remaining_edges else None
-
-        state = (
-            position,
-            tuple(sorted(target_counts.items())),
-            tuple(sorted(remaining_edges.items())),
-        )
-        if state in memo:
-            return None
-
-        source = source_values[position]
-        for target in sorted(target_counts):
-            if target == source or target_counts[target] == 0:
-                continue
-            edge = (source, target)
-            edge_count = remaining_edges.get(edge, 0)
-            target_counts[target] -= 1
-            if target_counts[target] == 0:
-                del target_counts[target]
-            if edge_count > 0:
-                if edge_count == 1:
-                    del remaining_edges[edge]
-                else:
-                    remaining_edges[edge] = edge_count - 1
-            assignment.append(target)
-
-            found = search(position + 1)
-            if found is not None:
-                return found
-
-            assignment.pop()
-            if edge_count > 0:
-                remaining_edges[edge] = edge_count
-            target_counts[target] = target_counts.get(target, 0) + 1
-
-        memo.add(state)
-        return None
-
-    found_assignment = search(0)
-    if found_assignment is None:
-        return None
-    return cast(NDArrayAny, np.array(found_assignment, dtype=targets.dtype))
+def _find_deterministic_target_shuffle(
+    sources: NDArrayAny,
+    targets: NDArrayAny,
+    *,
+    allow_self_loops: bool,
+) -> NDArrayAny | None:
+    for offset in range(1, targets.shape[0]):
+        candidate = cast(NDArrayAny, np.roll(targets, -offset))
+        if _is_valid_semantic_graph_shuffle(
+            sources,
+            targets,
+            candidate,
+            allow_self_loops=allow_self_loops,
+        ):
+            return candidate
+    return None
 
 
 def _edge_multiset(sources: NDArrayAny, targets: NDArrayAny) -> dict[tuple[int, int], int]:

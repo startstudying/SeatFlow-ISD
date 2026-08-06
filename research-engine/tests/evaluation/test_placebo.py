@@ -6,7 +6,7 @@ import subprocess
 import sys
 import textwrap
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -18,6 +18,14 @@ from seatflow.evaluation.placebo import (
     verify_degree_preserved,
     shuffle_seat_rows,
 )
+
+
+def _edge_multiset(edge_index: np.ndarray[Any, Any]) -> dict[tuple[int, int], int]:
+    counts: dict[tuple[int, int], int] = {}
+    for source, target in edge_index.T.tolist():
+        edge = (int(source), int(target))
+        counts[edge] = counts.get(edge, 0) + 1
+    return counts
 
 
 class TestShuffledSeat:
@@ -219,10 +227,50 @@ class TestShuffledGraph:
 
         np.testing.assert_array_equal(shuf1, shuf2)
         assert verify_degree_preserved(edge_index, shuf1)
-        assert sorted(map(tuple, shuf1.T.tolist())) != sorted(map(tuple, edge_index.T.tolist()))
+        assert _edge_multiset(shuf1) != _edge_multiset(edge_index)
         assert sorted(shuf1[1].tolist()) == sorted(edge_index[1].tolist())
         assert not np.any(shuf1[0] == shuf1[1])
         assert not np.array_equal(edge_index[1], shuf1[1])
+
+    def test_degree_preserving_graph_shuffle_fallback_handles_1024_edges_iteratively(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Catches recursive fallback implementations that overflow on normal large graphs."""
+
+        class IdentityShuffleGenerator:
+            def shuffle(self, values: np.ndarray[Any, Any]) -> None:
+                return None
+
+        monkeypatch.setattr(
+            np.random,
+            "default_rng",
+            lambda seed: cast(np.random.Generator, IdentityShuffleGenerator()),
+        )
+        node_count = 1024
+        edge_index = np.stack(
+            [
+                np.arange(node_count, dtype=np.int64),
+                (np.arange(node_count, dtype=np.int64) + 1) % node_count,
+            ],
+        )
+
+        shuffled = shuffle_graph_edges(edge_index, seed=42, preserve_degree=True)
+
+        assert verify_degree_preserved(edge_index, shuffled)
+        assert sorted(shuffled[1].tolist()) == sorted(edge_index[1].tolist())
+        assert _edge_multiset(shuffled) != _edge_multiset(edge_index)
+        assert not np.any(shuffled[0] == shuffled[1])
+
+    def test_allow_self_loops_graph_shuffle_never_accepts_identity_when_permutable(self) -> None:
+        """Catches semantic identity in the explicit self-loop-allowed path."""
+        edge_index = np.array([[0, 1, 2, 3], [1, 2, 3, 0]])
+
+        shuffled = shuffle_graph_edges(edge_index, seed=1, allow_self_loops=True)
+
+        assert verify_degree_preserved(edge_index, shuffled)
+        assert sorted(shuffled[1].tolist()) == sorted(edge_index[1].tolist())
+        assert _edge_multiset(shuffled) != _edge_multiset(edge_index)
 
     def test_degree_preserving_graph_shuffle_rejects_nonpermutable_without_identity(self) -> None:
         """Catches labeling an unchanged reciprocal pair as a graph shuffle."""
