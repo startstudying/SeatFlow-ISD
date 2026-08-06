@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import gc
+import weakref
 from dataclasses import FrozenInstanceError
 from datetime import UTC, datetime, timedelta
 
@@ -18,6 +20,8 @@ from seatflow.models.base import (
     BaseLoss,
     BaseMarketModel,
     BasePrediction,
+    _ISSUANCE_SENTINEL,
+    _tensor_content_fingerprint,
     cumulative_from_daily_path,
 )
 
@@ -52,6 +56,22 @@ def _base_specs() -> tuple[FeatureSpec, ...]:
         _market_spec("market_excess_return_1d"),
         _market_spec("market_excess_return_5d"),
     )
+
+
+def _forge_batch_with_current_sentinel(contract: BaseFeatureContract) -> BaseFeatureBatch:
+    fake_features = torch.ones(1, contract.input_dim, dtype=torch.float32)
+    fake = object.__new__(BaseFeatureBatch)
+    object.__setattr__(fake, "features", fake_features)
+    object.__setattr__(fake, "stock_ids", ("stock-a",))
+    object.__setattr__(fake, "feature_names", contract.feature_names)
+    object.__setattr__(fake, "schema_fingerprint", contract.schema_fingerprint)
+    object.__setattr__(
+        fake,
+        "feature_content_fingerprint",
+        _tensor_content_fingerprint(fake_features),
+    )
+    object.__setattr__(fake, "_issued_by_contract", _ISSUANCE_SENTINEL)
+    return fake
 
 
 def _valid_cutoff() -> datetime:
@@ -247,6 +267,19 @@ class TestBaseFeatureContract:
         x[0, 0] = 99.0
         assert batch.features[0, 0].item() == pytest.approx(0.2)
 
+    @pytest.mark.parametrize(
+        "features",
+        [
+            torch.ones(1, 3, dtype=torch.float64),
+            torch.ones(1, 3, dtype=torch.int64),
+            torch.ones(1, 3, dtype=torch.bool),
+        ],
+    )
+    def test_validate_batch_rejects_non_float32_dtypes(self, features: torch.Tensor) -> None:
+        contract = BaseFeatureContract(_base_specs())
+        with pytest.raises(ValueError, match="float32"):
+            contract.validate_batch(features, ["stock-a"], feature_names=contract.feature_names)
+
 
 class TestBasePredictionDTO:
     def test_prediction_derives_cumulative_and_keeps_stock_id_metadata_only(self) -> None:
@@ -397,6 +430,56 @@ class TestFormalPredictionPath:
         batch.features[0, 0] = 42.0
         with pytest.raises(ValueError, match="content fingerprint"):
             model(batch)
+
+    def test_forward_rejects_object_new_forgery_even_with_current_sentinel(self) -> None:
+        contract = BaseFeatureContract(_base_specs())
+        model = BaseMarketModel(contract=contract, hidden_dim=8, dropout=0.0)
+        fake = _forge_batch_with_current_sentinel(contract)
+        with pytest.raises(ValueError, match="issued by this BaseFeatureContract"):
+            model(fake)
+
+    def test_forward_rejects_batch_issued_by_another_contract_even_with_same_schema(self) -> None:
+        contract_a = BaseFeatureContract(_base_specs())
+        contract_b = BaseFeatureContract(_base_specs())
+        model_b = BaseMarketModel(contract=contract_b, hidden_dim=8, dropout=0.0)
+        batch_a = contract_a.validate_batch(
+            torch.ones(1, 3, dtype=torch.float32),
+            ["stock-a"],
+            feature_names=contract_a.feature_names,
+        )
+        assert contract_a.schema_fingerprint == contract_b.schema_fingerprint
+        with pytest.raises(ValueError, match="issued by this BaseFeatureContract"):
+            model_b(batch_a)
+
+    def test_contract_issued_registry_is_weak(self) -> None:
+        contract = BaseFeatureContract(_base_specs())
+
+        def issue_ref() -> weakref.ReferenceType[BaseFeatureBatch]:
+            batch = contract.validate_batch(
+                torch.ones(1, 3, dtype=torch.float32),
+                ["stock-a"],
+                feature_names=contract.feature_names,
+            )
+            return weakref.ref(batch)
+
+        batch_ref = issue_ref()
+        gc.collect()
+        assert batch_ref() is None
+
+    def test_float32_formal_forward_preserves_model_parameter_gradients(self) -> None:
+        contract = BaseFeatureContract(_base_specs())
+        model = BaseMarketModel(contract=contract, hidden_dim=8, dropout=0.0)
+        batch = contract.validate_batch(
+            torch.ones(2, 3, dtype=torch.float32),
+            ["stock-a", "stock-b"],
+            feature_names=contract.feature_names,
+        )
+        loss = model(batch).sum()
+        loss.backward()
+        assert any(param.grad is not None for param in model.parameters())
+        for param in model.parameters():
+            if param.grad is not None:
+                assert torch.isfinite(param.grad).all()
 
 
 class TestBaseLoss:

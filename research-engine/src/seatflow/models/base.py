@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import re
+import weakref
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Sequence, cast
@@ -121,7 +122,7 @@ def _tensor_content_fingerprint(tensor: torch.Tensor) -> str:
     return "sha256:" + digest
 
 
-@dataclass(frozen=True, init=False)
+@dataclass(frozen=True, init=False, eq=False)
 class BaseFeatureBatch:
     """Frozen Base input batch already validated against a feature contract."""
 
@@ -170,6 +171,8 @@ class BaseFeatureBatch:
             raise ValueError("BaseFeatureBatch content fingerprint must be sha256:<64 hex>")
         if self.features.ndim != 2:
             raise ValueError("BaseFeatureBatch features must have shape [batch, feature_dim]")
+        if self.features.dtype is not torch.float32:
+            raise ValueError("BaseFeatureBatch features must use torch.float32 dtype")
         if self.features.shape[0] != len(self.stock_ids):
             raise ValueError("BaseFeatureBatch stock metadata length must match feature batch size")
         if self.features.shape[1] != len(self.feature_names):
@@ -196,6 +199,7 @@ class BaseFeatureContract:
         self.feature_specs = tuple(feature_specs)
         self.feature_names = tuple(names)
         self.schema_fingerprint = self._fingerprint(self.feature_specs)
+        self._issued_batches: weakref.WeakSet[BaseFeatureBatch] = weakref.WeakSet()
 
     @property
     def input_dim(self) -> int:
@@ -210,6 +214,8 @@ class BaseFeatureContract:
     ) -> torch.Tensor:
         if features.ndim != 2:
             raise ValueError("Base feature tensor must have shape [batch, feature_dim]")
+        if features.dtype is not torch.float32:
+            raise ValueError("Base feature tensor must use torch.float32 dtype")
         if features.shape[1] != self.input_dim:
             raise ValueError(
                 f"Base feature dimension drift: expected {self.input_dim}, got {features.shape[1]}"
@@ -249,17 +255,21 @@ class BaseFeatureContract:
             feature_names=feature_names,
         )
         owned_features = validated.detach().clone()
-        return BaseFeatureBatch._issue(
+        batch = BaseFeatureBatch._issue(
             issuance_sentinel=_ISSUANCE_SENTINEL,
             features=owned_features,
             stock_ids=tuple(stock_ids),
             feature_names=tuple(feature_names),
             schema_fingerprint=self.schema_fingerprint,
         )
+        self._issued_batches.add(batch)
+        return batch
 
     def revalidate_batch(self, batch: BaseFeatureBatch) -> None:
         if batch._issued_by_contract is not _ISSUANCE_SENTINEL:
             raise ValueError("BaseFeatureBatch was not issued by BaseFeatureContract")
+        if batch not in self._issued_batches:
+            raise ValueError("BaseFeatureBatch was not issued by this BaseFeatureContract")
         if batch.schema_fingerprint != self.schema_fingerprint:
             raise ValueError("BaseFeatureBatch schema fingerprint does not match contract")
         self.validate_tensor(
@@ -382,6 +392,15 @@ class BaseMarketModel(nn.Module):
         if x.ndim != 2 or x.shape[1] != self.input_dim:
             raise ValueError(
                 f"Base input tensor must have shape [batch, {self.input_dim}]"
+            )
+        first_param = next(self.net.parameters())
+        if x.dtype != first_param.dtype:
+            raise ValueError(
+                f"Base input tensor dtype must match model parameter dtype {first_param.dtype}"
+            )
+        if x.device != first_param.device:
+            raise ValueError(
+                f"Base input tensor device must match model parameter device {first_param.device}"
             )
         if not torch.isfinite(x).all():
             raise ValueError("Base input tensor must contain only finite values")
