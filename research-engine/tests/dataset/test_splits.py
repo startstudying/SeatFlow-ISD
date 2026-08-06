@@ -332,6 +332,54 @@ def test_label_maturity_beyond_calendar_is_immature_outside_not_clamped() -> Non
     assert "tail-cycle" not in plan.folds[0].blind_cycle_ids
 
 
+def test_zero_blind_keeps_last_day_immature_cycle_out_of_blind() -> None:
+    calendar = _trading_calendar(days=80)
+    cycles = [*_cycles(calendar, stop_index=70), _cycle("last-day-cycle", calendar[-1])]
+    config = WalkForwardConfig(
+        min_train_trading_days=10,
+        validation_trading_days=5,
+        test_trading_days=5,
+        label_horizon_trading_days=5,
+        purge_trading_days=5,
+        embargo_trading_days=5,
+        blind_trading_days=0,
+    )
+
+    plan = create_walk_forward_plan(
+        cycles,
+        trading_calendar=calendar,
+        config=config,
+        calendar_evidence_fingerprint=HASH_A,
+    )
+
+    assert plan.blind_cycle_ids == frozenset()
+    assert all(fold.blind_cycle_ids == frozenset() for fold in plan.folds)
+    assert plan.classification_by_fold[0]["last-day-cycle"] == CycleDisposition.IMMATURE_OUTSIDE
+
+
+def test_raw_maturity_index_beyond_calendar_still_marks_blind_tail_touch() -> None:
+    calendar = _trading_calendar(days=40)
+    config = WalkForwardConfig(
+        min_train_trading_days=5,
+        validation_trading_days=2,
+        test_trading_days=2,
+        label_horizon_trading_days=10,
+        purge_trading_days=10,
+        embargo_trading_days=10,
+        blind_trading_days=5,
+    )
+    cycle = _cycle("raw-maturity-crosses-blind", calendar[-config.blind_trading_days - 5])
+
+    plan = create_walk_forward_plan(
+        [*_cycles(calendar, stop_index=20), cycle],
+        trading_calendar=calendar,
+        config=config,
+        calendar_evidence_fingerprint=HASH_A,
+    )
+
+    assert "raw-maturity-crosses-blind" in plan.blind_cycle_ids
+
+
 def test_blind_covers_cycle_start_end_or_label_maturity_touching_blind_tail() -> None:
     calendar = _trading_calendar(days=100)
     config = _config()

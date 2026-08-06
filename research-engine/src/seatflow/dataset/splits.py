@@ -161,6 +161,7 @@ class _CycleRecord:
     cycle_end: datetime
     label_maturity: datetime | None
     label_maturity_index: int | None
+    raw_label_maturity_index: int
     status: str
 
 
@@ -515,6 +516,7 @@ def _coerce_cycle(
         cycle_end=end,
         label_maturity=maturity,
         label_maturity_index=maturity_record_index,
+        raw_label_maturity_index=maturity_index,
         status=status,
     )
 
@@ -524,16 +526,15 @@ def _blind_cycle_ids(
     calendar_index: dict[datetime, int],
     blind_start_idx: int,
 ) -> frozenset[str]:
+    if blind_start_idx >= len(calendar_index):
+        return frozenset()
     ids: set[str] = set()
     for record in records:
         start_idx = calendar_index[record.cycle_start]
         end_idx = calendar_index[record.cycle_end]
         if start_idx >= blind_start_idx or end_idx >= blind_start_idx:
             ids.add(record.cycle_id)
-        elif record.label_maturity_index is None:
-            if end_idx + 1 >= blind_start_idx:
-                ids.add(record.cycle_id)
-        elif record.label_maturity_index >= blind_start_idx:
+        elif record.raw_label_maturity_index >= blind_start_idx:
             ids.add(record.cycle_id)
     return frozenset(sorted(ids))
 
@@ -703,6 +704,7 @@ def _build_plan(
                 if record.label_maturity is not None
                 else None,
                 "label_maturity_index": record.label_maturity_index,
+                "raw_label_maturity_index": record.raw_label_maturity_index,
                 "status": record.status,
             }
             for record in cycle_records
