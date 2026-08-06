@@ -1,9 +1,9 @@
 """Prediction-sample construction (Task 13).
 
-A *sample* is one (cycle, day) pair. For each trading day in the cycle's
-active window the sampler emits a :class:`PredictionSample` for the
-cycle's own stock (DIRECT pool) and, optionally, for each propagation
-candidate (SPILLOVER pool).
+A *sample* is one (cycle, day) pair. For exactly five exchange trading
+days from cycle D0 through D0+4, the sampler emits a
+:class:`PredictionSample` for the cycle's own stock (DIRECT pool) and,
+optionally, for each propagation candidate (SPILLOVER pool).
 
 The ``days_since_last_event`` counter resets to 0 on a day that carries an
 LHB event for the stock and increments by 1 on each subsequent non-event
@@ -18,7 +18,7 @@ import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Iterable, Mapping, Sequence
+from typing import AbstractSet, Any, Iterable, Mapping, Sequence
 
 from seatflow.dataset.cycle import EventCycle
 from seatflow.dataset.event import LHBEvent
@@ -135,7 +135,7 @@ def _days_since_last_event(
 def _classify_for_sample(
     stock_id: str,
     prediction_date: datetime,
-    market_data: Mapping[str, Sequence[dict]],
+    market_data: Mapping[str, Sequence[dict[str, Any]]],
 ) -> tuple[TradeabilityState, bool, bool]:
     prices = market_data.get(stock_id, [])
     state = classify_tradeability(
@@ -164,8 +164,9 @@ def build_samples(
     direct_events: Sequence[LHBEvent],
     propagation_candidates: Sequence[tuple[str, str | datetime]],
     trade_calendar: Sequence[datetime],
-    market_data: Mapping[str, Sequence[dict]],
+    market_data: Mapping[str, Sequence[dict[str, Any]]],
     stock_universe: set[str],
+    support_only_stock_ids: AbstractSet[str] | None = None,
 ) -> list[PredictionSample]:
     """Build prediction samples for an active cycle.
 
@@ -184,14 +185,17 @@ def build_samples(
         ``available_from`` (parsed if it is an ISO string) provided the
         candidate is in ``stock_universe``.
     trade_calendar:
-        Sorted list of trading days (tz-aware UTC). Only days that fall
-        within the cycle's active window produce samples.
+        Trading days (tz-aware UTC). The first five exchange days at or
+        after ``cycle_start`` define the complete impulse window.
     market_data:
         Mapping ``stock_id → list of OHLC bar dicts`` used for
         tradeability classification.
     stock_universe:
         Set of valid stock_ids. Candidates outside this set are filtered
         out.
+    support_only_stock_ids:
+        Graph context nodes that must never become DIRECT or SPILLOVER
+        evaluation targets.
 
     Returns
     -------
@@ -205,12 +209,13 @@ def build_samples(
     # An expired cycle has no active window to sample.
     # (Its samples were emitted while it was active.)
 
-    # The active window starts at cycle_start and extends through the
-    # calendar's end (the cycle is ACTIVE and may still be extended).
+    # One event impulse is exactly five exchange trading days from D0.
+    # Later events may extend the cycle for grouping purposes, but must
+    # not silently expand this per-event prediction window.
     window_start = cycle.cycle_start
 
-    # Filter the trade calendar to the active window.
-    active_days = [d for d in trade_calendar if d >= window_start]
+    active_days = sorted({day for day in trade_calendar if day >= window_start})[:5]
+    support_only = support_only_stock_ids or frozenset()
 
     # Index the direct events by stock for days_since_last_event.
     direct_event_dates = _event_dates_by_stock(direct_events)
@@ -218,7 +223,7 @@ def build_samples(
     samples: list[PredictionSample] = []
 
     # ── DIRECT samples (the cycle's own stock) ─────────────────────────
-    if cycle.stock_id in stock_universe:
+    if cycle.stock_id in stock_universe and cycle.stock_id not in support_only:
         ev_dates = direct_event_dates.get(cycle.stock_id, [])
         for day in active_days:
             dse = _days_since_last_event(day, ev_dates, trade_calendar)
@@ -243,7 +248,7 @@ def build_samples(
 
     # ── SPILLOVER samples (propagation candidates) ─────────────────────
     for cand_stock, available_from in propagation_candidates:
-        if cand_stock not in stock_universe:
+        if cand_stock not in stock_universe or cand_stock in support_only:
             continue
         if isinstance(available_from, str):
             available_from_dt = datetime.fromisoformat(available_from)

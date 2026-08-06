@@ -1,125 +1,164 @@
-"""Dataset seal — fail-closed integrity gate (Task 13).
-
-The :class:`Seal` is the final fail-closed guard on a built dataset.
-Each :class:`HardGate` corresponds to one class of leak or integrity
-violation. :func:`seal_dataset` returns a :class:`SealReport` whose
-``passed`` is ``True`` *only* if every gate passes — a single failed
-gate (or a gate whose result is missing) makes the seal rejected.
-
-Hard gates
-----------
-
-- ``PIT_AVAILABLE_TIME_VIOLATION`` — a feature's ``available_time`` is
-  earlier than the sample's ``cutoff_time``.
-- ``ID_LEAKAGE`` — two distinct stock_ids or seat_ids share an identity
-  alias that was not canonical at the time.
-- ``IMMATURE_LABEL`` — a label's ``evaluation_date`` is before the
-  sample's prediction_date (the label is not yet realized).
-- ``CYCLE_CROSS_SPLIT`` — a cycle appears in more than one split.
-- ``LABEL_PATH_INCONSISTENCY`` — a label's daily path is internally
-  inconsistent (e.g. compound ≠ exit_price / entry_price - 1).
-- ``PRIMARY_KEY_CONFLICT`` — two samples share the same ``sample_id``.
-- ``DANGLING_GRAPH_REFERENCE`` — a sample references a graph node that
-  does not exist in the graph snapshot.
-"""
+"""Fail-closed Dataset v3 seal over computed materialization evidence."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
-from typing import Sequence
 
-from seatflow.dataset.manifest import DatasetManifest
+from seatflow.dataset.manifest import DatasetManifest, compute_manifest_hash
+from seatflow.dataset.materializer import (
+    MATERIALIZATION_GATES,
+    GateFinding,
+    HardGate,
+    MaterializedDataset,
+    materialize_dataset,
+)
 from seatflow.dataset.samples import PredictionSample
-
-
-class HardGate(str, Enum):
-    """A single class of integrity violation checked by the seal."""
-
-    PIT_AVAILABLE_TIME_VIOLATION = "PIT_AVAILABLE_TIME_VIOLATION"
-    ID_LEAKAGE = "ID_LEAKAGE"
-    IMMATURE_LABEL = "IMMATURE_LABEL"
-    CYCLE_CROSS_SPLIT = "CYCLE_CROSS_SPLIT"
-    LABEL_PATH_INCONSISTENCY = "LABEL_PATH_INCONSISTENCY"
-    PRIMARY_KEY_CONFLICT = "PRIMARY_KEY_CONFLICT"
-    DANGLING_GRAPH_REFERENCE = "DANGLING_GRAPH_REFERENCE"
 
 
 @dataclass(frozen=True)
 class SealReport:
-    """Result of sealing a dataset.
-
-    Attributes
-    ----------
-    passed:
-        ``True`` iff every gate passed (no violations). A single failed
-        gate — or a gate whose result is missing — makes this ``False``.
-    gate_results:
-        Mapping of gate name → bool (``True`` = passed). Gates missing
-        from the input are recorded as ``False`` (fail-closed).
-    violation_count:
-        Number of gates that failed.
-    violation_samples:
-        The samples implicated by a failed gate. For a gate-level failure
-        (no specific sample), all input samples are attached so callers
-        can inspect them.
-    """
+    """Result of binding and validating a materialized dataset manifest."""
 
     passed: bool
     gate_results: dict[str, bool]
     violation_count: int
     violation_samples: list[PredictionSample]
+    findings: tuple[GateFinding, ...]
+    sealed_manifest_hash: str
+
+
+def _computed_gate_results(
+    findings: tuple[GateFinding, ...],
+) -> dict[str, bool]:
+    results: dict[str, bool] = {}
+    for gate in MATERIALIZATION_GATES:
+        gate_findings = [finding for finding in findings if finding.gate is gate]
+        results[gate.value] = bool(gate_findings) and all(
+            finding.passed for finding in gate_findings
+        )
+    return results
+
+
+def _manifest_mismatches(
+    materialized: MaterializedDataset,
+    manifest: DatasetManifest,
+    computed_results: dict[str, bool],
+) -> tuple[tuple[str, str], ...]:
+    mismatches: list[tuple[str, str]] = []
+    expected: dict[str, object] = {
+        "build_timestamp": materialized.materialized_at.isoformat(),
+        "feature_schema_hash": materialized.feature_schema_hash,
+        "graph_schema_hash": materialized.graph_schema_hash,
+        "materialization_fingerprint": materialized.evidence_fingerprint,
+        "gate_evidence_fingerprint": materialized.gate_evidence_fingerprint,
+        "row_counts": dict(materialized.row_counts),
+        "node_counts": dict(materialized.node_counts),
+        "edge_counts": dict(materialized.edge_counts),
+        "quality_gate_results": dict(sorted(computed_results.items())),
+    }
+    actual: dict[str, object] = {
+        "build_timestamp": manifest.build_timestamp.isoformat(),
+        "feature_schema_hash": manifest.feature_schema_hash,
+        "graph_schema_hash": manifest.graph_schema_hash,
+        "materialization_fingerprint": manifest.materialization_fingerprint,
+        "gate_evidence_fingerprint": manifest.gate_evidence_fingerprint,
+        "row_counts": manifest.row_counts,
+        "node_counts": manifest.node_counts,
+        "edge_counts": manifest.edge_counts,
+        "quality_gate_results": manifest.quality_gate_results,
+    }
+    for field in sorted(expected):
+        if actual[field] != expected[field]:
+            mismatches.append(
+                (field, f"expected={expected[field]!r};actual={actual[field]!r}")
+            )
+    return tuple(mismatches)
+
+
+def _materialization_mismatches(
+    provided: MaterializedDataset,
+    recomputed: MaterializedDataset,
+) -> tuple[tuple[str, str], ...]:
+    """Detect attempts to replace derived evidence on a frozen dataset value."""
+
+    mismatches: list[tuple[str, str]] = []
+    derived_fields: tuple[tuple[str, object, object], ...] = (
+        ("evaluation_samples", provided.evaluation_samples, recomputed.evaluation_samples),
+        ("findings", provided.findings, recomputed.findings),
+        (
+            "feature_schema_hash",
+            provided.feature_schema_hash,
+            recomputed.feature_schema_hash,
+        ),
+        ("graph_schema_hash", provided.graph_schema_hash, recomputed.graph_schema_hash),
+        (
+            "gate_evidence_fingerprint",
+            provided.gate_evidence_fingerprint,
+            recomputed.gate_evidence_fingerprint,
+        ),
+        (
+            "evidence_fingerprint",
+            provided.evidence_fingerprint,
+            recomputed.evidence_fingerprint,
+        ),
+        ("row_counts", dict(provided.row_counts), dict(recomputed.row_counts)),
+        ("node_counts", dict(provided.node_counts), dict(recomputed.node_counts)),
+        ("edge_counts", dict(provided.edge_counts), dict(recomputed.edge_counts)),
+    )
+    for field, actual, expected in derived_fields:
+        if actual != expected:
+            mismatches.append((f"materialized.{field}", "derived evidence mismatch"))
+    return tuple(mismatches)
 
 
 def seal_dataset(
-    samples: Sequence[PredictionSample],
+    materialized: MaterializedDataset,
     manifest: DatasetManifest,
-    gate_results: dict[HardGate, bool],
 ) -> SealReport:
-    """Run the fail-closed seal on a built dataset.
+    """Seal only complete evidence whose manifest exactly matches its rows."""
 
-    Parameters
-    ----------
-    samples:
-        The prediction samples produced by :func:`build_samples`.
-    manifest:
-        The dataset manifest produced alongside the samples.
-    gate_results:
-        Mapping of :class:`HardGate` → pass/fail. Every gate must be
-        present and ``True`` for the seal to pass. A gate that is missing
-        from this mapping is treated as a failure (fail-closed).
+    recomputed = materialize_dataset(
+        samples=materialized.samples,
+        labels=materialized.labels,
+        features=materialized.features,
+        feature_schema=materialized.feature_schema,
+        graph_nodes=materialized.graph_nodes,
+        graph_edges=materialized.graph_edges,
+        sample_graph_references=materialized.sample_graph_references,
+        materialized_at=materialized.materialized_at,
+    )
+    computed_results = _computed_gate_results(recomputed.findings)
+    mismatch_evidence = _materialization_mismatches(materialized, recomputed) + (
+        _manifest_mismatches(recomputed, manifest, computed_results)
+    )
+    manifest_finding = GateFinding(
+        gate=HardGate.MANIFEST_EVIDENCE_MISMATCH,
+        row_reference=None,
+        evidence=mismatch_evidence,
+        passed=not mismatch_evidence,
+    )
+    findings = recomputed.findings + (manifest_finding,)
+    gate_results = dict(computed_results)
+    gate_results[HardGate.MANIFEST_EVIDENCE_MISMATCH.value] = manifest_finding.passed
 
-    Returns
-    -------
-    SealReport
-        The sealed report. ``passed`` is ``True`` only if every gate
-        passed.
-    """
-    # Build a complete gate-results dict, defaulting missing gates to
-    # False (fail-closed).
-    complete: dict[str, bool] = {}
-    failed_gates: list[HardGate] = []
-    for gate in HardGate:
-        passed = gate_results.get(gate, False)
-        complete[gate.value] = passed
-        if not passed:
-            failed_gates.append(gate)
-
-    violation_count = len(failed_gates)
-
-    # Attach samples implicated by failed gates. For a gate-level failure
-    # (no specific sample identified), attach all input samples so callers
-    # can inspect them.
-    if failed_gates and samples:
-        violation_samples = list(samples)
+    failed_gates = {gate for gate, passed in gate_results.items() if not passed}
+    failed_sample_ids = {
+        finding.row_reference.split(":", 1)[0]
+        for finding in findings
+        if not finding.passed and finding.row_reference is not None
+    }
+    if failed_gates and not failed_sample_ids:
+        violation_samples = list(recomputed.samples)
     else:
-        violation_samples = []
-
-    passed = violation_count == 0
+        violation_samples = [
+            sample for sample in recomputed.samples if sample.sample_id in failed_sample_ids
+        ]
 
     return SealReport(
-        passed=passed,
-        gate_results=complete,
-        violation_count=violation_count,
+        passed=not failed_gates,
+        gate_results=gate_results,
+        violation_count=len(failed_gates),
         violation_samples=violation_samples,
+        findings=findings,
+        sealed_manifest_hash=compute_manifest_hash(manifest),
     )

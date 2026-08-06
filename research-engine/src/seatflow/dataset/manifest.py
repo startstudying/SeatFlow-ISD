@@ -12,8 +12,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from seatflow.dataset.materializer import MaterializedDataset
 
 
 @dataclass(frozen=True)
@@ -50,6 +54,10 @@ class DatasetManifest:
         Mapping of gate name → pass/fail.
     artifact_uris:
         List of URIs for the dataset's output artifacts.
+    materialization_fingerprint:
+        Deterministic hash of the immutable materialized rows and evidence.
+    gate_evidence_fingerprint:
+        Deterministic hash of the computed hard-gate findings.
     """
 
     dataset_version: str
@@ -66,6 +74,8 @@ class DatasetManifest:
     edge_counts: dict[str, int]
     quality_gate_results: dict[str, bool]
     artifact_uris: list[str]
+    materialization_fingerprint: str = ""
+    gate_evidence_fingerprint: str = ""
 
 
 def compute_manifest_hash(manifest: DatasetManifest) -> str:
@@ -81,3 +91,36 @@ def compute_manifest_hash(manifest: DatasetManifest) -> str:
     raw["build_timestamp"] = manifest.build_timestamp.isoformat()
     canonical = json.dumps(raw, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def bind_materialization_evidence(
+    manifest: DatasetManifest,
+    materialized: MaterializedDataset,
+) -> DatasetManifest:
+    """Return a manifest bound to computed, immutable materialization evidence."""
+
+    schema_mismatches = []
+    if manifest.feature_schema_hash != materialized.feature_schema_hash:
+        schema_mismatches.append("feature_schema_hash")
+    if manifest.graph_schema_hash != materialized.graph_schema_hash:
+        schema_mismatches.append("graph_schema_hash")
+    if schema_mismatches:
+        raise ValueError(
+            "manifest schema fingerprint mismatch: " + ", ".join(schema_mismatches)
+        )
+
+    gate_results: dict[str, bool] = {}
+    for finding in materialized.findings:
+        gate_results[finding.gate.value] = gate_results.get(finding.gate.value, True) and (
+            finding.passed
+        )
+    return replace(
+        manifest,
+        build_timestamp=materialized.materialized_at,
+        row_counts=dict(materialized.row_counts),
+        node_counts=dict(materialized.node_counts),
+        edge_counts=dict(materialized.edge_counts),
+        quality_gate_results=dict(sorted(gate_results.items())),
+        materialization_fingerprint=materialized.evidence_fingerprint,
+        gate_evidence_fingerprint=materialized.gate_evidence_fingerprint,
+    )

@@ -144,9 +144,8 @@ class TestBuildSamples:
     def test_one_sample_per_trading_day_in_active_cycle(self):
         cycle = _cycle("cyc-1", "000001.SZ", "2026-01-05T00:00:00+00:00", "2026-01-05T00:00:00+00:00")
         samples = _build(cycle=cycle)
-        # The active cycle covers all 10 calendar days by default; each
-        # is a direct prediction sample for the cycle's stock.
-        assert len(samples) == 10
+        # Each event impulse is exactly D0..D0+4 exchange trading days.
+        assert len(samples) == 5
         assert all(s.pool_type == PoolType.DIRECT for s in samples)
         assert all(s.cycle_id == "cyc-1" for s in samples)
         assert all(s.stock_id == "000001.SZ" for s in samples)
@@ -201,11 +200,11 @@ class TestBuildSamples:
             cycle=cycle,
             propagation_candidates=propagation_candidates,
         )
-        # 10 direct + 10 spillover = 20.
+        # Five direct + five spillover targets.
         direct = [s for s in samples if s.pool_type == PoolType.DIRECT]
         spill = [s for s in samples if s.pool_type == PoolType.SPILLOVER]
-        assert len(direct) == 10
-        assert len(spill) == 10
+        assert len(direct) == 5
+        assert len(spill) == 5
         assert all(s.stock_id == "000002.SZ" for s in spill)
         assert all(s.cycle_id == "cyc-1" for s in spill)
 
@@ -265,9 +264,81 @@ class TestBuildSamples:
             propagation_candidates=propagation_candidates,
             stock_universe={"000001.SZ"},
         )
-        # Only the 10 direct samples remain.
+        # Only the five direct samples remain.
         assert all(s.stock_id == "000001.SZ" for s in samples)
         assert all(s.pool_type == PoolType.DIRECT for s in samples)
+
+    def test_active_window_uses_five_exchange_days_across_holiday_gaps(self):
+        cycle = _cycle(
+            "cyc-1",
+            "000001.SZ",
+            "2026-01-30T00:00:00+00:00",
+            "2026-02-20T00:00:00+00:00",
+        )
+        calendar = _trade_calendar(
+            [
+                "2026-01-30T00:00:00+00:00",
+                "2026-02-02T00:00:00+00:00",
+                "2026-02-03T00:00:00+00:00",
+                "2026-02-09T00:00:00+00:00",
+                "2026-02-10T00:00:00+00:00",
+                "2026-02-11T00:00:00+00:00",
+            ]
+        )
+
+        samples = _build(cycle=cycle, calendar=calendar)
+
+        assert [sample.prediction_date for sample in samples] == calendar[:5]
+
+    def test_cycle_extension_does_not_expand_original_impulse_window(self):
+        calendar = _trade_calendar(
+            [f"2026-01-{day:02d}T00:00:00+00:00" for day in range(5, 16)]
+        )
+        initial = _cycle(
+            "cyc-1",
+            "000001.SZ",
+            "2026-01-05T00:00:00+00:00",
+            "2026-01-05T00:00:00+00:00",
+        )
+        extended = _cycle(
+            "cyc-1",
+            "000001.SZ",
+            "2026-01-05T00:00:00+00:00",
+            "2026-01-12T00:00:00+00:00",
+            event_count=2,
+        )
+
+        first = _build(cycle=initial, calendar=calendar)
+        second = _build(cycle=extended, calendar=calendar)
+
+        assert [sample.sample_id for sample in second] == [
+            sample.sample_id for sample in first
+        ]
+
+    def test_support_only_stocks_never_become_prediction_samples(self):
+        cycle = _cycle(
+            "cyc-1",
+            "000001.SZ",
+            "2026-01-05T00:00:00+00:00",
+            "2026-01-05T00:00:00+00:00",
+        )
+
+        samples = build_samples(
+            cycle=cycle,
+            direct_events=[_ev("e1", cycle.stock_id, cycle.cycle_start.isoformat())],
+            propagation_candidates=[
+                ("000002.SZ", "2026-01-05T00:00:00+00:00")
+            ],
+            trade_calendar=[cycle.cycle_start + timedelta(days=i) for i in range(10)],
+            market_data={
+                cycle.stock_id: _five_day_window(cycle.cycle_start.isoformat()),
+                "000002.SZ": _five_day_window(cycle.cycle_start.isoformat()),
+            },
+            stock_universe={cycle.stock_id, "000002.SZ"},
+            support_only_stock_ids={"000002.SZ"},
+        )
+
+        assert {sample.stock_id for sample in samples} == {"000001.SZ"}
 
     def test_empty_active_window_emits_no_samples(self):
         cycle = _cycle("cyc-1", "000001.SZ", "2026-01-05T00:00:00+00:00", "2026-01-05T00:00:00+00:00")
