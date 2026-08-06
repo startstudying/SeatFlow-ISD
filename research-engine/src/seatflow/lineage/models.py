@@ -212,6 +212,11 @@ class ValidatedLineageGraph:
                 "NOT_A_TENSOR_ARTIFACT",
                 f"Sample artifact {sample.tensor_artifact_id!r} is {tensor.layer.value}",
             )
+        if sample.tensor_row_index >= tensor.row_count:
+            raise LineageValidationError(
+                "TENSOR_ROW_OUT_OF_RANGE",
+                f"Tensor row {sample.tensor_row_index} is outside row_count={tensor.row_count}",
+            )
         if sample.data_classification != tensor.data_classification:
             raise LineageValidationError(
                 "CLASSIFICATION_MISMATCH",

@@ -238,14 +238,14 @@ def test_tensor_sample_traces_to_exact_bronze_source_record() -> None:
     sample = api.SampleLineage(
         sample_id="sample-001",
         tensor_artifact_id="tensor",
-        tensor_row_index=7,
+        tensor_row_index=3,
         source_record_ids=(source_record.source_record_id,),
         data_classification=api.DataClassification.SYNTHETIC_NON_FORMAL,
     )
 
     trace = graph.trace_sample(sample)
 
-    assert trace.sample.tensor_row_index == 7
+    assert trace.sample.tensor_row_index == 3
     assert trace.source_records == (source_record,)
     assert trace.source_records[0].available_time == _utc("2026-08-05T08:00:00+00:00")
 
@@ -276,4 +276,21 @@ def test_sample_reference_outside_tensor_ancestry_fails_closed() -> None:
     )
 
     with pytest.raises(ValueError, match="SOURCE_RECORD_NOT_IN_ANCESTRY"):
+        graph.trace_sample(sample)
+
+
+def test_sample_tensor_row_index_must_exist() -> None:
+    """Accepting index equal to row_count must not create lineage for a missing row."""
+    api = _api()
+    bronze, silver, gold, tensor = _complete_chain(api)
+    graph = api.validate_lineage((bronze, silver, gold, tensor))
+    sample = api.SampleLineage(
+        sample_id="sample-out-of-range",
+        tensor_artifact_id="tensor",
+        tensor_row_index=tensor.row_count,
+        source_record_ids=(bronze.source_records[0].source_record_id,),
+        data_classification=api.DataClassification.SYNTHETIC_NON_FORMAL,
+    )
+
+    with pytest.raises(ValueError, match="TENSOR_ROW_OUT_OF_RANGE"):
         graph.trace_sample(sample)
