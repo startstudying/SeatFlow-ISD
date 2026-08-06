@@ -14,16 +14,16 @@ without forcing a live Redis dependency during unit tests.
 
 Supported task kinds:
 
-* ``experiment_run`` — simulate an experiment run
-* ``backtest`` — simulate a backtest replay
-* ``prediction`` — simulate a daily inference/prediction job
+* ``experiment_run`` — delegate an experiment run to a configured pipeline
+* ``backtest`` — delegate a backtest replay to a configured pipeline
+* ``prediction`` — delegate a daily inference job to a configured pipeline
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Optional, Protocol
 
 from seatflow.api.models import ErrorResponse, TaskState, TaskStatus
 from seatflow.worker.task_store import (
@@ -61,7 +61,7 @@ class RedisQueue:
         if result is None:
             raise asyncio.TimeoutError
         _key, value = result
-        return value
+        return value.decode() if isinstance(value, bytes) else value
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -72,43 +72,105 @@ class RedisQueue:
 
 HandlerResult = dict[str, Any]
 TaskHandler = Callable[[dict[str, Any], "TaskRunner"], Awaitable[HandlerResult]]
+ProgressReporter = Callable[[float, Optional[str]], None]
 
 
-async def _experiment_run_handler(spec: dict[str, Any], runner: "TaskRunner") -> HandlerResult:
-    """Simulate an experiment run with staged progress."""
-    experiment_id = spec.get("experiment_id", "exp-000")
-    for step in range(1, 5):
-        await asyncio.sleep(0)
-        runner.store.progress(
-            runner.current_task_id,
-            step / 4,
-            message=f"training step {step}/4",
+class TaskBlockedError(RuntimeError):
+    """A recoverable research-capability blocker with machine-readable guidance."""
+
+    def __init__(
+        self,
+        *,
+        code: str,
+        message: str,
+        remediation: str,
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.remediation = remediation
+        self.details = details
+
+
+class ResearchPipelineAdapter(Protocol):
+    """Boundary implemented by a real experiment/backtest/prediction pipeline."""
+
+    async def execute(
+        self,
+        *,
+        task_kind: str,
+        spec: dict[str, Any],
+        report_progress: ProgressReporter,
+    ) -> HandlerResult:
+        """Execute one research task and return a lineage-bearing result."""
+
+
+def pipeline_capability(
+    pipeline_adapter: Optional[ResearchPipelineAdapter],
+) -> dict[str, str]:
+    """Describe readiness without conflating process health and research capability."""
+    if pipeline_adapter is None:
+        return {
+            "status": "BLOCKED",
+            "code": "PIPELINE_ADAPTER_UNAVAILABLE",
+            "remediation": (
+                "Configure a real ResearchPipelineAdapter before running research tasks."
+            ),
+        }
+    return {
+        "status": "UP",
+        "adapter": type(pipeline_adapter).__name__,
+    }
+
+
+async def _pipeline_handler(
+    task_kind: str,
+    spec: dict[str, Any],
+    runner: "TaskRunner",
+) -> HandlerResult:
+    adapter = runner.pipeline_adapter
+    if adapter is None:
+        capability = pipeline_capability(adapter)
+        raise TaskBlockedError(
+            code=capability["code"],
+            message="Research pipeline adapter is not configured",
+            remediation=capability["remediation"],
+            details={"task_kind": task_kind},
         )
-    return {"experiment_id": experiment_id, "metrics": {"accuracy": 0.9}}
+
+    def report_progress(progress: float, message: Optional[str] = None) -> None:
+        runner.store.progress(runner.current_task_id, progress, message=message)
+
+    result = await adapter.execute(
+        task_kind=task_kind,
+        spec=spec,
+        report_progress=report_progress,
+    )
+    lineage = result.get("artifact_lineage")
+    if not isinstance(lineage, dict) or not lineage:
+        raise TaskBlockedError(
+            code="ARTIFACT_LINEAGE_MISSING",
+            message="Pipeline result has no immutable artifact lineage",
+            remediation=(
+                "Persist immutable input and output artifact identifiers before completion."
+            ),
+            details={"task_kind": task_kind},
+        )
+    return result
+
+
+async def _experiment_run_handler(
+    spec: dict[str, Any], runner: "TaskRunner"
+) -> HandlerResult:
+    return await _pipeline_handler("experiment_run", spec, runner)
 
 
 async def _backtest_handler(spec: dict[str, Any], runner: "TaskRunner") -> HandlerResult:
-    """Simulate a backtest replay with staged progress."""
-    for step in range(1, 4):
-        await asyncio.sleep(0)
-        runner.store.progress(
-            runner.current_task_id,
-            step / 3,
-            message=f"replaying step {step}/3",
-        )
-    return {"sharpe": 1.3, "equity_curve": []}
+    return await _pipeline_handler("backtest", spec, runner)
 
 
 async def _prediction_handler(spec: dict[str, Any], runner: "TaskRunner") -> HandlerResult:
-    """Simulate a daily inference/prediction job."""
-    for step in range(1, 3):
-        await asyncio.sleep(0)
-        runner.store.progress(
-            runner.current_task_id,
-            step / 2,
-            message=f"inferring step {step}/2",
-        )
-    return {"predictions": [{"target": "stock-0001", "score": 0.88}]}
+    return await _pipeline_handler("prediction", spec, runner)
 
 
 _DEFAULT_HANDLERS: dict[str, TaskHandler] = {
@@ -129,10 +191,12 @@ class TaskRunner:
         store: InMemoryTaskStore,
         *,
         handlers: Optional[dict[str, TaskHandler]] = None,
+        pipeline_adapter: Optional[ResearchPipelineAdapter] = None,
         redis_url: Optional[str] = None,
     ) -> None:
         self.store = store
         self.handlers: dict[str, TaskHandler] = {**_DEFAULT_HANDLERS, **(handlers or {})}
+        self.pipeline_adapter = pipeline_adapter
         self._redis_url = redis_url
         self._redis: Optional[RedisQueue] = None
         self._queue: asyncio.Queue[str] = asyncio.Queue()
@@ -276,6 +340,20 @@ class TaskRunner:
         self.current_task_id = task_id
         try:
             result = await handler(spec, self)
+        except TaskBlockedError as exc:
+            err = ErrorResponse.build(
+                code=exc.code,
+                message=str(exc),
+                details=exc.details,
+                retryable=False,
+                remediation=exc.remediation,
+            )
+            return self.store.transition(
+                task_id,
+                TaskStatus.BLOCKED,
+                error=err,
+                message=err.message,
+            )
         except Exception as exc:  # noqa: BLE001
             err = ErrorResponse.build(
                 code="TASK_FAILED",

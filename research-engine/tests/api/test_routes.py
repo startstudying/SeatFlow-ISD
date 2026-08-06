@@ -6,11 +6,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from seatflow.api.app import create_app
+from seatflow.api.routes.state import SYNTHETIC_NON_FORMAL
 
 
 @pytest.fixture()
 def client():
-    app = create_app(reset_store=True)
+    app = create_app(reset_store=True, fixture_mode=SYNTHETIC_NON_FORMAL)
     with TestClient(app) as c:
         yield c
 

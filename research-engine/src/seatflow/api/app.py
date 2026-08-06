@@ -24,19 +24,29 @@ from seatflow.api.routes.projects import router as projects_router
 from seatflow.api.routes.runs import router as runs_router
 from seatflow.api.routes.state import store
 from seatflow.domain.time import utc_now
+from seatflow.worker.task_runner import ResearchPipelineAdapter, pipeline_capability
 
 
-def create_app(*, reset_store: bool = False) -> FastAPI:
+def create_app(
+    *,
+    reset_store: bool = False,
+    fixture_mode: str | None = None,
+    pipeline_adapter: ResearchPipelineAdapter | None = None,
+) -> FastAPI:
     """Build and return the fully-configured FastAPI application.
 
     Parameters
     ----------
     reset_store:
-        When *True* the in-memory store is re-seeded.  Useful in test
-        fixtures to guarantee a clean slate between runs.
+        When *True* the in-memory store is cleared.  Useful in test fixtures
+        to guarantee a clean slate between runs.
+    fixture_mode:
+        Explicit non-production fixture mode.  The default remains empty.
+    pipeline_adapter:
+        Real research execution adapter used to report capability readiness.
     """
-    if reset_store:
-        store.reset()
+    if reset_store or fixture_mode is not None:
+        store.reset(fixture_mode=fixture_mode)
 
     app = FastAPI(
         title="SeatFlow Research Engine API",
@@ -72,9 +82,21 @@ def create_app(*, reset_store: bool = False) -> FastAPI:
     )
     def health_check() -> HealthReport:
         """Liveness/readiness probe for the research engine."""
+        capability = pipeline_capability(pipeline_adapter)
         return HealthReport(
-            status=HealthState.UP,
-            components={"store": "ok"},
+            status=(
+                HealthState.UP
+                if capability["status"] == HealthState.UP.value
+                else HealthState.DEGRADED
+            ),
+            components={
+                "process": {"status": HealthState.UP.value},
+                "researchCapability": capability,
+                "store": {
+                    "status": HealthState.UP.value,
+                    "mode": store.fixture_mode or "EMPTY_FAIL_CLOSED",
+                },
+            },
             timestamp=utc_now(),
         )
 

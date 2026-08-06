@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from seatflow.api.models import TaskStatus
+import seatflow.worker as worker
 from seatflow.worker.sse import make_tasks_router
 from seatflow.worker.task_runner import TaskRunner
 from seatflow.worker.task_store import (
@@ -179,19 +180,23 @@ class TestTaskRunner:
         with pytest.raises(ValueError):
             await runner.submit(kind="nope")
 
-    async def test_run_once_drives_to_completion(self):
+    @pytest.mark.parametrize("kind", ["experiment_run", "backtest", "prediction"])
+    async def test_default_research_task_blocks_without_pipeline_adapter(self, kind):
         store = InMemoryTaskStore()
         runner = TaskRunner(store)
-        state = await runner.submit(kind="experiment_run", spec={"experiment_id": "e1"})
+        state = await runner.submit(kind=kind, spec={"artifact_id": "missing"})
         final = await runner.run_once()
         assert final is not None
         assert final.task_id == state.task_id
-        assert final.status == TaskStatus.COMPLETED
-        assert final.progress == 1.0
-        assert final.result is not None
-        assert final.result["experiment_id"] == "e1"
+        assert final.status == TaskStatus.BLOCKED
+        assert final.result is None
+        assert final.error is not None
+        assert final.error.code == "PIPELINE_ADAPTER_UNAVAILABLE"
+        assert final.error.remediation == (
+            "Configure a real ResearchPipelineAdapter before running research tasks."
+        )
 
-    async def test_run_once_emits_full_event_sequence(self):
+    async def test_blocked_default_task_emits_blocked_without_formal_result(self):
         store = InMemoryTaskStore()
         runner = TaskRunner(store)
         state = await runner.submit(kind="experiment_run", spec={})
@@ -201,12 +206,25 @@ class TestTaskRunner:
             "TASK_CREATED",
             "TASK_QUEUED",
             "TASK_STARTED",
-            "TASK_PROGRESS",
-            "TASK_COMPLETED",
+            "TASK_BLOCKED",
         ):
             assert required in types
+        assert "TASK_PROGRESS" not in types
+        assert "TASK_COMPLETED" not in types
+        blocked_event = next(
+            event for event in store.events(state.task_id) if event.event_type == "TASK_BLOCKED"
+        )
+        assert blocked_event.payload["error"] == {
+            "code": "PIPELINE_ADAPTER_UNAVAILABLE",
+            "message": "Research pipeline adapter is not configured",
+            "details": {"task_kind": "experiment_run"},
+            "retryable": False,
+            "remediation": (
+                "Configure a real ResearchPipelineAdapter before running research tasks."
+            ),
+        }
 
-    async def test_background_loop_drives_tasks(self):
+    async def test_background_loop_blocks_unconfigured_research_task(self):
         store = InMemoryTaskStore()
         runner = TaskRunner(store)
         await runner.start()
@@ -215,11 +233,81 @@ class TestTaskRunner:
             for _ in range(20):
                 await asyncio.sleep(0)
                 current = store.get(state.task_id)
-                if current.status == TaskStatus.COMPLETED:
+                if current.status == TaskStatus.BLOCKED:
                     break
-            assert store.get(state.task_id).status == TaskStatus.COMPLETED
+            assert store.get(state.task_id).status == TaskStatus.BLOCKED
         finally:
             await runner.stop()
+
+    async def test_pipeline_adapter_result_preserves_artifact_lineage(self):
+        class RecordingAdapter:
+            async def execute(self, *, task_kind, spec, report_progress):
+                report_progress(0.5, "adapter running")
+                return {
+                    "artifact_lineage": {
+                        "dataset_manifest_sha256": "a" * 64,
+                        "model_artifact_sha256": "b" * 64,
+                    },
+                    "metrics": {"aupr": 0.321},
+                }
+
+        store = InMemoryTaskStore()
+        runner = TaskRunner(store, pipeline_adapter=RecordingAdapter())
+        await runner.submit(kind="experiment_run", spec={"experiment_id": "e1"})
+
+        final = await runner.run_once()
+
+        assert final.status == TaskStatus.COMPLETED
+        assert final.result == {
+            "artifact_lineage": {
+                "dataset_manifest_sha256": "a" * 64,
+                "model_artifact_sha256": "b" * 64,
+            },
+            "metrics": {"aupr": 0.321},
+        }
+
+    async def test_pipeline_result_without_artifact_lineage_is_blocked(self):
+        class MissingLineageAdapter:
+            async def execute(self, *, task_kind, spec, report_progress):
+                return {"metrics": {"aupr": 0.321}}
+
+        store = InMemoryTaskStore()
+        runner = TaskRunner(store, pipeline_adapter=MissingLineageAdapter())
+        await runner.submit(kind="experiment_run", spec={})
+
+        final = await runner.run_once()
+
+        assert final.status == TaskStatus.BLOCKED
+        assert final.result is None
+        assert final.error.code == "ARTIFACT_LINEAGE_MISSING"
+        assert final.error.remediation == (
+            "Persist immutable input and output artifact identifiers before completion."
+        )
+
+    async def test_adapter_can_report_missing_artifact_as_machine_readable_block(self):
+        blocked_error_type = getattr(worker, "TaskBlockedError", None)
+        assert blocked_error_type is not None
+
+        class MissingArtifactAdapter:
+            async def execute(self, *, task_kind, spec, report_progress):
+                raise blocked_error_type(
+                    code="MODEL_ARTIFACT_MISSING",
+                    message="Required model artifact was not found",
+                    remediation="Build and register the model artifact, then retry.",
+                    details={"model_id": "model-404"},
+                )
+
+        store = InMemoryTaskStore()
+        runner = TaskRunner(store, pipeline_adapter=MissingArtifactAdapter())
+        await runner.submit(kind="prediction", spec={"model_id": "model-404"})
+
+        final = await runner.run_once()
+
+        assert final.status == TaskStatus.BLOCKED
+        assert final.result is None
+        assert final.error.code == "MODEL_ARTIFACT_MISSING"
+        assert final.error.details == {"model_id": "model-404"}
+        assert final.error.remediation == "Build and register the model artifact, then retry."
 
     async def test_handler_exception_marks_task_failed(self):
         store = InMemoryTaskStore()
@@ -257,6 +345,7 @@ class TestTaskRunner:
         runner.register_handler("experiment_run", custom)
         await runner.submit(kind="experiment_run", spec={})
         final = await runner.run_once()
+        assert final.status == TaskStatus.COMPLETED
         assert final.result == {"custom": True}
 
 
@@ -266,7 +355,10 @@ class TestTaskRunner:
 class TestSSEEndpoint:
     async def test_sse_streams_events(self):
         store = InMemoryTaskStore()
-        runner = TaskRunner(store)
+        async def custom_handler(spec, runner_):
+            return {"custom": True}
+
+        runner = TaskRunner(store, handlers={"experiment_run": custom_handler})
         router = make_tasks_router(store)
         from fastapi import FastAPI
 

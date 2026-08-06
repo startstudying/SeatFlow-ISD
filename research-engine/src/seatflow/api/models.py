@@ -166,7 +166,7 @@ class ErrorResponse(BaseModel):
             code=code,
             message=message,
             details=details,
-            trace_id=trace_id,
+            traceId=trace_id,
             timestamp=utc_now(),
             retryable=retryable,
             remediation=remediation,
@@ -232,8 +232,8 @@ class PaginatedResponse(BaseModel, Generic[T]):
             page_size=page_size,
             total=total,
             total_pages=total_pages,
-            has_next=page < total_pages,
-            has_prev=page > 1,
+            hasNext=page < total_pages,
+            hasPrev=page > 1,
         )
         return cls(items=items, meta=meta)
 

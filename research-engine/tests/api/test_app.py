@@ -6,12 +6,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from seatflow.api.app import create_app
+from seatflow.api.routes.state import SYNTHETIC_NON_FORMAL
 
 
 @pytest.fixture()
 def client():
-    """Return a TestClient with a freshly-seeded store."""
-    app = create_app(reset_store=True)
+    """Return a client with an explicitly non-formal synthetic fixture."""
+    app = create_app(reset_store=True, fixture_mode=SYNTHETIC_NON_FORMAL)
     with TestClient(app) as c:
         yield c
 
@@ -20,13 +21,33 @@ def client():
 
 
 class TestHealthCheck:
-    def test_health_returns_up(self, client):
+    def test_health_reports_process_up_and_research_blocked(self, client):
         resp = client.get("/research/v1/health")
         assert resp.status_code == 200
         body = resp.json()
-        assert body["status"] == "UP"
-        assert "components" in body
+        assert body["status"] == "DEGRADED"
+        assert body["components"]["process"] == {"status": "UP"}
+        assert body["components"]["researchCapability"] == {
+            "status": "BLOCKED",
+            "code": "PIPELINE_ADAPTER_UNAVAILABLE",
+            "remediation": "Configure a real ResearchPipelineAdapter before running research tasks.",
+        }
         assert "timestamp" in body
+
+    def test_health_reports_research_up_when_adapter_is_configured(self):
+        class ConfiguredAdapter:
+            async def execute(self, *, task_kind, spec, report_progress):
+                return {
+                    "artifact_lineage": {"manifest_sha256": "a" * 64},
+                }
+
+        app = create_app(reset_store=True, pipeline_adapter=ConfiguredAdapter())
+        with TestClient(app) as configured_client:
+            body = configured_client.get("/research/v1/health").json()
+
+        assert body["status"] == "UP"
+        assert body["components"]["process"] == {"status": "UP"}
+        assert body["components"]["researchCapability"]["status"] == "UP"
 
     def test_health_has_utc_timestamp(self, client):
         resp = client.get("/research/v1/health")
@@ -87,6 +108,50 @@ class TestPagination:
         assert body["items"] == []
         assert body["meta"]["hasNext"] is False
         assert body["meta"]["hasPrev"] is True
+
+
+class TestDefaultState:
+    def test_production_factory_starts_with_empty_research_entities(self):
+        app = create_app(reset_store=True)
+        endpoints = (
+            "projects",
+            "data-sources",
+            "datasets",
+            "experiments",
+            "runs",
+            "models",
+            "predictions",
+            "backtests",
+        )
+
+        with TestClient(app) as empty_client:
+            totals = {
+                endpoint: empty_client.get(f"/research/v1/{endpoint}").json()["meta"]["total"]
+                for endpoint in endpoints
+            }
+
+        assert totals == {endpoint: 0 for endpoint in endpoints}
+
+    def test_synthetic_fixture_marks_every_formal_looking_entity(self, client):
+        entities = {
+            "project": client.get("/research/v1/projects/proj-001").json(),
+            "data_source": client.get("/research/v1/data-sources/src-001").json(),
+            "dataset": client.get("/research/v1/datasets/ds-001").json(),
+            "experiment": client.get("/research/v1/experiments/exp-001").json(),
+            "run": client.get("/research/v1/runs/run-001").json(),
+            "model": client.get("/research/v1/models/mdl-001").json(),
+            "prediction": client.get("/research/v1/predictions/pred-001").json(),
+            "backtest": client.get("/research/v1/backtests/bt-001").json(),
+        }
+
+        assert SYNTHETIC_NON_FORMAL in entities["project"]["tags"]
+        assert entities["data_source"]["description"] == SYNTHETIC_NON_FORMAL
+        assert entities["dataset"]["description"] == SYNTHETIC_NON_FORMAL
+        assert entities["experiment"]["config"]["fixture_mode"] == SYNTHETIC_NON_FORMAL
+        assert entities["run"]["params"]["fixture_mode"] == SYNTHETIC_NON_FORMAL
+        assert entities["model"]["description"] == SYNTHETIC_NON_FORMAL
+        assert entities["prediction"]["metadata"]["fixture_mode"] == SYNTHETIC_NON_FORMAL
+        assert entities["backtest"]["name"].startswith(f"[{SYNTHETIC_NON_FORMAL}]")
 
 
 # ── Error handling ──────────────────────────────────────────────────────

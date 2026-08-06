@@ -6,7 +6,11 @@ research jobs.
 """
 
 from seatflow.worker.sse import make_tasks_router
-from seatflow.worker.task_runner import TaskRunner
+from seatflow.worker.task_runner import (
+    ResearchPipelineAdapter,
+    TaskBlockedError,
+    TaskRunner,
+)
 from seatflow.worker.task_store import (
     InMemoryTaskStore,
     InvalidStateTransitionError,
@@ -17,6 +21,8 @@ from seatflow.worker.task_store import (
 __all__ = [
     "InMemoryTaskStore",
     "InvalidStateTransitionError",
+    "ResearchPipelineAdapter",
+    "TaskBlockedError",
     "TaskNotFoundError",
     "TaskRunner",
     "make_tasks_router",

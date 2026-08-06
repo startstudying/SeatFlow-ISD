@@ -15,9 +15,10 @@ swap in a Redis-backed implementation behind the same interface.
 from __future__ import annotations
 
 import asyncio
+import builtins
 import uuid
 from collections import defaultdict, deque
-from typing import Any, Awaitable, Callable, Deque, Optional
+from typing import Any, Callable, Coroutine, Deque, Optional
 
 from seatflow.api.models import ErrorResponse, TaskEvent, TaskState, TaskStatus
 from seatflow.domain.time import utc_now
@@ -110,10 +111,10 @@ class InMemoryTaskStore:
         task_id = self._gen_id()
         now = self._now()
         state = TaskState(
-            task_id=task_id,
+            taskId=task_id,
             status=status,
             progress=0.0,
-            updated_at=now,
+            updatedAt=now,
         )
         self._tasks[task_id] = state
         self._append(
@@ -183,10 +184,10 @@ class InMemoryTaskStore:
             raise InvalidStateTransitionError(task_id, current, target)
         now = self._now()
         updated = TaskState(
-            task_id=task_id,
+            taskId=task_id,
             status=target,
             progress=progress if progress is not None else self._tasks[task_id].progress,
-            updated_at=now,
+            updatedAt=now,
             result=result,
             error=error,
         )
@@ -210,7 +211,13 @@ class InMemoryTaskStore:
         if result is not None:
             payload["result"] = result
         if error is not None:
-            payload["error"] = {"code": error.code, "message": error.message}
+            payload["error"] = {
+                "code": error.code,
+                "message": error.message,
+                "details": error.details,
+                "retryable": error.retryable,
+                "remediation": error.remediation,
+            }
         self._append(task_id, event_type=event_type, payload=payload)
         return updated
 
@@ -232,10 +239,10 @@ class InMemoryTaskStore:
         if state.status in _TERMINAL_STATES:
             raise InvalidStateTransitionError(task_id, state.status, state.status)
         updated = TaskState(
-            task_id=task_id,
+            taskId=task_id,
             status=state.status,
             progress=progress,
-            updated_at=self._now(),
+            updatedAt=self._now(),
             result=state.result,
             error=state.error,
         )
@@ -259,7 +266,7 @@ class InMemoryTaskStore:
 
     # ── Event log ─────────────────────────────────────────────────────
 
-    def events(self, task_id: str) -> list[TaskEvent]:
+    def events(self, task_id: str) -> builtins.list[TaskEvent]:
         """Return a copy of the event log for *task_id*."""
         return list(self._events.get(task_id, ()))
 
@@ -271,8 +278,8 @@ class InMemoryTaskStore:
         payload: dict[str, Any],
     ) -> None:
         event = TaskEvent(
-            event_type=event_type,
-            task_id=task_id,
+            eventType=event_type,
+            taskId=task_id,
             timestamp=self._now(),
             payload=payload,
         )
@@ -297,7 +304,11 @@ class InMemoryTaskStore:
 
     # ── Introspection helpers (mostly for tests) ───────────────────────
 
-    def register_background(self, task_id: str, coro_factory: Callable[[], Awaitable[None]]) -> None:
+    def register_background(
+        self,
+        task_id: str,
+        coro_factory: Callable[[], Coroutine[Any, Any, None]],
+    ) -> None:
         """Track a background coroutine for *task_id* (test-only)."""
         self._background[task_id] = asyncio.create_task(coro_factory())
 

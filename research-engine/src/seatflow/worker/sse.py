@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 
-from seatflow.api.models import TaskEvent
+from seatflow.api.models import TaskEvent, TaskState
 from seatflow.worker.task_store import InMemoryTaskStore, TaskNotFoundError
 
 router = APIRouter(prefix="/research/v1/tasks", tags=["tasks"])
@@ -34,7 +35,7 @@ def make_tasks_router(store: InMemoryTaskStore) -> APIRouter:
     local_router = APIRouter(prefix="/research/v1/tasks", tags=["tasks"])
 
     @local_router.get("/{task_id}", name="get_task")
-    def get_task(task_id: str):
+    def get_task(task_id: str) -> TaskState:
         try:
             return store.get(task_id)
         except TaskNotFoundError:
@@ -44,7 +45,9 @@ def make_tasks_router(store: InMemoryTaskStore) -> APIRouter:
             )
 
     @local_router.get("/{task_id}/events", name="stream_task_events")
-    async def stream_task_events(task_id: str, request: Request):
+    async def stream_task_events(
+        task_id: str, request: Request
+    ) -> StreamingResponse:
         """Stream task events as Server-Sent Events.
 
         Replays the existing event log and then streams live events
@@ -62,9 +65,9 @@ def make_tasks_router(store: InMemoryTaskStore) -> APIRouter:
                 },
             )
 
-        async def event_stream():
+        async def event_stream() -> AsyncIterator[str]:
             # Replay buffered events first.
-            replayed = list(store.events(task_id))
+            replayed: list[TaskEvent] = list(store.events(task_id))
             terminal_seen = False
             for evt in replayed:
                 yield _format_sse(evt)
@@ -102,7 +105,7 @@ def make_tasks_router(store: InMemoryTaskStore) -> APIRouter:
         )
 
     @local_router.post("/{task_id}/cancel", name="cancel_task")
-    async def cancel_task(task_id: str):
+    async def cancel_task(task_id: str) -> TaskState:
         try:
             store.get(task_id)
         except TaskNotFoundError:
