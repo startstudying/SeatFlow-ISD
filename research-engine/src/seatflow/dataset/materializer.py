@@ -18,7 +18,17 @@ from typing import Mapping, Sequence
 
 from seatflow.dataset.samples import PredictionSample
 from seatflow.features.registry import FORBIDDEN_ID_FEATURES
-from seatflow.graph.schema import EdgeType, NodeType, get_edge_schema
+from seatflow.graph.schema import (
+    EDGE_SCHEMAS,
+    NODE_SCHEMAS,
+    EdgeType,
+    NodeType,
+    get_edge_schema,
+)
+
+
+GRAPH_SCHEMA_CONTRACT_VERSION = "seatflow-frozen-graph-v1"
+LABEL_HORIZON_TRADING_DAYS = 5
 
 
 class HardGate(str, Enum):
@@ -66,6 +76,7 @@ class MaterializedLabel:
 
     sample_id: str
     evaluation_time: datetime
+    horizon_end_time: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +122,8 @@ class MaterializedDataset:
     graph_nodes: tuple[GraphNodeEvidence, ...]
     graph_edges: tuple[GraphEdgeEvidence, ...]
     sample_graph_references: Mapping[str, tuple[str, ...]]
+    trade_calendar: tuple[datetime, ...]
+    label_horizon_trading_days: int
     materialized_at: datetime
     findings: tuple[GateFinding, ...]
     feature_schema_hash: str
@@ -140,14 +153,36 @@ def compute_feature_schema_hash(schema: Sequence[FeatureField]) -> str:
     )
 
 
-def _compute_graph_schema_hash(
-    nodes: Sequence[GraphNodeEvidence],
-    edges: Sequence[GraphEdgeEvidence],
-) -> str:
+def _compute_graph_schema_hash() -> str:
+    """Hash the complete frozen graph contract, not observed row types."""
+
     return _canonical_hash(
         {
-            "node_types": sorted({node.node_type for node in nodes}),
-            "edge_types": sorted({edge.edge_type for edge in edges}),
+            "schema_version": GRAPH_SCHEMA_CONTRACT_VERSION,
+            "nodes": [
+                {
+                    "node_type": node_type.value,
+                    "properties": list(schema.properties),
+                    "required": list(schema.required),
+                }
+                for node_type, schema in sorted(
+                    NODE_SCHEMAS.items(), key=lambda item: item[0].value
+                )
+            ],
+            "edges": [
+                {
+                    "edge_type": edge_type.value,
+                    "source_type": schema.source_type.value,
+                    "target_type": schema.target_type.value,
+                    "properties": list(schema.properties),
+                    "max_hops": schema.max_hops,
+                    "top_k": schema.top_k,
+                    "directed": schema.directed,
+                }
+                for edge_type, schema in sorted(
+                    EDGE_SCHEMAS.items(), key=lambda item: item[0].value
+                )
+            ],
         }
     )
 
@@ -210,6 +245,7 @@ def materialize_dataset(
     graph_nodes: Sequence[GraphNodeEvidence],
     graph_edges: Sequence[GraphEdgeEvidence],
     sample_graph_references: Mapping[str, Sequence[str]],
+    trade_calendar: Sequence[datetime] = (),
     materialized_at: datetime,
 ) -> MaterializedDataset:
     """Compute immutable Dataset v3 gate evidence from materialized rows."""
@@ -220,6 +256,9 @@ def materialize_dataset(
     schema_rows = tuple(sorted(feature_schema))
     node_rows = tuple(graph_nodes)
     edge_rows = tuple(graph_edges)
+    calendar_rows = tuple(
+        sorted(set(trade_calendar), key=lambda timestamp: timestamp.isoformat())
+    )
     references = MappingProxyType(
         {
             sample_id: tuple(sorted(node_ids))
@@ -245,6 +284,20 @@ def materialize_dataset(
             None,
             reason="materialized_at must be timezone-aware",
         )
+    if not calendar_rows:
+        fail(
+            HardGate.IMMATURE_LABEL,
+            None,
+            reason="missing frozen exchange trading calendar",
+        )
+    for trading_day in calendar_rows:
+        if not _aware(trading_day):
+            fail(
+                HardGate.IMMATURE_LABEL,
+                None,
+                reason="trading calendar timestamps must be timezone-aware",
+                trading_day=trading_day,
+            )
     if not sample_rows:
         fail(
             HardGate.PRIMARY_KEY_CONFLICT,
@@ -292,6 +345,37 @@ def materialize_dataset(
 
     label_ids: set[str] = set()
     labels_by_sample: dict[str, MaterializedLabel] = {}
+    aware_calendar = tuple(day for day in calendar_rows if _aware(day))
+    horizon_end_by_sample: dict[str, datetime] = {}
+    for sample in sample_rows:
+        if not _aware(sample.prediction_date):
+            fail(
+                HardGate.IMMATURE_LABEL,
+                sample.sample_id,
+                reason="prediction_date must be timezone-aware",
+            )
+            continue
+        if sample.prediction_date not in aware_calendar:
+            fail(
+                HardGate.IMMATURE_LABEL,
+                sample.sample_id,
+                reason="prediction_date missing from frozen trading calendar",
+                prediction_date=sample.prediction_date,
+            )
+            continue
+        horizon_days = [day for day in aware_calendar if day >= sample.prediction_date]
+        if len(horizon_days) < LABEL_HORIZON_TRADING_DAYS:
+            fail(
+                HardGate.IMMATURE_LABEL,
+                sample.sample_id,
+                reason="frozen trading calendar does not cover full label horizon",
+                available_days=len(horizon_days),
+                required_days=LABEL_HORIZON_TRADING_DAYS,
+            )
+            continue
+        horizon_end_by_sample[sample.sample_id] = horizon_days[
+            LABEL_HORIZON_TRADING_DAYS - 1
+        ]
     for label in label_rows:
         if label.sample_id in label_ids:
             fail(
@@ -315,21 +399,43 @@ def materialize_dataset(
                 label.sample_id,
                 reason="evaluation_time must be timezone-aware",
             )
-        elif not _aware(materialized_at) or not _aware(label_sample.prediction_date):
+            continue
+        expected_horizon_end = horizon_end_by_sample.get(label.sample_id)
+        if label.horizon_end_time is None:
             fail(
                 HardGate.IMMATURE_LABEL,
                 label.sample_id,
-                reason="maturity comparison timestamps must be timezone-aware",
+                reason="missing horizon_end_time maturity evidence",
             )
-        elif not (
-            label_sample.prediction_date <= label.evaluation_time <= materialized_at
+            continue
+        if not _aware(label.horizon_end_time):
+            fail(
+                HardGate.IMMATURE_LABEL,
+                label.sample_id,
+                reason="horizon_end_time must be timezone-aware",
+            )
+            continue
+        if expected_horizon_end is None:
+            continue
+        if label.horizon_end_time != expected_horizon_end:
+            fail(
+                HardGate.IMMATURE_LABEL,
+                label.sample_id,
+                reason="horizon_end_time does not match frozen trading calendar",
+                actual_horizon_end=label.horizon_end_time,
+                expected_horizon_end=expected_horizon_end,
+            )
+            continue
+        if not _aware(materialized_at) or not (
+            expected_horizon_end <= label.evaluation_time <= materialized_at
         ):
             fail(
                 HardGate.IMMATURE_LABEL,
                 label.sample_id,
-                prediction_date=label_sample.prediction_date,
+                horizon_end_time=expected_horizon_end,
                 evaluation_time=label.evaluation_time,
                 materialized_at=materialized_at,
+                reason="complete label horizon is not mature at materialization time",
             )
     for sample in sample_rows:
         if sample.sample_id not in labels_by_sample:
@@ -567,7 +673,7 @@ def materialize_dataset(
     )
 
     feature_schema_hash = compute_feature_schema_hash(schema_rows)
-    graph_schema_hash = _compute_graph_schema_hash(node_rows, edge_rows)
+    graph_schema_hash = _compute_graph_schema_hash()
     gate_evidence_fingerprint = _canonical_hash(
         [_finding_payload(finding) for finding in findings]
     )
@@ -582,6 +688,11 @@ def materialize_dataset(
                     {
                         "sample_id": label.sample_id,
                         "evaluation_time": label.evaluation_time.isoformat(),
+                        "horizon_end_time": (
+                            label.horizon_end_time.isoformat()
+                            if label.horizon_end_time is not None
+                            else None
+                        ),
                     }
                     for label in label_rows
                 ),
@@ -630,6 +741,8 @@ def materialize_dataset(
             "references": {
                 sample_id: list(node_ids) for sample_id, node_ids in references.items()
             },
+            "trade_calendar": [day.isoformat() for day in calendar_rows],
+            "label_horizon_trading_days": LABEL_HORIZON_TRADING_DAYS,
             "materialized_at": materialized_at.isoformat(),
             "gate_evidence_fingerprint": gate_evidence_fingerprint,
         }
@@ -647,6 +760,8 @@ def materialize_dataset(
         graph_nodes=node_rows,
         graph_edges=edge_rows,
         sample_graph_references=references,
+        trade_calendar=calendar_rows,
+        label_horizon_trading_days=LABEL_HORIZON_TRADING_DAYS,
         materialized_at=materialized_at,
         findings=tuple(findings),
         feature_schema_hash=feature_schema_hash,

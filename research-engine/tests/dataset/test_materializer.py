@@ -8,6 +8,7 @@ from math import nan
 
 import pytest
 
+import seatflow.dataset.materializer as materializer_module
 from seatflow.dataset.manifest import DatasetManifest, bind_materialization_evidence
 from seatflow.dataset.materializer import (
     FeatureField,
@@ -20,6 +21,7 @@ from seatflow.dataset.materializer import (
 )
 from seatflow.dataset.samples import PoolType, PredictionSample
 from seatflow.dataset.seal import HardGate, seal_dataset
+from seatflow.graph.schema import EDGE_SCHEMAS, NODE_SCHEMAS, EdgeType, NodeType
 from seatflow.labels.tradeability import TradeabilityState
 
 
@@ -32,18 +34,19 @@ def _sample(
     stock_id: str = "000001.SZ",
     *,
     pool_type: PoolType = PoolType.DIRECT,
+    prediction_date: str = "2026-01-05T00:00:00+00:00",
 ) -> PredictionSample:
-    prediction_date = _utc("2026-01-05T00:00:00+00:00")
+    prediction_time = _utc(prediction_date)
     return PredictionSample(
         sample_id=sample_id,
         cycle_id="cyc-001",
         stock_id=stock_id,
-        prediction_date=prediction_date,
-        cutoff_time=prediction_date,
+        prediction_date=prediction_time,
+        cutoff_time=prediction_time,
         days_since_last_event=0,
         pool_type=pool_type,
         tradeability=TradeabilityState.TRADABLE,
-        available_time=prediction_date,
+        available_time=prediction_time,
         is_tradable=True,
         is_backtest_eligible=True,
     )
@@ -61,16 +64,19 @@ def _materialize(
     edges: tuple[GraphEdgeEvidence, ...] = (),
     references: dict[str, tuple[str, ...]] | None = None,
     schema: tuple[FeatureField, ...] = SCHEMA,
+    trade_calendar: tuple[datetime, ...] | None = None,
+    materialized_at: datetime | None = None,
 ):
     sample = _sample() if samples is None else samples[0]
     actual_samples = (_sample(),) if samples is None else samples
-    actual_labels = labels or (
+    actual_labels = labels if labels is not None else (
         MaterializedLabel(
             sample_id=sample.sample_id,
             evaluation_time=_utc("2026-01-09T00:00:00+00:00"),
+            horizon_end_time=_utc("2026-01-09T00:00:00+00:00"),
         ),
     )
-    actual_features = features or (
+    actual_features = features if features is not None else (
         MaterializedFeature(
             sample_id=sample.sample_id,
             name="stock_volatility_5d",
@@ -79,10 +85,15 @@ def _materialize(
             available_time=sample.cutoff_time,
         ),
     )
-    actual_nodes = nodes or (
+    actual_nodes = nodes if nodes is not None else (
         GraphNodeEvidence(node_id=sample.stock_id, node_type="Stock"),
     )
-    actual_references = references or {sample.sample_id: (sample.stock_id,)}
+    actual_references = (
+        references if references is not None else {sample.sample_id: (sample.stock_id,)}
+    )
+    actual_calendar = trade_calendar or tuple(
+        _utc(f"2026-01-{day:02d}T00:00:00+00:00") for day in range(5, 10)
+    )
     return materialize_dataset(
         samples=actual_samples,
         labels=actual_labels,
@@ -91,7 +102,9 @@ def _materialize(
         graph_nodes=actual_nodes,
         graph_edges=edges,
         sample_graph_references=actual_references,
-        materialized_at=_utc("2026-01-12T00:00:00+00:00"),
+        trade_calendar=actual_calendar,
+        materialized_at=materialized_at
+        or _utc("2026-01-12T00:00:00+00:00"),
     )
 
 
@@ -193,6 +206,94 @@ def test_label_not_mature_at_materialization_time_fails_gate() -> None:
             MaterializedLabel(
                 sample_id="s-001",
                 evaluation_time=_utc("2026-01-13T00:00:00+00:00"),
+                horizon_end_time=_utc("2026-01-09T00:00:00+00:00"),
+            ),
+        )
+    )
+
+    _failed(materialized, HardGate.IMMATURE_LABEL)
+    assert seal_dataset(materialized, _manifest(materialized)).passed is False
+
+
+def test_same_day_label_cannot_claim_a_complete_five_day_horizon() -> None:
+    materialized = _materialize(
+        labels=(
+            MaterializedLabel(
+                sample_id="s-001",
+                evaluation_time=_utc("2026-01-05T00:00:00+00:00"),
+                horizon_end_time=_utc("2026-01-09T00:00:00+00:00"),
+            ),
+        )
+    )
+
+    _failed(materialized, HardGate.IMMATURE_LABEL)
+
+
+def test_label_fails_before_derived_horizon_end_is_materialized() -> None:
+    materialized = _materialize(
+        labels=(
+            MaterializedLabel(
+                sample_id="s-001",
+                evaluation_time=_utc("2026-01-08T00:00:00+00:00"),
+                horizon_end_time=_utc("2026-01-09T00:00:00+00:00"),
+            ),
+        ),
+        materialized_at=_utc("2026-01-08T00:00:00+00:00"),
+    )
+
+    _failed(materialized, HardGate.IMMATURE_LABEL)
+
+
+def test_d0_plus_four_trading_day_label_matures_across_weekend() -> None:
+    sample = _sample(prediction_date="2026-01-09T00:00:00+00:00")
+    calendar = tuple(
+        _utc(value)
+        for value in (
+            "2026-01-09T00:00:00+00:00",
+            "2026-01-12T00:00:00+00:00",
+            "2026-01-13T00:00:00+00:00",
+            "2026-01-14T00:00:00+00:00",
+            "2026-01-15T00:00:00+00:00",
+        )
+    )
+    mature_time = _utc("2026-01-15T00:00:00+00:00")
+    materialized = _materialize(
+        samples=(sample,),
+        labels=(MaterializedLabel("s-001", mature_time, mature_time),),
+        trade_calendar=calendar,
+        materialized_at=mature_time,
+    )
+
+    assert seal_dataset(materialized, _manifest(materialized)).passed is True
+
+
+def test_tampered_label_horizon_end_cannot_self_certify_maturity() -> None:
+    materialized = _materialize(
+        labels=(
+            MaterializedLabel(
+                sample_id="s-001",
+                evaluation_time=_utc("2026-01-09T00:00:00+00:00"),
+                horizon_end_time=_utc("2026-01-08T00:00:00+00:00"),
+            ),
+        )
+    )
+
+    findings = _failed(materialized, HardGate.IMMATURE_LABEL)
+    assert any(
+        ("reason", "horizon_end_time does not match frozen trading calendar")
+        in finding.evidence
+        for finding in findings
+    )
+    assert seal_dataset(materialized, _manifest(materialized)).passed is False
+
+
+def test_missing_label_horizon_evidence_fails_closed() -> None:
+    materialized = _materialize(
+        labels=(
+            MaterializedLabel(
+                sample_id="s-001",
+                evaluation_time=_utc("2026-01-09T00:00:00+00:00"),
+                horizon_end_time=None,
             ),
         )
     )
@@ -328,8 +429,16 @@ def test_direct_and_legitimate_spillover_pools_remain_evaluation_targets() -> No
     materialized = _materialize(
         samples=(direct, spill),
         labels=(
-            MaterializedLabel("s-direct", _utc("2026-01-09T00:00:00+00:00")),
-            MaterializedLabel("s-spill", _utc("2026-01-09T00:00:00+00:00")),
+            MaterializedLabel(
+                "s-direct",
+                _utc("2026-01-09T00:00:00+00:00"),
+                _utc("2026-01-09T00:00:00+00:00"),
+            ),
+            MaterializedLabel(
+                "s-spill",
+                _utc("2026-01-09T00:00:00+00:00"),
+                _utc("2026-01-09T00:00:00+00:00"),
+            ),
         ),
         features=(
             MaterializedFeature(
@@ -384,3 +493,54 @@ def test_evidence_fingerprint_is_deterministic_across_input_order() -> None:
 
     assert first.evidence_fingerprint == second.evidence_fingerprint
     assert first.feature_schema_hash == compute_feature_schema_hash(SCHEMA)
+
+
+@pytest.mark.parametrize(
+    "contract_field",
+    (
+        "version",
+        "node_properties",
+        "node_required",
+        "edge_source",
+        "edge_target",
+        "edge_properties",
+        "edge_max_hops",
+        "edge_top_k",
+        "edge_directed",
+    ),
+)
+def test_graph_schema_hash_binds_every_frozen_contract_field(
+    monkeypatch: pytest.MonkeyPatch,
+    contract_field: str,
+) -> None:
+    baseline = _materialize().graph_schema_hash
+    if contract_field == "version":
+        monkeypatch.setattr(
+            materializer_module,
+            "GRAPH_SCHEMA_CONTRACT_VERSION",
+            "seatflow-graph-contract-test-version",
+        )
+    elif contract_field.startswith("node_"):
+        schema = NODE_SCHEMAS[NodeType.STOCK]
+        if contract_field == "node_properties":
+            replacement = replace(schema, properties=schema.properties + ("probe",))
+        else:
+            replacement = replace(schema, required=schema.required + ("probe",))
+        monkeypatch.setitem(NODE_SCHEMAS, NodeType.STOCK, replacement)
+    else:
+        schema = EDGE_SCHEMAS[EdgeType.SPILLOVER_CANDIDATE]
+        replacements = {
+            "edge_source": {"source_type": NodeType.SEAT},
+            "edge_target": {"target_type": NodeType.EVENT},
+            "edge_properties": {"properties": schema.properties + ("probe",)},
+            "edge_max_hops": {"max_hops": schema.max_hops + 1},
+            "edge_top_k": {"top_k": schema.top_k + 1},
+            "edge_directed": {"directed": not schema.directed},
+        }
+        monkeypatch.setitem(
+            EDGE_SCHEMAS,
+            EdgeType.SPILLOVER_CANDIDATE,
+            replace(schema, **replacements[contract_field]),
+        )
+
+    assert _materialize().graph_schema_hash != baseline

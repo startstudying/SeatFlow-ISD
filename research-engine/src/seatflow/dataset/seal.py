@@ -85,6 +85,12 @@ def _materialization_mismatches(
     derived_fields: tuple[tuple[str, object, object], ...] = (
         ("evaluation_samples", provided.evaluation_samples, recomputed.evaluation_samples),
         ("findings", provided.findings, recomputed.findings),
+        ("trade_calendar", provided.trade_calendar, recomputed.trade_calendar),
+        (
+            "label_horizon_trading_days",
+            provided.label_horizon_trading_days,
+            recomputed.label_horizon_trading_days,
+        ),
         (
             "feature_schema_hash",
             provided.feature_schema_hash,
@@ -125,6 +131,7 @@ def seal_dataset(
         graph_nodes=materialized.graph_nodes,
         graph_edges=materialized.graph_edges,
         sample_graph_references=materialized.sample_graph_references,
+        trade_calendar=materialized.trade_calendar,
         materialized_at=materialized.materialized_at,
     )
     computed_results = _computed_gate_results(recomputed.findings)

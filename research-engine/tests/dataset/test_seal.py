@@ -39,7 +39,13 @@ def _materialized():
     )
     return materialize_dataset(
         samples=(sample,),
-        labels=(MaterializedLabel("s-001", _utc("2026-01-09T00:00:00+00:00")),),
+        labels=(
+            MaterializedLabel(
+                "s-001",
+                _utc("2026-01-09T00:00:00+00:00"),
+                _utc("2026-01-09T00:00:00+00:00"),
+            ),
+        ),
         features=(
             MaterializedFeature("s-001", "stock_volatility_5d", "1.0", 0.2, day),
         ),
@@ -47,6 +53,9 @@ def _materialized():
         graph_nodes=(GraphNodeEvidence("000001.SZ", "Stock"),),
         graph_edges=(),
         sample_graph_references={"s-001": ("000001.SZ",)},
+        trade_calendar=tuple(
+            _utc(f"2026-01-{day:02d}T00:00:00+00:00") for day in range(5, 10)
+        ),
         materialized_at=_utc("2026-01-12T00:00:00+00:00"),
     )
 
