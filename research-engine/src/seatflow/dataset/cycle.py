@@ -130,10 +130,11 @@ def _extension_end(
 ) -> datetime:
     end_idx = _trading_day_index(calendar, event_date) + extension_days
     if end_idx >= len(calendar):
-        raise ValueError(
-            f"trade_calendar does not contain {extension_days} later exchange "
-            f"trading days after {event_date.isoformat()}"
-        )
+        # Calendar boundary: clamp to the last available trading day.
+        # Cycles that end before the full extension will produce UNMATURE
+        # samples downstream — this is expected for the final days of the
+        # source window.
+        return calendar[-1]
     return calendar[end_idx]
 
 
