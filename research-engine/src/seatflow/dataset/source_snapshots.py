@@ -69,7 +69,15 @@ def discover_snapshot_records(
         trade_date = _parse_trade_date(match.group(1), snapshot_dir)
         manifest = _read_manifest(manifest_path)
         _require_manifest_value(manifest, "dataset", dataset_name, manifest_path)
-        _require_manifest_value(manifest, "date", trade_date.isoformat(), manifest_path)
+        # Accept either "date" (legacy format) or "trade_date" (Tushare format).
+        manifest_date = manifest.get("date")
+        if manifest_date is None:
+            manifest_date = manifest.get("trade_date")
+        if manifest_date != trade_date.isoformat():
+            raise ValueError(
+                f"{manifest_path} date mismatch: manifest={manifest_date!r} "
+                f"dir={trade_date.isoformat()!r}"
+            )
 
         raw = data_path.read_bytes()
         actual_sha256 = hashlib.sha256(raw).hexdigest()
@@ -97,6 +105,74 @@ def discover_snapshot_records(
             )
         )
     return tuple(sorted(records, key=lambda record: record.trade_date))
+
+
+def discover_and_load_records(
+    root: Path,
+    relative_dataset_path: Path,
+) -> list[tuple[SnapshotRecord, list[dict[str, object]]]]:
+    """Discover snapshots and load their rows in a single pass.
+
+    Unlike calling :func:`discover_snapshot_records` followed by
+    :func:`load_verified_rows` per record, this function reads each
+    file only once, avoiding the doubled I/O cost on large source
+    windows (870+ dates × multiple datasets).
+    """
+    dataset_root = root / relative_dataset_path
+    dataset_name = relative_dataset_path.name
+    if not dataset_root.exists():
+        return []
+
+    results: list[tuple[SnapshotRecord, list[dict[str, object]]]] = []
+    for snapshot_dir in dataset_root.iterdir():
+        if not snapshot_dir.is_dir():
+            continue
+        match = _DATE_DIR_RE.fullmatch(snapshot_dir.name)
+        if match is None:
+            continue
+        data_path = snapshot_dir / "data.json"
+        manifest_path = snapshot_dir / "manifest.json"
+        if not data_path.is_file() or not manifest_path.is_file():
+            continue
+
+        trade_date = _parse_trade_date(match.group(1), snapshot_dir)
+        manifest = _read_manifest(manifest_path)
+        _require_manifest_value(manifest, "dataset", dataset_name, manifest_path)
+        manifest_date = manifest.get("date")
+        if manifest_date is None:
+            manifest_date = manifest.get("trade_date")
+        if manifest_date != trade_date.isoformat():
+            raise ValueError(
+                f"{manifest_path} date mismatch: manifest={manifest_date!r} "
+                f"dir={trade_date.isoformat()!r}"
+            )
+
+        raw = data_path.read_bytes()
+        actual_sha256 = hashlib.sha256(raw).hexdigest()
+        manifest_sha256 = manifest.get("sha256")
+        if not isinstance(manifest_sha256, str) or not _SHA256_RE.fullmatch(manifest_sha256):
+            raise ValueError(f"{manifest_path} sha256 must be lowercase SHA-256 hex")
+        if not hmac.compare_digest(manifest_sha256, actual_sha256):
+            raise ValueError(f"{manifest_path} sha256 mismatch")
+
+        rows = _decode_json_rows(raw, data_path)
+        manifest_row_count = manifest.get("row_count")
+        if not isinstance(manifest_row_count, int) or isinstance(manifest_row_count, bool):
+            raise ValueError(f"{manifest_path} row count must be an integer")
+        if manifest_row_count != len(rows):
+            raise ValueError(f"{manifest_path} row count mismatch")
+
+        record = SnapshotRecord(
+            dataset=dataset_name,
+            trade_date=trade_date,
+            data_path=data_path,
+            manifest_path=manifest_path,
+            row_count=manifest_row_count,
+            sha256=manifest_sha256,
+        )
+        results.append((record, rows))
+    results.sort(key=lambda pair: pair[0].trade_date)
+    return results
 
 
 def load_verified_rows(record: SnapshotRecord) -> list[dict[str, object]]:
