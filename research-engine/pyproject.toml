@@ -40,6 +40,9 @@ dev = [
     "ruff>=0.1",
 ]
 
+[project.scripts]
+seatflow-isd = "seatflow.dataset.isd_cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/seatflow"]
 
