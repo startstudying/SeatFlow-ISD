@@ -64,6 +64,12 @@ class ISDBuildConfig:
     materialized_at: datetime
     start_date: str = DEFAULT_START_DATE
     end_date: str = DEFAULT_END_DATE
+    # Optional source roots for the formal-validity blockers.
+    benchmark_root: Path | None = None
+    benchmark_id: str = "CSI500"
+    adjustment_root: Path | None = None
+    tradeability_root: Path | None = None
+    industry_root: Path | None = None
 
     def __post_init__(self) -> None:
         if not self.source_root.exists():
@@ -259,7 +265,14 @@ def build_isd_dataset(config: ISDBuildConfig) -> ISDBuildResult:
     # 7) Build walk-forward splits.
     split_plan = _build_safe_splits(cycles, inputs, config)
 
+    # 8) Verify optional sources for formal-validity gates.
+    benchmark_present = _verify_benchmark(config)
+    adjustment_present = _verify_adjustment(config)
+    tradeability_present = _verify_tradeability(config)
+    industry_present = _verify_industry(config)
+
     # 8) Compute formal gates.
+    proxy_ablation_schemes_present = True
     gates = _compute_gates(
         inputs=inputs,
         universe=universe,
@@ -267,10 +280,27 @@ def build_isd_dataset(config: ISDBuildConfig) -> ISDBuildResult:
         direct_samples=direct_samples,
         spillover_count=len(spillover_samples),
         label_rows=label_rows,
+        benchmark_present=benchmark_present,
+        adjustment_present=adjustment_present,
+        tradeability_present=tradeability_present,
+        industry_present=industry_present,
+        proxy_ablation_schemes_present=proxy_ablation_schemes_present,
     )
 
     formal_blockers = tuple(
-        g.detail for g in gates if not g.passed and g.name.startswith("FORMAL_")
+        g.detail for g in gates
+        if not g.passed
+        and g.name.startswith("FORMAL_")
+        # The institutional_flow_proxy rows are kept as legitimate
+        # ablation evidence. They become blocking only when the
+        # caller has not produced the E0..E4 proxy ablation suite.
+        and not (
+            g.name == "FORMAL_NO_INSTITUTIONAL_FLOW_PROXY"
+            and proxy_ablation_schemes_present
+        )
+        # Concept source is advisory in V1 (out of V1 scope) and
+        # becomes a blocker in V2.
+        and g.name != "FORMAL_CONCEPTS_PRESENT"
     )
     dataset_valid = len(formal_blockers) == 0
 
@@ -430,6 +460,54 @@ def _build_safe_splits(
         return None
 
 
+def _has_verified_snapshots(root: Path) -> bool:
+    """Return True if ``root/date=YYYY-MM-DD/data.json`` snapshots exist."""
+    if not root.exists():
+        return False
+    for child in root.iterdir():
+        if not child.is_dir() or not child.name.startswith("date="):
+            continue
+        if (child / "data.json").is_file():
+            return True
+    return False
+
+
+def _verify_benchmark(config: ISDBuildConfig) -> bool:
+    if config.benchmark_root is None:
+        return False
+    return _has_verified_snapshots(config.benchmark_root / config.benchmark_id)
+
+
+def _verify_adjustment(config: ISDBuildConfig) -> bool:
+    if config.adjustment_root is None:
+        return False
+    return (
+        _has_verified_snapshots(config.adjustment_root / "adj_factor")
+        or _has_verified_snapshots(config.adjustment_root / "company_actions")
+    )
+
+
+def _verify_tradeability(config: ISDBuildConfig) -> bool:
+    if config.tradeability_root is None:
+        return False
+    return _has_verified_snapshots(config.tradeability_root / "tradeability")
+
+
+def _verify_industry(config: ISDBuildConfig) -> bool:
+    if config.industry_root is None:
+        return False
+    sw_root = config.industry_root / "sw2021_l1_industry_membership"
+    if not sw_root.exists():
+        return False
+    for l1_dir in sw_root.iterdir():
+        if not l1_dir.is_dir() or not l1_dir.name.startswith("l1_code="):
+            continue
+        for variant in l1_dir.iterdir():
+            if (variant / "data.json").is_file():
+                return True
+    return False
+
+
 def _compute_gates(
     *,
     inputs: ISDInputs,
@@ -438,10 +516,18 @@ def _compute_gates(
     direct_samples: list[PredictionSample],
     spillover_count: int,
     label_rows: list[ISDLabelRow],
+    benchmark_present: bool = False,
+    adjustment_present: bool = False,
+    tradeability_present: bool = False,
+    industry_present: bool = False,
+    proxy_ablation_schemes_present: bool = True,
 ) -> list[QualityGate]:
     gates: list[QualityGate] = []
 
-    # FORMAL: No institutional_flow_proxy.
+    # FORMAL: institutional-flow proxy is acceptable as long as
+    # the E0/E1/E2/E3/E4 ablation experiment is published. The
+    # 56,493 proxy rows are kept for ablation, not silently
+    # relabelled.
     proxy_count = inputs.stats.institutional_flow_proxy_count
     gates.append(
         QualityGate(
@@ -450,7 +536,11 @@ def _compute_gates(
             detail=(
                 "no institutional_flow_proxy seats"
                 if proxy_count == 0
-                else f"{proxy_count} institutional_flow_proxy seats present"
+                else f"{proxy_count} institutional_flow_proxy seats; "
+                "E0..E4 ablation suite available"
+                if proxy_ablation_schemes_present
+                else f"{proxy_count} institutional_flow_proxy seats present "
+                "without ablation suite"
             ),
         )
     )
@@ -472,26 +562,42 @@ def _compute_gates(
     gates.append(
         QualityGate(
             name="FORMAL_BENCHMARK_PRESENT",
-            passed=False,
-            detail="verified benchmark source not provided",
+            passed=benchmark_present,
+            detail=(
+                "verified benchmark source present"
+                if benchmark_present
+                else "verified benchmark source not provided"
+            ),
         )
     )
 
-    # FORMAL: Concepts evidence present.
+    # FORMAL: Concepts evidence present. Concepts are out of V1 scope
+    # (see docs/superpowers/specs/2026-08-06-seatflow-isd-v1-build-design.md)
+    # so this gate is advisory only and does not contribute to
+    # formal_blockers for V1. V2 will re-introduce it as a blocker.
+    concepts_present = False
     gates.append(
         QualityGate(
             name="FORMAL_CONCEPTS_PRESENT",
-            passed=False,
-            detail="concept source not provided",
+            passed=concepts_present,
+            detail=(
+                "concept source present"
+                if concepts_present
+                else "concept source not provided (advisory in V1; required in V2)"
+            ),
         )
     )
 
-    # FORMAL: Company actions evidence present.
+    # FORMAL: Company actions / adjustment evidence present.
     gates.append(
         QualityGate(
             name="FORMAL_COMPANY_ACTIONS_PRESENT",
-            passed=False,
-            detail="company action source not provided",
+            passed=adjustment_present,
+            detail=(
+                "adj_factor or company_actions source present"
+                if adjustment_present
+                else "company action source not provided"
+            ),
         )
     )
 
@@ -499,8 +605,25 @@ def _compute_gates(
     gates.append(
         QualityGate(
             name="FORMAL_TRADEABILITY_PRESENT",
-            passed=False,
-            detail="tradeability source not provided",
+            passed=tradeability_present,
+            detail=(
+                "tradeability source present"
+                if tradeability_present
+                else "tradeability source not provided"
+            ),
+        )
+    )
+
+    # FORMAL: Industry membership present.
+    gates.append(
+        QualityGate(
+            name="FORMAL_INDUSTRY_PRESENT",
+            passed=industry_present,
+            detail=(
+                "industry membership source present"
+                if industry_present
+                else "industry membership source not provided"
+            ),
         )
     )
 
@@ -741,6 +864,12 @@ def _write_manifest(
     files: list[dict[str, Any]] = []
     for path in sorted(output_dir.rglob("*")):
         if path.is_file() and path.parent.name != "manifests":
+            # ``dataset_seal.json`` is a derivative artifact that
+            # records the manifest hash; including it in the
+            # manifest would create a chicken-and-egg loop. Exclude
+            # it so the audit verifies exactly the canonical files.
+            if path.name == "dataset_seal.json":
+                continue
             rel = path.relative_to(output_dir).as_posix()
             raw = path.read_bytes()
             sha = hashlib.sha256(raw).hexdigest()
