@@ -30,7 +30,7 @@
     "autoprefixer": "^10",
     "eslint": "^8",
     "eslint-config-next": "^15.0",
-    "vitest": "^1.2",
+    "vitest": "^4.1",
     "@testing-library/react": "^16.1.0",
     "@testing-library/jest-dom": "^6",
     "jsdom": "^23",
